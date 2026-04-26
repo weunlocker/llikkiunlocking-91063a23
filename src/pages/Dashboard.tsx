@@ -278,6 +278,45 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!selectedService} onOpenChange={(o) => !o && setSelectedService(null)}>
+        <DialogContent className="glass">
+          <DialogHeader>
+            <DialogTitle>{selectedService?.name}</DialogTitle>
+            <DialogDescription>
+              Cost: <span className="font-mono text-primary font-bold">${Number(selectedService?.price ?? 0).toFixed(2)}</span> · Delivery: {selectedService?.delivery_time}
+            </DialogDescription>
+          </DialogHeader>
+          {!checkResult ? (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="dash-imei">IMEI / Serial</Label>
+                <Input id="dash-imei" value={imei} onChange={(e) => setImei(e.target.value)} placeholder="e.g. 356938035643809" maxLength={20} className="font-mono" />
+              </div>
+              <div className="flex items-center justify-between text-sm glass rounded-md p-3">
+                <span className="text-muted-foreground flex items-center gap-2"><Wallet className="w-4 h-4" /> Your balance</span>
+                <span className="font-mono font-bold">${Number(profile?.balance ?? 0).toFixed(2)}</span>
+              </div>
+              <Button variant="hero" className="w-full" onClick={submitCheck} disabled={submitting}>
+                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                Submit Check
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {checkResult.status === "completed" ? (
+                <div className="flex items-center gap-3 text-success"><CheckCircle2 className="w-6 h-6" /> Check completed</div>
+              ) : (
+                <div className="flex items-center gap-3 text-destructive"><XCircle className="w-6 h-6" /> Check failed</div>
+              )}
+              <pre className="glass rounded-md p-4 text-xs font-mono whitespace-pre-wrap break-words max-h-80 overflow-auto">
+                {checkResult.result || checkResult.error || "No response"}
+              </pre>
+              <Button variant="glass" className="w-full" onClick={() => setSelectedService(null)}>Close</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
