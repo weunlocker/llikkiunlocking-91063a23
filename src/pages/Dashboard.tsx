@@ -122,12 +122,56 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <Tabs defaultValue="orders">
-          <TabsList className="glass">
+        <Tabs defaultValue="services">
+          <TabsList className="glass flex-wrap h-auto">
+            <TabsTrigger value="services"><Smartphone className="w-4 h-4 mr-2" />Services</TabsTrigger>
             <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
             <TabsTrigger value="wallet"><Wallet className="w-4 h-4 mr-2" />Wallet History</TabsTrigger>
             <TabsTrigger value="api"><Key className="w-4 h-4 mr-2" />API Keys</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="services" className="mt-5">
+            <div className="glass rounded-2xl p-4 mb-4">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search services..."
+                  value={serviceQuery}
+                  onChange={(e) => setServiceQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            {loading ? (
+              <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>
+            ) : services.length === 0 ? (
+              <div className="glass rounded-2xl p-12 text-center text-muted-foreground">No services available yet.</div>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {services
+                  .filter((s) => {
+                    const q = serviceQuery.toLowerCase().trim();
+                    if (!q) return true;
+                    return s.name.toLowerCase().includes(q) || (s.description ?? "").toLowerCase().includes(q) || (s.category ?? "").toLowerCase().includes(q);
+                  })
+                  .map((s) => (
+                    <div key={s.id} className="glass rounded-xl p-5 hover:border-primary/40 hover:shadow-elegant transition-all flex flex-col">
+                      <div className="flex items-start justify-between mb-3">
+                        <Smartphone className="w-5 h-5 text-primary" />
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
+                      </div>
+                      <h3 className="font-bold mb-1">{s.name}</h3>
+                      {s.category && <div className="text-xs text-muted-foreground capitalize mb-2">{s.category}</div>}
+                      <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2">{s.description}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-xl font-bold font-mono">${Number(s.price).toFixed(2)}</div>
+                        <Button variant="neon" size="sm" onClick={() => openCheck(s)}>Check IMEI</Button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </TabsContent>
 
           <TabsContent value="orders" className="mt-5">
             <div className="glass rounded-2xl overflow-hidden">
