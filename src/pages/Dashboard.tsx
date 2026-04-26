@@ -6,39 +6,72 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, Key, History, Plus, Copy, Trash2, Loader2 } from "lucide-react";
+import { Wallet, Key, History, Plus, Copy, Trash2, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { imeiSchema } from "@/lib/validation";
 
 type Order = { id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
 type ApiKey = { id: string; name: string; key: string; active: boolean; last_used_at: string | null; created_at: string };
+type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null };
 
 export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [keys, setKeys] = useState<ApiKey[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [topupOpen, setTopupOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState("10");
   const [newKeyName, setNewKeyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [imei, setImei] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [checkResult, setCheckResult] = useState<{ status: string; result?: string; error?: string } | null>(null);
+  const [serviceQuery, setServiceQuery] = useState("");
 
   const load = async () => {
     if (!user) return;
-    const [{ data: o }, { data: t }, { data: k }] = await Promise.all([
+    const [{ data: o }, { data: t }, { data: k }, { data: svc }] = await Promise.all([
       supabase.from("orders").select("id,imei,status,price_charged,result,error_message,created_at,services(name)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("api_keys").select("id,name,key,active,last_used_at,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("services").select("id,name,description,price,delivery_time,category").eq("active", true).order("category").order("price"),
     ]);
     setOrders((o ?? []) as unknown as Order[]);
     setTxs((t ?? []) as Tx[]);
     setKeys((k ?? []) as ApiKey[]);
+    setServices((svc ?? []) as Service[]);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, [user]);
+
+  const openCheck = (s: Service) => { setSelectedService(s); setImei(""); setCheckResult(null); };
+
+  const submitCheck = async () => {
+    if (!selectedService) return;
+    const parsed = imeiSchema.safeParse(imei);
+    if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
+    if (!profile || Number(profile.balance) < Number(selectedService.price)) {
+      toast.error("Insufficient balance. Please top up.");
+      return;
+    }
+    setSubmitting(true);
+    const { data, error } = await supabase.functions.invoke("check-imei", {
+      body: { service_id: selectedService.id, imei: parsed.data },
+    });
+    setSubmitting(false);
+    if (error) { toast.error(error.message); return; }
+    setCheckResult(data);
+    refreshProfile();
+    load();
+    if (data?.status === "completed") toast.success("Check complete");
+    else if (data?.status === "failed") toast.error(data?.error ?? "Check failed");
+  };
 
   const requestTopup = async () => {
     const amt = Number(topupAmount);
