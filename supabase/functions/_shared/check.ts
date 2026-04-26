@@ -101,6 +101,18 @@ export async function executeCheck(opts: {
         resultText = service.response_template
           ? applyTemplate(service.response_template, raw)
           : (typeof raw === "string" ? raw : JSON.stringify(raw, null, 2));
+        // Normalize HTML output: convert <br> to newlines, strip remaining tags, decode common entities
+        resultText = resultText
+          .replace(/<br\s*\/?>/gi, "\n")
+          .replace(/<\/p>/gi, "\n")
+          .replace(/<[^>]+>/g, "")
+          .replace(/&nbsp;/g, " ")
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
         success = true;
       }
     } catch (e) {
