@@ -50,7 +50,17 @@ export default function Admin() {
     });
     if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
 
-    const payload = { ...parsed.data, response_template: editing.response_template ?? null, api_url: parsed.data.api_url || null };
+    const payload = {
+      name: parsed.data.name,
+      description: parsed.data.description ?? null,
+      price: parsed.data.price,
+      delivery_time: parsed.data.delivery_time,
+      api_url: parsed.data.api_url || null,
+      api_method: parsed.data.api_method,
+      category: parsed.data.category ?? "general",
+      active: parsed.data.active,
+      response_template: editing.response_template ?? null,
+    };
     const { error } = editing.id
       ? await supabase.from("services").update(payload).eq("id", editing.id)
       : await supabase.from("services").insert(payload);
