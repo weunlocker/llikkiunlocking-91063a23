@@ -360,6 +360,28 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!topupSuccess} onOpenChange={(o) => !o && setTopupSuccess(null)}>
+        <DialogContent className="glass max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-success">
+              <CheckCircle2 className="w-6 h-6" /> Top-up successful
+            </DialogTitle>
+            <DialogDescription>Your wallet has been credited.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="rounded-lg border border-success/30 bg-success/10 p-4 text-center">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">Added</div>
+              <div className="text-3xl font-bold text-success">+${topupSuccess?.amount.toFixed(2)}</div>
+            </div>
+            <div className="flex items-center justify-between rounded-md bg-secondary/40 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">New balance</span>
+              <span className="font-mono font-bold">${topupSuccess?.newBalance.toFixed(2)}</span>
+            </div>
+            <Button variant="hero" className="w-full" onClick={() => setTopupSuccess(null)}>Done</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!orderDetail} onOpenChange={(o) => !o && setOrderDetail(null)}>
         <DialogContent className="glass max-w-2xl">
           <DialogHeader><DialogTitle>{orderDetail?.services?.name}</DialogTitle></DialogHeader>
