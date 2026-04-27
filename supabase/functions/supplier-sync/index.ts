@@ -8,32 +8,29 @@ const corsHeaders = {
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-type DhruService = { id?: string | number; SERVICEID?: string | number; serviceid?: string | number; name?: string; SERVICENAME?: string; servicename?: string; price?: string | number; CREDIT?: string | number; credit?: string | number; time?: string; TIME?: string; info?: string; INFO?: string; description?: string };
-type DhruGroup = { GROUPNAME?: string; groupname?: string; SERVICES?: Record<string, DhruService> | DhruService[]; services?: Record<string, DhruService> | DhruService[] };
+type DhruService = { id: string | number; name: string; price?: string | number; time?: string; info?: string; raw?: unknown };
 
 function flatten(obj: unknown): DhruService[] {
-  // Dhru returns either {SUCCESS:[{LIST:{groupId:{GROUPNAME, SERVICES:{id:{...}}}}}]} or similar shapes
   const out: DhruService[] = [];
-  const walk = (node: unknown, group?: string) => {
+  const walk = (node: unknown) => {
     if (!node) return;
-    if (Array.isArray(node)) { node.forEach((n) => walk(n, group)); return; }
+    if (Array.isArray(node)) { node.forEach(walk); return; }
     if (typeof node !== "object") return;
     const o = node as Record<string, unknown>;
-    // Service-like leaf
     const id = o.SERVICEID ?? o.serviceid ?? o.id;
     const name = o.SERVICENAME ?? o.servicename ?? o.name;
-    if (id && name) {
+    if (id != null && name != null) {
       out.push({
         id: id as string | number,
-        name: name as string,
+        name: String(name),
         price: (o.CREDIT ?? o.credit ?? o.price) as string | number | undefined,
         time: (o.TIME ?? o.time) as string | undefined,
         info: (o.INFO ?? o.info ?? o.description) as string | undefined,
+        raw: o,
       });
       return;
     }
-    const groupName = (o.GROUPNAME ?? o.groupname) as string | undefined;
-    for (const v of Object.values(o)) walk(v, groupName ?? group);
+    for (const v of Object.values(o)) walk(v);
   };
   walk(obj);
   return out;
@@ -54,73 +51,48 @@ Deno.serve(async (req) => {
     const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin");
     if (!roles?.length) return json(403, { error: "Forbidden" });
 
-    const { supplier_id, mode = "preview", markup = 0 } = await req.json();
+    const { supplier_id } = await req.json();
     if (!supplier_id) return json(400, { error: "supplier_id required" });
 
     const { data: sup } = await admin.from("suppliers").select("*").eq("id", supplier_id).single();
     if (!sup) return json(404, { error: "Supplier not found" });
+    if (sup.type !== "dhru") return json(400, { error: "Sync only supported for Dhru-type suppliers" });
 
-    let services: DhruService[] = [];
+    const params = new URLSearchParams();
+    params.set("username", sup.dhru_username ?? "");
+    params.set("apikey", sup.dhru_api_key ?? "");
+    params.set("action", "imeiservicelist");
+    const r = await fetch(sup.endpoint_url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
+    const text = await r.text();
+    let payload: unknown;
+    try { payload = JSON.parse(text); } catch { return json(502, { error: "Supplier returned non-JSON", raw: text.slice(0, 500) }); }
+    const services = flatten(payload);
 
-    if (sup.type === "dhru") {
-      const params = new URLSearchParams();
-      params.set("username", sup.dhru_username ?? "");
-      params.set("apikey", sup.dhru_api_key ?? "");
-      params.set("action", "imeiservicelist");
-      const r = await fetch(sup.endpoint_url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
-      const text = await r.text();
-      let payload: unknown;
-      try { payload = JSON.parse(text); } catch { return json(502, { error: "Supplier returned non-JSON", raw: text.slice(0, 500) }); }
-      services = flatten(payload);
-    } else {
-      return json(400, { error: "Sync only supported for Dhru-type suppliers" });
-    }
-
-    // Dedupe by supplier_action
+    // Dedupe by id
     const seen = new Set<string>();
-    services = services.filter((s) => {
-      const k = String(s.id);
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
+    const unique = services.filter((s) => { const k = String(s.id); if (seen.has(k)) return false; seen.add(k); return true; });
 
-    if (mode === "preview") {
-      return json(200, { count: services.length, services: services.slice(0, 500) });
-    }
-
-    // Import: upsert by (supplier_id, supplier_action)
-    const { data: existing } = await admin.from("services").select("id,supplier_action").eq("supplier_id", supplier_id);
-    const existingMap = new Map((existing ?? []).map((e: { id: string; supplier_action: string | null }) => [e.supplier_action, e.id]));
-
-    let created = 0, updated = 0;
-    for (const s of services) {
-      const action = String(s.id);
-      const priceNum = Number(String(s.price ?? "0").replace(/[^0-9.]/g, "")) || 0;
-      const finalPrice = +(priceNum * (1 + Number(markup) / 100)).toFixed(2);
-      const row = {
-        name: String(s.name ?? action),
-        description: s.info ? String(s.info) : null,
-        price: finalPrice,
-        delivery_time: s.time ? String(s.time) : "Instant",
-        api_method: "POST",
-        active: true,
-        category: "imei",
+    // Refresh cache: delete old + insert fresh
+    await admin.from("supplier_services").delete().eq("supplier_id", supplier_id);
+    if (unique.length) {
+      const rows = unique.map((s) => ({
         supplier_id,
-        supplier_action: action,
-        success_rules: [{ path: "SUCCESS", op: "exists" }],
-      };
-      const id = existingMap.get(action);
-      if (id) {
-        await admin.from("services").update(row).eq("id", id);
-        updated++;
-      } else {
-        await admin.from("services").insert(row);
-        created++;
+        action_code: String(s.id),
+        name: s.name,
+        credit: s.price != null ? Number(String(s.price).replace(/[^0-9.]/g, "")) || null : null,
+        delivery_time: s.time ?? null,
+        info: s.info ?? null,
+        raw: s.raw ?? null,
+      }));
+      // Insert in chunks of 500
+      for (let i = 0; i < rows.length; i += 500) {
+        const slice = rows.slice(i, i + 500);
+        const { error } = await admin.from("supplier_services").insert(slice);
+        if (error) return json(500, { error: error.message });
       }
     }
 
-    return json(200, { ok: true, count: services.length, created, updated });
+    return json(200, { ok: true, count: unique.length });
   } catch (e) {
     return json(500, { error: e instanceof Error ? e.message : "unknown" });
   }
