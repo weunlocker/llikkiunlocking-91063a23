@@ -837,9 +837,14 @@ function AdminSuppliers() {
     try {
       const { data, error } = await supabase.functions.invoke("supplier-sync", { body: { supplier_id: s.id } });
       if (error) throw new Error(error.message);
-      const res = data as { count?: number; error?: string };
-      if (res.error) throw new Error(res.error);
-      toast.success(`Synced ${res.count ?? 0} services — pick them in the Service editor`);
+      const res = data as { count?: number; error?: string; raw_sample?: string; action_used?: string; services?: Array<{ id: string; name: string; group?: string | null; price?: string | number | null; time?: string | null }> };
+      if (res.error) {
+        toast.error(res.error + (res.raw_sample ? `\n\nRaw: ${res.raw_sample.slice(0, 200)}` : ""));
+        return;
+      }
+      toast.success(`Synced ${res.count ?? 0} services from ${s.name}`);
+      setSyncResult({ supplier: s, services: res.services ?? [], action_used: res.action_used });
+      setSyncQ("");
       load();
     } catch (e) {
       toast.error("Sync failed: " + (e instanceof Error ? e.message : "unknown"));
