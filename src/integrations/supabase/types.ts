@@ -102,6 +102,9 @@ export type Database = {
           display_name: string | null
           email: string | null
           id: string
+          notify_email: boolean
+          notify_telegram: boolean
+          telegram_chat_id: string | null
           updated_at: string
         }
         Insert: {
@@ -111,6 +114,9 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id: string
+          notify_email?: boolean
+          notify_telegram?: boolean
+          telegram_chat_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -120,6 +126,9 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          notify_email?: boolean
+          notify_telegram?: boolean
+          telegram_chat_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -129,6 +138,7 @@ export type Database = {
           active: boolean
           api_headers: Json | null
           api_method: string
+          api_request_body: string | null
           api_url: string | null
           category: string | null
           created_at: string
@@ -138,12 +148,14 @@ export type Database = {
           name: string
           price: number
           response_template: string | null
+          success_rules: Json | null
           updated_at: string
         }
         Insert: {
           active?: boolean
           api_headers?: Json | null
           api_method?: string
+          api_request_body?: string | null
           api_url?: string | null
           category?: string | null
           created_at?: string
@@ -153,12 +165,14 @@ export type Database = {
           name: string
           price?: number
           response_template?: string | null
+          success_rules?: Json | null
           updated_at?: string
         }
         Update: {
           active?: boolean
           api_headers?: Json | null
           api_method?: string
+          api_request_body?: string | null
           api_url?: string | null
           category?: string | null
           created_at?: string
@@ -168,6 +182,7 @@ export type Database = {
           name?: string
           price?: number
           response_template?: string | null
+          success_rules?: Json | null
           updated_at?: string
         }
         Relationships: []
