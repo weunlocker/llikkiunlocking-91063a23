@@ -169,18 +169,28 @@ export async function executeCheck(opts: {
           init.method = "POST";
           headers["Content-Type"] = "application/x-www-form-urlencoded";
           const action = (service.supplier_action || "").toString();
+          const username = String(supplier.dhru_username ?? "");
+          const apiKey = String(supplier.dhru_api_key ?? "");
           const params = new URLSearchParams();
           if (supplier.api_format === "bulk") {
             params.set("data", JSON.stringify({
-              username: String(supplier.dhru_username ?? ""),
-              apikey: String(supplier.dhru_api_key ?? ""),
+              username, apikey: apiKey,
               action: "placeimeiorder",
               service: action,
               imei: opts.imei,
             }));
+          } else if (supplier.api_format === "v6") {
+            // Dhru Fusion v6.1 — auth via apiaccesskey, parameters as XML
+            params.set("apiaccesskey", apiKey);
+            params.set("action", "placeimeiorder");
+            params.set("requestformat", "JSON");
+            if (username) params.set("username", username);
+            const xml = `<PARAMETERS><ID>${action}</ID><IMEI>${opts.imei}</IMEI></PARAMETERS>`;
+            params.set("parameters", xml);
           } else {
-            params.set("username", String(supplier.dhru_username ?? ""));
-            params.set("apikey", String(supplier.dhru_api_key ?? ""));
+            // classic legacy
+            params.set("username", username);
+            params.set("apikey", apiKey);
             params.set("action", "placeimeiorder");
             params.set("service", action);
             params.set("imei", opts.imei);

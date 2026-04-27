@@ -81,19 +81,32 @@ Deno.serve(async (req) => {
     let usedAction = "";
     let usedFormat = "";
 
+    // Dhru Fusion has THREE known authentication shapes in the wild:
+    //  - v6.1 (current spec): single field "apiaccesskey" + "action"
+    //  - classic (legacy v2): "username" + "apikey" + "action"
+    //  - bulk: form field "data" containing JSON {username, apikey, action}
+    // Most modern panels (e.g. goimeicheck.com, imeigsx.com) use v6.1 and reject
+    // the legacy username/apikey pair with "Authentication Failed".
     const buildRequests = (action: string) => {
+      const apiKey = String(sup.dhru_api_key ?? "");
+      const username = String(sup.dhru_username ?? "");
+
+      const v6 = new URLSearchParams();
+      v6.set("apiaccesskey", apiKey);
+      v6.set("action", action);
+      if (username) v6.set("username", username);
+      v6.set("requestformat", "JSON");
+
       const classic = new URLSearchParams();
-      classic.set("username", sup.dhru_username ?? "");
-      classic.set("apikey", sup.dhru_api_key ?? "");
+      classic.set("username", username);
+      classic.set("apikey", apiKey);
       classic.set("action", action);
 
       const bulk = new URLSearchParams();
-      bulk.set("data", JSON.stringify({
-        username: sup.dhru_username ?? "",
-        apikey: sup.dhru_api_key ?? "",
-        action,
-      }));
+      bulk.set("data", JSON.stringify({ username, apikey: apiKey, action }));
+
       return [
+        { format: "v6", body: v6.toString() },
         { format: "classic", body: classic.toString() },
         { format: "bulk", body: bulk.toString() },
       ];
