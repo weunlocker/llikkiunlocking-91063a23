@@ -74,6 +74,7 @@ Deno.serve(async (req) => {
     const actions = ["imeiservicelist", "getimeiservices", "imeiservices"];
     let services: DhruService[] = [];
     let lastRaw = "";
+    let lastErrorMsg = "";
     let usedAction = "";
 
     for (const action of actions) {
@@ -87,13 +88,25 @@ Deno.serve(async (req) => {
       console.log(`[supplier-sync] action=${action} status=${r.status} sample=`, text.slice(0, 400));
       let payload: unknown;
       try { payload = JSON.parse(text); } catch { continue; }
+      // Detect Dhru error envelope
+      const p = payload as Record<string, unknown> | null;
+      const errBlock = p?.ERROR ?? p?.error;
+      if (errBlock) {
+        const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
+        const e = eArr as Record<string, unknown> | undefined;
+        lastErrorMsg = String(e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Supplier returned an error");
+        continue;
+      }
       const found = flatten(payload);
       if (found.length > 0) { services = found; usedAction = action; break; }
     }
 
     if (services.length === 0) {
-      return json(502, {
-        error: "Supplier returned no services. Check API credentials / endpoint, or your Dhru account may not expose IMEI services.",
+      const isAuth = /auth/i.test(lastErrorMsg);
+      return json(isAuth ? 401 : 502, {
+        error: lastErrorMsg
+          ? `Dhru: ${lastErrorMsg}${isAuth ? " — check the Username and API Key on this supplier (and IP whitelist on Dhru)." : ""}`
+          : "Supplier returned no services. The endpoint/account may not expose IMEI services.",
         raw_sample: lastRaw.slice(0, 800),
       });
     }
