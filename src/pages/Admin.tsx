@@ -245,10 +245,48 @@ export default function Admin() {
                   </Select>
                 </div>
               </div>
+              {editing.api_method === "POST" && (
+                <div>
+                  <Label>POST Request Body Template (optional)</Label>
+                  <Textarea value={editing.api_request_body ?? ""} onChange={(e) => setEditing({ ...editing, api_request_body: e.target.value })} placeholder='e.g. {"username":"x","apikey":"y","service":1,"imei":"{IMEI}"}' rows={3} className="font-mono text-xs" />
+                  <p className="text-xs text-muted-foreground mt-1">Use {"{IMEI}"} placeholder. JSON or URL-encoded — set Content-Type via headers.</p>
+                </div>
+              )}
               <div>
                 <Label>Response Template (optional, leave blank to return raw provider response)</Label>
                 <Textarea value={editing.response_template ?? ""} onChange={(e) => setEditing({ ...editing, response_template: e.target.value })} placeholder="e.g. Model: {model}\nIMEI: {imei}" rows={3} />
-                <p className="text-xs text-muted-foreground mt-1">Use {"{field}"} to insert JSON response fields.</p>
+                <p className="text-xs text-muted-foreground mt-1">Use {"{field}"} or {"{nested.field}"} to insert response values.</p>
+              </div>
+
+              <div className="rounded-lg border border-border/60 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">Success Rules</Label>
+                    <p className="text-xs text-muted-foreground">All rules must pass. If none defined, any HTTP 200 = success.</p>
+                  </div>
+                  <Button type="button" size="sm" variant="ghost" onClick={addRule}><Plus className="w-3 h-3 mr-1" />Add Rule</Button>
+                </div>
+                {(editing.success_rules ?? []).length === 0 && <p className="text-xs text-muted-foreground italic">No rules — accepting any 200 response.</p>}
+                {(editing.success_rules ?? []).map((r, i) => (
+                  <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                    <Input className="col-span-4 font-mono text-xs" placeholder="JSON path (e.g. success or data.status)" value={r.path} onChange={(e) => updateRule(i, { path: e.target.value })} />
+                    <Select value={r.op} onValueChange={(v) => updateRule(i, { op: v as SuccessRule["op"] })}>
+                      <SelectTrigger className="col-span-3 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="truthy">is truthy</SelectItem>
+                        <SelectItem value="exists">exists</SelectItem>
+                        <SelectItem value="eq">equals</SelectItem>
+                        <SelectItem value="neq">not equals</SelectItem>
+                        <SelectItem value="contains">contains</SelectItem>
+                        <SelectItem value="not_contains">not contains</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {(r.op === "eq" || r.op === "neq" || r.op === "contains" || r.op === "not_contains") ? (
+                      <Input className="col-span-4 font-mono text-xs" placeholder="value" value={String(r.value ?? "")} onChange={(e) => updateRule(i, { value: e.target.value })} />
+                    ) : <div className="col-span-4" />}
+                    <Button type="button" size="icon" variant="ghost" className="col-span-1" onClick={() => removeRule(i)}><Trash2 className="w-3 h-3 text-destructive" /></Button>
+                  </div>
+                ))}
               </div>
               <div className="flex items-center gap-3">
                 <Switch checked={editing.active ?? true} onCheckedChange={(v) => setEditing({ ...editing, active: v })} />
