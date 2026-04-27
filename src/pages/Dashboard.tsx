@@ -10,7 +10,8 @@ import { Wallet, Key, History, Plus, Copy, Trash2, Loader2, Smartphone, Clock, C
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { imeiSchema, telegramChatIdSchema } from "@/lib/validation";
+import { telegramChatIdSchema } from "@/lib/validation";
+import ImeiCheckDialog from "@/components/ImeiCheckDialog";
 
 type Order = { id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
@@ -30,9 +31,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [imei, setImei] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [checkResult, setCheckResult] = useState<{ status: string; result?: string; error?: string } | null>(null);
   const [serviceQuery, setServiceQuery] = useState("");
   const [tgChatId, setTgChatId] = useState("");
   const [tgEnabled, setTgEnabled] = useState(false);
