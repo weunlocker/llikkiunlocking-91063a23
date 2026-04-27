@@ -411,13 +411,19 @@ function AdminServices() {
                                   <button
                                     key={s.action_code}
                                     type="button"
-                                    onClick={() => setEditing({
-                                      ...editing,
-                                      supplier_action: s.action_code,
-                                      name: editing.name || s.name,
-                                      delivery_time: editing.delivery_time && editing.delivery_time !== "Instant" ? editing.delivery_time : (s.delivery_time || "Instant"),
-                                    })}
-                                    className={`w-full text-left px-3 py-1.5 text-xs flex justify-between gap-2 hover:bg-primary/10 ${selected ? "bg-primary/20" : ""}`}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setEditing((prev) => ({
+                                        ...prev,
+                                        supplier_action: s.action_code,
+                                        name: prev.name || s.name,
+                                        delivery_time: prev.delivery_time && prev.delivery_time !== "Instant" ? prev.delivery_time : (s.delivery_time || "Instant"),
+                                        price: prev.price && Number(prev.price) > 0 ? prev.price : (s.credit != null ? Number(s.credit) : prev.price),
+                                      }));
+                                      setSupSvcQ("");
+                                    }}
+                                    className={`w-full text-left px-3 py-1.5 text-xs flex justify-between gap-2 hover:bg-primary/10 ${selected ? "bg-primary/20 ring-1 ring-primary" : ""}`}
                                   >
                                     <span className="truncate"><span className="font-mono text-primary">#{s.action_code}</span> {s.name}</span>
                                     <span className="text-muted-foreground whitespace-nowrap">{s.credit != null ? `${s.credit} cr` : ""}{s.delivery_time ? ` · ${s.delivery_time}` : ""}</span>
