@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
   // Pull pending orders that have a supplier reference (i.e. async)
   const { data: pending, error } = await sb
     .from("orders")
-    .select("id, user_id, imei, price_charged, supplier_reference, poll_attempts, service_id, services(name, response_template, success_rules, supplier_id, suppliers(type, endpoint_url, dhru_username, dhru_api_key))")
+    .select("id, user_id, imei, price_charged, supplier_reference, poll_attempts, service_id, services(name, response_template, success_rules, supplier_id, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))")
     .eq("status", "pending")
     .not("supplier_reference", "is", null)
     .order("last_polled_at", { ascending: true, nullsFirst: true })
@@ -54,10 +54,19 @@ Deno.serve(async (req) => {
 
     try {
       const params = new URLSearchParams();
-      params.set("username", sup.dhru_username ?? "");
-      params.set("apikey", sup.dhru_api_key ?? "");
-      params.set("action", "getimeiorder");
-      params.set("id", String(o.supplier_reference));
+      if (sup.api_format === "bulk") {
+        params.set("data", JSON.stringify({
+          username: sup.dhru_username ?? "",
+          apikey: sup.dhru_api_key ?? "",
+          action: "getimeiorder",
+          id: String(o.supplier_reference),
+        }));
+      } else {
+        params.set("username", sup.dhru_username ?? "");
+        params.set("apikey", sup.dhru_api_key ?? "");
+        params.set("action", "getimeiorder");
+        params.set("id", String(o.supplier_reference));
+      }
       const r = await fetch(sup.endpoint_url, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },

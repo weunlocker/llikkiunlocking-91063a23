@@ -165,16 +165,26 @@ export async function executeCheck(opts: {
         // Build request from supplier
         url = String(supplier.endpoint_url);
         if (supplier.type === "dhru") {
-          // Dhru API: POST x-www-form-urlencoded with username, apikey, action, service, imei
+          // Dhru API: classic or Bulk v6.1+ (POST x-www-form-urlencoded)
           init.method = "POST";
           headers["Content-Type"] = "application/x-www-form-urlencoded";
           const action = (service.supplier_action || "").toString();
           const params = new URLSearchParams();
-          params.set("username", String(supplier.dhru_username ?? ""));
-          params.set("apikey", String(supplier.dhru_api_key ?? ""));
-          params.set("action", "placeimeiorder");
-          params.set("service", action);
-          params.set("imei", opts.imei);
+          if (supplier.api_format === "bulk") {
+            params.set("data", JSON.stringify({
+              username: String(supplier.dhru_username ?? ""),
+              apikey: String(supplier.dhru_api_key ?? ""),
+              action: "placeimeiorder",
+              service: action,
+              imei: opts.imei,
+            }));
+          } else {
+            params.set("username", String(supplier.dhru_username ?? ""));
+            params.set("apikey", String(supplier.dhru_api_key ?? ""));
+            params.set("action", "placeimeiorder");
+            params.set("service", action);
+            params.set("imei", opts.imei);
+          }
           init.body = params.toString();
         } else {
           // generic supplier: substitute {IMEI} and {ACTION} in endpoint
