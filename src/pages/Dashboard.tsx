@@ -123,8 +123,8 @@ export default function Dashboard() {
     const { error } = await supabase.functions.invoke("wallet-topup", { body: { amount: amt } });
     if (error) { toast.error(error.message); return; }
     setTopupOpen(false);
-    const updated = await refreshProfile();
-    const newBalance = Number((updated as { balance?: number } | null)?.balance ?? (Number(profile?.balance ?? 0) + amt));
+    await refreshProfile();
+    const newBalance = Number(profile?.balance ?? 0) + amt;
     setTopupSuccess({ amount: amt, newBalance });
     load();
   };
