@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Loader2, RotateCcw, Search, TrendingUp, Users as UsersIcon, Briefcase, ListOrdered, DollarSign, AlertCircle, RefreshCw, Download } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, RotateCcw, Search, TrendingUp, Users as UsersIcon, Briefcase, ListOrdered, DollarSign, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 
@@ -225,12 +225,17 @@ function AdminUsers() {
 }
 
 /* ---------- Services ---------- */
+type SupplierService = { action_code: string; name: string; credit: number | null; delivery_time: string | null };
+
 function AdminServices() {
   const [services, setServices] = useState<Service[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Service> | null>(null);
   const [q, setQ] = useState("");
+  const [supSvc, setSupSvc] = useState<SupplierService[]>([]);
+  const [supSvcLoading, setSupSvcLoading] = useState(false);
+  const [supSvcQ, setSupSvcQ] = useState("");
 
   const load = async () => {
     const [{ data: svc }, { data: sup }] = await Promise.all([
@@ -242,6 +247,17 @@ function AdminServices() {
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  // Load supplier's cached services whenever picked supplier changes in the editor
+  useEffect(() => {
+    const sid = editing?.supplier_id;
+    if (!sid) { setSupSvc([]); setSupSvcQ(""); return; }
+    setSupSvcLoading(true);
+    supabase.from("supplier_services").select("action_code,name,credit,delivery_time").eq("supplier_id", sid).order("name").then(({ data }) => {
+      setSupSvc((data ?? []) as SupplierService[]);
+      setSupSvcLoading(false);
+    });
+  }, [editing?.supplier_id]);
 
   const filtered = useMemo(() => services.filter((s) =>
     !q || s.name.toLowerCase().includes(q.toLowerCase()) || s.category?.toLowerCase().includes(q.toLowerCase())
@@ -358,10 +374,10 @@ function AdminServices() {
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
                 <Label className="text-sm font-bold text-primary">Supplier (optional)</Label>
                 <p className="text-xs text-muted-foreground">Pick a saved supplier to route this service through. Leave as "None" to use a direct API URL below.</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2">
                   <Select
                     value={editing.supplier_id ?? "none"}
-                    onValueChange={(v) => setEditing({ ...editing, supplier_id: v === "none" ? null : v })}
+                    onValueChange={(v) => setEditing({ ...editing, supplier_id: v === "none" ? null : v, supplier_action: v === "none" ? null : editing.supplier_action })}
                   >
                     <SelectTrigger><SelectValue placeholder="None — use direct API URL" /></SelectTrigger>
                     <SelectContent>
@@ -371,12 +387,51 @@ function AdminServices() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Input
-                    value={editing.supplier_action ?? ""}
-                    onChange={(e) => setEditing({ ...editing, supplier_action: e.target.value })}
-                    placeholder="Service code (e.g. 129)"
-                    disabled={!editing.supplier_id}
-                  />
+
+                  {editing.supplier_id && (
+                    <div className="space-y-2">
+                      <Label className="text-xs">Supplier service</Label>
+                      {supSvcLoading ? (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />Loading supplier services…</div>
+                      ) : supSvc.length === 0 ? (
+                        <div className="text-xs text-muted-foreground p-2 rounded bg-secondary/40">
+                          No cached services for this supplier. Go to <b>Suppliers</b> → click <b>Sync</b>, then come back. You can also enter the service code manually below.
+                          <Input className="mt-2" value={editing.supplier_action ?? ""} onChange={(e) => setEditing({ ...editing, supplier_action: e.target.value })} placeholder="Service code (e.g. 129)" />
+                        </div>
+                      ) : (
+                        <>
+                          <Input value={supSvcQ} onChange={(e) => setSupSvcQ(e.target.value)} placeholder={`Search ${supSvc.length} synced services…`} />
+                          <div className="max-h-56 overflow-y-auto rounded border border-border/50 bg-background/50">
+                            {supSvc
+                              .filter((s) => !supSvcQ || s.name.toLowerCase().includes(supSvcQ.toLowerCase()) || s.action_code.includes(supSvcQ))
+                              .slice(0, 200)
+                              .map((s) => {
+                                const selected = editing.supplier_action === s.action_code;
+                                return (
+                                  <button
+                                    key={s.action_code}
+                                    type="button"
+                                    onClick={() => setEditing({
+                                      ...editing,
+                                      supplier_action: s.action_code,
+                                      name: editing.name || s.name,
+                                      delivery_time: editing.delivery_time && editing.delivery_time !== "Instant" ? editing.delivery_time : (s.delivery_time || "Instant"),
+                                    })}
+                                    className={`w-full text-left px-3 py-1.5 text-xs flex justify-between gap-2 hover:bg-primary/10 ${selected ? "bg-primary/20" : ""}`}
+                                  >
+                                    <span className="truncate"><span className="font-mono text-primary">#{s.action_code}</span> {s.name}</span>
+                                    <span className="text-muted-foreground whitespace-nowrap">{s.credit != null ? `${s.credit} cr` : ""}{s.delivery_time ? ` · ${s.delivery_time}` : ""}</span>
+                                  </button>
+                                );
+                              })}
+                          </div>
+                          {editing.supplier_action && (
+                            <div className="text-xs text-success">Selected: <span className="font-mono">#{editing.supplier_action}</span></div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -708,17 +763,19 @@ function AdminSettings() {
 /* ---------- Suppliers ---------- */
 function AdminSuppliers() {
   const [list, setList] = useState<Supplier[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Supplier> | null>(null);
   const [testing, setTesting] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
-  const [syncResult, setSyncResult] = useState<{ supplier: Supplier; services: Array<{ id: string | number; name: string; price?: string | number; time?: string }>; count: number } | null>(null);
-  const [markup, setMarkup] = useState(0);
-  const [importing, setImporting] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("suppliers").select("*").order("name");
     setList((data ?? []) as unknown as Supplier[]);
+    const { data: ss } = await supabase.from("supplier_services").select("supplier_id");
+    const c: Record<string, number> = {};
+    (ss ?? []).forEach((r: { supplier_id: string }) => { c[r.supplier_id] = (c[r.supplier_id] ?? 0) + 1; });
+    setCounts(c);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -772,25 +829,20 @@ function AdminSuppliers() {
     setTesting(false);
   };
 
-  const syncSupplier = async (s: Supplier, mode: "preview" | "import" = "preview", markupPct = 0) => {
+  const syncSupplier = async (s: Supplier) => {
     if (s.type !== "dhru") { toast.error("Sync only works for Dhru suppliers"); return; }
-    if (mode === "preview") setSyncing(s.id); else setImporting(true);
+    setSyncing(s.id);
     try {
-      const { data, error } = await supabase.functions.invoke("supplier-sync", { body: { supplier_id: s.id, mode, markup: markupPct } });
+      const { data, error } = await supabase.functions.invoke("supplier-sync", { body: { supplier_id: s.id } });
       if (error) throw new Error(error.message);
-      const res = data as { count: number; services?: Array<{ id: string | number; name: string; price?: string | number; time?: string }>; created?: number; updated?: number; error?: string };
+      const res = data as { count?: number; error?: string };
       if (res.error) throw new Error(res.error);
-      if (mode === "preview") {
-        setSyncResult({ supplier: s, services: res.services ?? [], count: res.count });
-        toast.success(`Found ${res.count} services`);
-      } else {
-        toast.success(`Imported: ${res.created} new, ${res.updated} updated`);
-        setSyncResult(null);
-      }
+      toast.success(`Synced ${res.count ?? 0} services — pick them in the Service editor`);
+      load();
     } catch (e) {
       toast.error("Sync failed: " + (e instanceof Error ? e.message : "unknown"));
     }
-    setSyncing(null); setImporting(false);
+    setSyncing(null);
   };
 
   return (
@@ -818,9 +870,12 @@ function AdminSuppliers() {
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
                     {s.type === "dhru" && (
-                      <Button size="sm" variant="outline" className="mr-1" onClick={() => syncSupplier(s, "preview")} disabled={syncing === s.id}>
-                        {syncing === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <><RefreshCw className="w-4 h-4 mr-1" />Sync</>}
-                      </Button>
+                      <>
+                        {counts[s.id] != null && <span className="text-xs text-muted-foreground mr-2">{counts[s.id]} synced</span>}
+                        <Button size="sm" variant="outline" className="mr-1" onClick={() => syncSupplier(s)} disabled={syncing === s.id}>
+                          {syncing === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <><RefreshCw className="w-4 h-4 mr-1" />Sync</>}
+                        </Button>
+                      </>
                     )}
                     <Button size="icon" variant="ghost" onClick={() => setEditing(s)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => del(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
@@ -882,45 +937,6 @@ function AdminSuppliers() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!syncResult} onOpenChange={(o) => !o && setSyncResult(null)}>
-        <DialogContent className="glass max-w-3xl max-h-[90vh] overflow-auto">
-          <DialogHeader><DialogTitle>Sync preview — {syncResult?.supplier.name}</DialogTitle></DialogHeader>
-          {syncResult && (
-            <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                Found <b className="text-foreground">{syncResult.count}</b> services from supplier. Adjust price markup and import — existing services (matched by supplier action code) will be updated, new ones created.
-              </div>
-              <div className="flex items-end gap-3">
-                <div className="flex-1">
-                  <Label>Price markup %</Label>
-                  <Input type="number" value={markup} onChange={(e) => setMarkup(Number(e.target.value) || 0)} placeholder="e.g. 25 = +25% over supplier credit" />
-                </div>
-                <Button variant="hero" onClick={() => syncSupplier(syncResult.supplier, "import", markup)} disabled={importing}>
-                  {importing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
-                  Import all {syncResult.count}
-                </Button>
-              </div>
-              <div className="glass rounded-xl overflow-hidden max-h-[50vh] overflow-y-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-secondary/40 text-left uppercase tracking-wider sticky top-0">
-                    <tr><th className="px-3 py-2">Code</th><th className="px-3 py-2">Name</th><th className="px-3 py-2">Credit</th><th className="px-3 py-2">Time</th></tr>
-                  </thead>
-                  <tbody>
-                    {syncResult.services.map((s) => (
-                      <tr key={String(s.id)} className="border-t border-border/50">
-                        <td className="px-3 py-1.5 font-mono">{String(s.id)}</td>
-                        <td className="px-3 py-1.5">{s.name}</td>
-                        <td className="px-3 py-1.5">{s.price ?? "—"}</td>
-                        <td className="px-3 py-1.5">{s.time ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </AdminLayout>
   );
 }
