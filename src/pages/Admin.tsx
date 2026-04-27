@@ -35,7 +35,7 @@ export default function Admin() {
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("orders").select("*, services(name), profiles!orders_user_id_fkey(email)").order("created_at", { ascending: false }).limit(100),
     ]);
-    setServices((s.data ?? []) as Service[]);
+    setServices((s.data ?? []) as unknown as Service[]);
     setUsers((u.data ?? []) as ProfileRow[]);
     setOrders((o.data ?? []) as unknown as OrderRow[]);
     setLoading(false);
