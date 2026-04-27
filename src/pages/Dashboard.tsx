@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, Key, History, Plus, Copy, Trash2, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search } from "lucide-react";
+import { Wallet, Key, History, Plus, Copy, Trash2, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { imeiSchema } from "@/lib/validation";
+import { Switch } from "@/components/ui/switch";
+import { imeiSchema, telegramChatIdSchema } from "@/lib/validation";
 
 type Order = { id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
