@@ -33,6 +33,48 @@ export default function Dashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [checkResult, setCheckResult] = useState<{ status: string; result?: string; error?: string } | null>(null);
   const [serviceQuery, setServiceQuery] = useState("");
+  const [tgChatId, setTgChatId] = useState("");
+  const [tgEnabled, setTgEnabled] = useState(false);
+  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [savingPrefs, setSavingPrefs] = useState(false);
+  const [testingTg, setTestingTg] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setTgChatId(profile.telegram_chat_id ?? "");
+      setTgEnabled(profile.notify_telegram ?? false);
+      setEmailEnabled(profile.notify_email ?? true);
+    }
+  }, [profile]);
+
+  const savePrefs = async () => {
+    if (!user) return;
+    const parsed = telegramChatIdSchema.safeParse(tgChatId);
+    if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
+    setSavingPrefs(true);
+    const { error } = await supabase.from("profiles").update({
+      telegram_chat_id: tgChatId.trim() || null,
+      notify_telegram: tgEnabled,
+      notify_email: emailEnabled,
+    }).eq("id", user.id);
+    setSavingPrefs(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Preferences saved");
+    refreshProfile();
+  };
+
+  const sendTestTg = async () => {
+    if (!user) return;
+    setTestingTg(true);
+    const { data, error } = await supabase.functions.invoke("telegram-notify", {
+      body: { user_id: user.id, subject: "🔔 Test notification", body: "If you can read this, your Telegram notifications are working perfectly." },
+    });
+    setTestingTg(false);
+    if (error) { toast.error(error.message); return; }
+    const tgResult = (data as { results?: { telegram?: string } })?.results?.telegram;
+    if (tgResult === "sent") toast.success("Test sent — check your Telegram");
+    else toast.error(`Test failed: ${tgResult ?? "unknown"}`);
+  };
 
   const load = async () => {
     if (!user) return;
