@@ -937,45 +937,6 @@ function AdminSuppliers() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!syncResult} onOpenChange={(o) => !o && setSyncResult(null)}>
-        <DialogContent className="glass max-w-3xl max-h-[90vh] overflow-auto">
-          <DialogHeader><DialogTitle>Sync preview — {syncResult?.supplier.name}</DialogTitle></DialogHeader>
-          {syncResult && (
-            <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                Found <b className="text-foreground">{syncResult.count}</b> services from supplier. Adjust price markup and import — existing services (matched by supplier action code) will be updated, new ones created.
-              </div>
-              <div className="flex items-end gap-3">
-                <div className="flex-1">
-                  <Label>Price markup %</Label>
-                  <Input type="number" value={markup} onChange={(e) => setMarkup(Number(e.target.value) || 0)} placeholder="e.g. 25 = +25% over supplier credit" />
-                </div>
-                <Button variant="hero" onClick={() => syncSupplier(syncResult.supplier, "import", markup)} disabled={importing}>
-                  {importing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
-                  Import all {syncResult.count}
-                </Button>
-              </div>
-              <div className="glass rounded-xl overflow-hidden max-h-[50vh] overflow-y-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-secondary/40 text-left uppercase tracking-wider sticky top-0">
-                    <tr><th className="px-3 py-2">Code</th><th className="px-3 py-2">Name</th><th className="px-3 py-2">Credit</th><th className="px-3 py-2">Time</th></tr>
-                  </thead>
-                  <tbody>
-                    {syncResult.services.map((s) => (
-                      <tr key={String(s.id)} className="border-t border-border/50">
-                        <td className="px-3 py-1.5 font-mono">{String(s.id)}</td>
-                        <td className="px-3 py-1.5">{s.name}</td>
-                        <td className="px-3 py-1.5">{s.price ?? "—"}</td>
-                        <td className="px-3 py-1.5">{s.time ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </AdminLayout>
   );
 }
