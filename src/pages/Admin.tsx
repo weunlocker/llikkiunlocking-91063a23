@@ -227,13 +227,19 @@ function AdminUsers() {
 /* ---------- Services ---------- */
 function AdminServices() {
   const [services, setServices] = useState<Service[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Service> | null>(null);
   const [q, setQ] = useState("");
 
   const load = async () => {
-    const { data } = await supabase.from("services").select("*").order("category").order("name");
-    setServices((data ?? []) as unknown as Service[]); setLoading(false);
+    const [{ data: svc }, { data: sup }] = await Promise.all([
+      supabase.from("services").select("*").order("category").order("name"),
+      supabase.from("suppliers").select("id,name,type,endpoint_url,dhru_username,dhru_api_key,active,notes").order("name"),
+    ]);
+    setServices((svc ?? []) as unknown as Service[]);
+    setSuppliers((sup ?? []) as unknown as Supplier[]);
+    setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
@@ -243,18 +249,26 @@ function AdminServices() {
 
   const saveService = async () => {
     if (!editing) return;
+    const usingSupplier = !!editing.supplier_id;
     const parsed = serviceSchema.safeParse({
       name: editing.name, description: editing.description, price: Number(editing.price),
-      delivery_time: editing.delivery_time, api_url: editing.api_url, api_method: editing.api_method,
+      delivery_time: editing.delivery_time,
+      // when using supplier, api_url is optional
+      api_url: usingSupplier ? (editing.api_url || "https://supplier.local") : editing.api_url,
+      api_method: editing.api_method,
       category: editing.category, active: editing.active,
     });
     if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
     const payload = {
       name: parsed.data.name, description: parsed.data.description ?? null, price: parsed.data.price,
-      delivery_time: parsed.data.delivery_time, api_url: parsed.data.api_url || null, api_method: parsed.data.api_method,
+      delivery_time: parsed.data.delivery_time,
+      api_url: usingSupplier ? null : (parsed.data.api_url || null),
+      api_method: parsed.data.api_method,
       api_request_body: editing.api_request_body ?? null, category: parsed.data.category ?? "general",
       active: parsed.data.active, response_template: editing.response_template ?? null,
       success_rules: (editing.success_rules ?? []) as unknown as never,
+      supplier_id: editing.supplier_id ?? null,
+      supplier_action: editing.supplier_action || null,
     };
     const { error } = editing.id
       ? await supabase.from("services").update(payload).eq("id", editing.id)
