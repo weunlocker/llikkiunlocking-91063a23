@@ -2,3 +2,6 @@ project_id = "jhkumqyugvezfulkoine"
 
 [functions.api-check]
 verify_jwt = false
+
+[functions.telegram-notify]
+verify_jwt = false
