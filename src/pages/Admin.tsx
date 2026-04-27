@@ -225,12 +225,17 @@ function AdminUsers() {
 }
 
 /* ---------- Services ---------- */
+type SupplierService = { action_code: string; name: string; credit: number | null; delivery_time: string | null };
+
 function AdminServices() {
   const [services, setServices] = useState<Service[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Service> | null>(null);
   const [q, setQ] = useState("");
+  const [supSvc, setSupSvc] = useState<SupplierService[]>([]);
+  const [supSvcLoading, setSupSvcLoading] = useState(false);
+  const [supSvcQ, setSupSvcQ] = useState("");
 
   const load = async () => {
     const [{ data: svc }, { data: sup }] = await Promise.all([
@@ -242,6 +247,17 @@ function AdminServices() {
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  // Load supplier's cached services whenever picked supplier changes in the editor
+  useEffect(() => {
+    const sid = editing?.supplier_id;
+    if (!sid) { setSupSvc([]); setSupSvcQ(""); return; }
+    setSupSvcLoading(true);
+    supabase.from("supplier_services").select("action_code,name,credit,delivery_time").eq("supplier_id", sid).order("name").then(({ data }) => {
+      setSupSvc((data ?? []) as SupplierService[]);
+      setSupSvcLoading(false);
+    });
+  }, [editing?.supplier_id]);
 
   const filtered = useMemo(() => services.filter((s) =>
     !q || s.name.toLowerCase().includes(q.toLowerCase()) || s.category?.toLowerCase().includes(q.toLowerCase())
