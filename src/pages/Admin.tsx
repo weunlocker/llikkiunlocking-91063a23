@@ -768,6 +768,8 @@ function AdminSuppliers() {
   const [editing, setEditing] = useState<Partial<Supplier> | null>(null);
   const [testing, setTesting] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [syncResult, setSyncResult] = useState<{ supplier: Supplier; services: Array<{ id: string; name: string; group?: string | null; price?: string | number | null; time?: string | null }>; action_used?: string } | null>(null);
+  const [syncQ, setSyncQ] = useState("");
 
   const load = async () => {
     const { data } = await supabase.from("suppliers").select("*").order("name");
