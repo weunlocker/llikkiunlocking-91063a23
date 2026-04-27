@@ -704,12 +704,163 @@ function AdminSettings() {
   );
 }
 
+/* ---------- Suppliers ---------- */
+function AdminSuppliers() {
+  const [list, setList] = useState<Supplier[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Partial<Supplier> | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  const load = async () => {
+    const { data } = await supabase.from("suppliers").select("*").order("name");
+    setList((data ?? []) as unknown as Supplier[]);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const save = async () => {
+    if (!editing) return;
+    if (!editing.name?.trim() || !editing.endpoint_url?.trim()) {
+      toast.error("Name and endpoint URL are required"); return;
+    }
+    if (editing.type === "dhru" && (!editing.dhru_username || !editing.dhru_api_key)) {
+      toast.error("Dhru suppliers need username + API key"); return;
+    }
+    const payload = {
+      name: editing.name.trim(),
+      type: editing.type ?? "dhru",
+      endpoint_url: editing.endpoint_url.trim(),
+      dhru_username: editing.dhru_username || null,
+      dhru_api_key: editing.dhru_api_key || null,
+      active: editing.active ?? true,
+      notes: editing.notes || null,
+    };
+    const { error } = editing.id
+      ? await supabase.from("suppliers").update(payload).eq("id", editing.id)
+      : await supabase.from("suppliers").insert(payload);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Saved"); setEditing(null); load();
+  };
+
+  const del = async (id: string) => {
+    if (!confirm("Delete this supplier? Services using it will fall back to direct API.")) return;
+    const { error } = await supabase.from("suppliers").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Deleted"); load();
+  };
+
+  const testDhru = async () => {
+    if (!editing || editing.type !== "dhru") return;
+    setTesting(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("username", editing.dhru_username ?? "");
+      params.set("apikey", editing.dhru_api_key ?? "");
+      params.set("action", "accountinfo");
+      const resp = await fetch(editing.endpoint_url ?? "", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
+      const text = await resp.text();
+      if (resp.ok) toast.success("Connected: " + text.slice(0, 200));
+      else toast.error("HTTP " + resp.status + ": " + text.slice(0, 200));
+    } catch (e) {
+      toast.error("Failed: " + (e instanceof Error ? e.message : "unknown"));
+    }
+    setTesting(false);
+  };
+
+  return (
+    <AdminLayout
+      title="Suppliers"
+      subtitle={`${list.length} API providers configured`}
+      actions={
+        <Button variant="hero" onClick={() => setEditing({ name: "", type: "dhru", endpoint_url: "", dhru_username: "", dhru_api_key: "", active: true, notes: "" })}>
+          <Plus className="w-4 h-4 mr-1" />New Supplier
+        </Button>
+      }
+    >
+      {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
+        <div className="glass rounded-2xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
+              <tr><th className="px-5 py-3">Name</th><th className="px-5 py-3">Type</th><th className="px-5 py-3">Endpoint</th><th className="px-5 py-3">Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {list.map((s) => (
+                <tr key={s.id} className="border-t border-border/50 hover:bg-secondary/20">
+                  <td className="px-5 py-3 font-medium">{s.name}</td>
+                  <td className="px-5 py-3"><span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-mono uppercase">{s.type}</span></td>
+                  <td className="px-5 py-3 text-xs text-muted-foreground truncate max-w-[400px]">{s.endpoint_url}</td>
+                  <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
+                  <td className="px-5 py-3 text-right whitespace-nowrap">
+                    <Button size="icon" variant="ghost" onClick={() => setEditing(s)}><Edit className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => del(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                  </td>
+                </tr>
+              ))}
+              {list.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">No suppliers yet. Add one to wire Dhru / GSM / custom providers once and reuse them across services.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="glass max-w-xl max-h-[90vh] overflow-auto">
+          <DialogHeader><DialogTitle>{editing?.id ? "Edit" : "New"} Supplier</DialogTitle></DialogHeader>
+          {editing && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Name</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="e.g. DHRU Main" maxLength={100} /></div>
+                <div><Label>Type</Label>
+                  <Select value={editing.type ?? "dhru"} onValueChange={(v) => setEditing({ ...editing, type: v as "dhru" | "generic" })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dhru">Dhru Fusion (action API)</SelectItem>
+                      <SelectItem value="generic">Generic HTTP API</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Endpoint URL</Label>
+                <Input value={editing.endpoint_url ?? ""} onChange={(e) => setEditing({ ...editing, endpoint_url: e.target.value })}
+                  placeholder={editing.type === "dhru" ? "https://yoursupplier.com/api/index.php" : "https://api.provider.com/check?imei={IMEI}&action={ACTION}"} />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {editing.type === "dhru"
+                    ? "Dhru API base URL (POST endpoint). Service code per service is set in the Service editor."
+                    : "Generic URL — supports {IMEI} and {ACTION} placeholders."}
+                </p>
+              </div>
+              {editing.type === "dhru" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Username</Label><Input value={editing.dhru_username ?? ""} onChange={(e) => setEditing({ ...editing, dhru_username: e.target.value })} /></div>
+                  <div><Label>API Key</Label><Input type="password" value={editing.dhru_api_key ?? ""} onChange={(e) => setEditing({ ...editing, dhru_api_key: e.target.value })} /></div>
+                </div>
+              )}
+              <div><Label>Notes</Label><Textarea rows={2} value={editing.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} placeholder="Internal notes (rate limits, contact, etc.)" /></div>
+              <div className="flex items-center gap-3"><Switch checked={editing.active ?? true} onCheckedChange={(v) => setEditing({ ...editing, active: v })} /><Label>Active</Label></div>
+              <div className="flex justify-between pt-3">
+                {editing.type === "dhru"
+                  ? <Button variant="outline" onClick={testDhru} disabled={testing}>{testing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}Test connection</Button>
+                  : <span />}
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+                  <Button variant="hero" onClick={save}>Save</Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </AdminLayout>
+  );
+}
+
 /* ---------- Router ---------- */
 export default function Admin() {
   return (
     <Routes>
       <Route index element={<AdminDashboard />} />
       <Route path="users" element={<AdminUsers />} />
+      <Route path="suppliers" element={<AdminSuppliers />} />
       <Route path="services" element={<AdminServices />} />
       <Route path="orders" element={<AdminOrders />} />
       <Route path="transactions" element={<AdminTransactions />} />
