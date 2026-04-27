@@ -817,14 +817,36 @@ function AdminSuppliers() {
     if (!editing || editing.type !== "dhru") return;
     setTesting(true);
     try {
-      const params = new URLSearchParams();
-      params.set("username", editing.dhru_username ?? "");
-      params.set("apikey", editing.dhru_api_key ?? "");
-      params.set("action", "accountinfo");
-      const resp = await fetch(editing.endpoint_url ?? "", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
-      const text = await resp.text();
-      if (resp.ok) toast.success("Connected: " + text.slice(0, 200));
-      else toast.error("HTTP " + resp.status + ": " + text.slice(0, 200));
+      const tryFmt = async (fmt: "classic" | "bulk") => {
+        const params = new URLSearchParams();
+        if (fmt === "bulk") {
+          params.set("data", JSON.stringify({
+            username: editing.dhru_username ?? "",
+            apikey: editing.dhru_api_key ?? "",
+            action: "accountinfo",
+          }));
+        } else {
+          params.set("username", editing.dhru_username ?? "");
+          params.set("apikey", editing.dhru_api_key ?? "");
+          params.set("action", "accountinfo");
+        }
+        const resp = await fetch(editing.endpoint_url ?? "", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
+        const text = await resp.text();
+        let parsed: unknown = text;
+        try { parsed = JSON.parse(text); } catch { /* keep */ }
+        const p = parsed as Record<string, unknown> | null;
+        const isAuthErr = p && (p.ERROR ?? p.error);
+        return { ok: resp.ok && !isAuthErr, fmt, text, parsed: p };
+      };
+      let res = await tryFmt("classic");
+      if (!res.ok) res = await tryFmt("bulk");
+      if (res.ok) toast.success(`Connected via ${res.fmt} API: ${res.text.slice(0, 200)}`);
+      else {
+        const errArr = (res.parsed?.ERROR ?? res.parsed?.error) as Array<Record<string, unknown>> | Record<string, unknown> | undefined;
+        const e = Array.isArray(errArr) ? errArr[0] : errArr;
+        const msg = e ? String(e?.MESSAGE ?? e?.message ?? "Unknown") : res.text.slice(0, 200);
+        toast.error("Auth failed: " + msg);
+      }
     } catch (e) {
       toast.error("Failed: " + (e instanceof Error ? e.message : "unknown"));
     }
