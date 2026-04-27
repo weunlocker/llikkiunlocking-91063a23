@@ -129,6 +129,7 @@ export default function Dashboard() {
             <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
             <TabsTrigger value="wallet"><Wallet className="w-4 h-4 mr-2" />Wallet History</TabsTrigger>
             <TabsTrigger value="api"><Key className="w-4 h-4 mr-2" />API Keys</TabsTrigger>
+            <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />Notifications</TabsTrigger>
           </TabsList>
 
           <TabsContent value="services" className="mt-5">
