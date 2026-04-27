@@ -13,11 +13,12 @@ import { Plus, Edit, Trash2, Users, Briefcase, ListOrdered, ShieldCheck, Loader2
 import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 
-type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; response_template: string | null; active: boolean; category: string | null };
+type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
+type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; active: boolean; category: string | null; success_rules: SuccessRule[] | null };
 type ProfileRow = { id: string; email: string | null; display_name: string | null; balance: number; banned: boolean; created_at: string };
 type OrderRow = { id: string; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null; profiles: { email: string | null } | null };
 
-const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", response_template: "", active: true, category: "general" };
+const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", active: true, category: "general", success_rules: [] };
 
 export default function Admin() {
   const [services, setServices] = useState<Service[]>([]);
@@ -57,15 +58,35 @@ export default function Admin() {
       delivery_time: parsed.data.delivery_time,
       api_url: parsed.data.api_url || null,
       api_method: parsed.data.api_method,
+      api_request_body: editing.api_request_body ?? null,
       category: parsed.data.category ?? "general",
       active: parsed.data.active,
       response_template: editing.response_template ?? null,
+      success_rules: (editing.success_rules ?? []) as unknown as object,
     };
     const { error } = editing.id
       ? await supabase.from("services").update(payload).eq("id", editing.id)
       : await supabase.from("services").insert(payload);
     if (error) { toast.error(error.message); return; }
     toast.success("Saved"); setEditing(null); load();
+  };
+
+  const updateRule = (idx: number, patch: Partial<SuccessRule>) => {
+    if (!editing) return;
+    const rules = [...(editing.success_rules ?? [])];
+    rules[idx] = { ...rules[idx], ...patch } as SuccessRule;
+    setEditing({ ...editing, success_rules: rules });
+  };
+  const addRule = () => {
+    if (!editing) return;
+    const rules = [...(editing.success_rules ?? []), { path: "success", op: "truthy" as const }];
+    setEditing({ ...editing, success_rules: rules });
+  };
+  const removeRule = (idx: number) => {
+    if (!editing) return;
+    const rules = [...(editing.success_rules ?? [])];
+    rules.splice(idx, 1);
+    setEditing({ ...editing, success_rules: rules });
   };
 
   const delService = async (id: string) => {
