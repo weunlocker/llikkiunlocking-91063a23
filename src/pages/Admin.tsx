@@ -62,7 +62,7 @@ export default function Admin() {
       category: parsed.data.category ?? "general",
       active: parsed.data.active,
       response_template: editing.response_template ?? null,
-      success_rules: (editing.success_rules ?? []) as unknown as object,
+      success_rules: (editing.success_rules ?? []) as unknown as never,
     };
     const { error } = editing.id
       ? await supabase.from("services").update(payload).eq("id", editing.id)
