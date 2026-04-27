@@ -8,6 +8,9 @@ type Profile = {
   display_name: string | null;
   balance: number;
   banned: boolean;
+  telegram_chat_id: string | null;
+  notify_telegram: boolean;
+  notify_email: boolean;
 };
 
 type AuthCtx = {
@@ -31,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = async (uid: string) => {
     const [{ data: p }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("id,email,display_name,balance,banned").eq("id", uid).maybeSingle(),
+      supabase.from("profiles").select("id,email,display_name,balance,banned,telegram_chat_id,notify_telegram,notify_email").eq("id", uid).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", uid),
     ]);
     setProfile(p as Profile | null);

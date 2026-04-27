@@ -1,8 +1,9 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Shield, LogOut, LayoutDashboard, Wallet, Zap } from "lucide-react";
+import { LogOut, LayoutDashboard, Wallet, Zap } from "lucide-react";
 import { ReactNode } from "react";
+import logo from "@/assets/logo.png";
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, profile, isAdmin, signOut } = useAuth();
@@ -12,14 +13,10 @@ export default function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container flex h-16 items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/30 blur-md rounded-lg group-hover:bg-primary/50 transition-all" />
-              <div className="relative w-9 h-9 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <Shield className="w-5 h-5 text-primary-foreground" />
-              </div>
+          <Link to="/" className="flex items-center gap-2 group min-w-0">
+            <div className="bg-white rounded-md px-2 py-1 shadow-neon">
+              <img src={logo} alt="LIKKI UNLOCKING logo" className="h-7 md:h-8 w-auto block" />
             </div>
-            <span className="font-bold text-lg tracking-tight">IMEI<span className="glow-text">Check</span></span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
@@ -81,7 +78,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       <footer className="border-t border-border/50 mt-20">
         <div className="container py-8 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} IMEI Check Pro · Secure · Fast · Reliable</p>
+          <p>© {new Date().getFullYear()} LIKKI UNLOCKING · #1 Direct Wholesale Supplier</p>
         </div>
       </footer>
     </div>

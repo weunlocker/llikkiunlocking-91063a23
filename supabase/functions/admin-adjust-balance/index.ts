@@ -48,6 +48,15 @@ Deno.serve(async (req) => {
       user_id, type: amount > 0 ? "admin_credit" : "admin_debit", amount,
       balance_after: newBalance, description: description ?? "Admin adjustment",
     });
+    try {
+      await admin.functions.invoke("telegram-notify", {
+        body: {
+          user_id,
+          subject: amount > 0 ? `💰 Admin credit added` : `🔻 Admin debit applied`,
+          body: `Amount: ${amount > 0 ? "+" : ""}$${amount.toFixed(2)}\nNew balance: $${newBalance.toFixed(2)}\n${description ?? ""}`,
+        },
+      });
+    } catch (_) { /* ignore */ }
     return json(200, { ok: true, balance: newBalance });
   } catch (e) {
     return json(500, { error: e instanceof Error ? e.message : "Server error" });

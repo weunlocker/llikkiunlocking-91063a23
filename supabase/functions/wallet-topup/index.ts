@@ -39,6 +39,12 @@ Deno.serve(async (req) => {
       user_id: user.id, type: "topup", amount, balance_after: newBalance,
       description: `Demo top-up $${amount.toFixed(2)}`,
     });
+    // notify
+    try {
+      await admin.functions.invoke("telegram-notify", {
+        body: { user_id: user.id, subject: `💰 Wallet topped up`, body: `Added: $${amount.toFixed(2)}\nNew balance: $${newBalance.toFixed(2)}` },
+      });
+    } catch (_) { /* ignore */ }
     return json(200, { ok: true, balance: newBalance });
   } catch (e) {
     return json(500, { error: e instanceof Error ? e.message : "Server error" });
