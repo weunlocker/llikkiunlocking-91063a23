@@ -201,6 +201,50 @@ export type Database = {
           },
         ]
       }
+      supplier_services: {
+        Row: {
+          action_code: string
+          credit: number | null
+          delivery_time: string | null
+          id: string
+          info: string | null
+          name: string
+          raw: Json | null
+          supplier_id: string
+          synced_at: string
+        }
+        Insert: {
+          action_code: string
+          credit?: number | null
+          delivery_time?: string | null
+          id?: string
+          info?: string | null
+          name: string
+          raw?: Json | null
+          supplier_id: string
+          synced_at?: string
+        }
+        Update: {
+          action_code?: string
+          credit?: number | null
+          delivery_time?: string | null
+          id?: string
+          info?: string | null
+          name?: string
+          raw?: Json | null
+          supplier_id?: string
+          synced_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_services_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           active: boolean
