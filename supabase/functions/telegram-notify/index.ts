@@ -13,9 +13,12 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { user_id, subject, body } = await req.json();
+    const payload = await req.json();
+    const user_id = payload.user_id;
+    const subject = payload.subject;
+    const body = payload.body ?? payload.message ?? payload.text;
     if (!user_id || !body) {
-      return new Response(JSON.stringify({ error: "user_id and body required" }), {
+      return new Response(JSON.stringify({ error: "user_id and body (or message) required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
