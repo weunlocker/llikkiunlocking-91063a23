@@ -374,10 +374,10 @@ function AdminServices() {
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
                 <Label className="text-sm font-bold text-primary">Supplier (optional)</Label>
                 <p className="text-xs text-muted-foreground">Pick a saved supplier to route this service through. Leave as "None" to use a direct API URL below.</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2">
                   <Select
                     value={editing.supplier_id ?? "none"}
-                    onValueChange={(v) => setEditing({ ...editing, supplier_id: v === "none" ? null : v })}
+                    onValueChange={(v) => setEditing({ ...editing, supplier_id: v === "none" ? null : v, supplier_action: v === "none" ? null : editing.supplier_action })}
                   >
                     <SelectTrigger><SelectValue placeholder="None — use direct API URL" /></SelectTrigger>
                     <SelectContent>
@@ -387,12 +387,51 @@ function AdminServices() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Input
-                    value={editing.supplier_action ?? ""}
-                    onChange={(e) => setEditing({ ...editing, supplier_action: e.target.value })}
-                    placeholder="Service code (e.g. 129)"
-                    disabled={!editing.supplier_id}
-                  />
+
+                  {editing.supplier_id && (
+                    <div className="space-y-2">
+                      <Label className="text-xs">Supplier service</Label>
+                      {supSvcLoading ? (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />Loading supplier services…</div>
+                      ) : supSvc.length === 0 ? (
+                        <div className="text-xs text-muted-foreground p-2 rounded bg-secondary/40">
+                          No cached services for this supplier. Go to <b>Suppliers</b> → click <b>Sync</b>, then come back. You can also enter the service code manually below.
+                          <Input className="mt-2" value={editing.supplier_action ?? ""} onChange={(e) => setEditing({ ...editing, supplier_action: e.target.value })} placeholder="Service code (e.g. 129)" />
+                        </div>
+                      ) : (
+                        <>
+                          <Input value={supSvcQ} onChange={(e) => setSupSvcQ(e.target.value)} placeholder={`Search ${supSvc.length} synced services…`} />
+                          <div className="max-h-56 overflow-y-auto rounded border border-border/50 bg-background/50">
+                            {supSvc
+                              .filter((s) => !supSvcQ || s.name.toLowerCase().includes(supSvcQ.toLowerCase()) || s.action_code.includes(supSvcQ))
+                              .slice(0, 200)
+                              .map((s) => {
+                                const selected = editing.supplier_action === s.action_code;
+                                return (
+                                  <button
+                                    key={s.action_code}
+                                    type="button"
+                                    onClick={() => setEditing({
+                                      ...editing,
+                                      supplier_action: s.action_code,
+                                      name: editing.name || s.name,
+                                      delivery_time: editing.delivery_time && editing.delivery_time !== "Instant" ? editing.delivery_time : (s.delivery_time || "Instant"),
+                                    })}
+                                    className={`w-full text-left px-3 py-1.5 text-xs flex justify-between gap-2 hover:bg-primary/10 ${selected ? "bg-primary/20" : ""}`}
+                                  >
+                                    <span className="truncate"><span className="font-mono text-primary">#{s.action_code}</span> {s.name}</span>
+                                    <span className="text-muted-foreground whitespace-nowrap">{s.credit != null ? `${s.credit} cr` : ""}{s.delivery_time ? ` · ${s.delivery_time}` : ""}</span>
+                                  </button>
+                                );
+                              })}
+                          </div>
+                          {editing.supplier_action && (
+                            <div className="text-xs text-success">Selected: <span className="font-mono">#{editing.supplier_action}</span></div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
