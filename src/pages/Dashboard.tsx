@@ -10,7 +10,8 @@ import { Wallet, Key, History, Plus, Copy, Trash2, Loader2, Smartphone, Clock, C
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { imeiSchema, telegramChatIdSchema } from "@/lib/validation";
+import { telegramChatIdSchema } from "@/lib/validation";
+import ImeiCheckDialog from "@/components/ImeiCheckDialog";
 
 type Order = { id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
@@ -30,9 +31,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const [imei, setImei] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [checkResult, setCheckResult] = useState<{ status: string; result?: string; error?: string } | null>(null);
   const [serviceQuery, setServiceQuery] = useState("");
   const [tgChatId, setTgChatId] = useState("");
   const [tgEnabled, setTgEnabled] = useState(false);
@@ -94,28 +92,9 @@ export default function Dashboard() {
 
   useEffect(() => { load(); }, [user]);
 
-  const openCheck = (s: Service) => { setSelectedService(s); setImei(""); setCheckResult(null); };
+  const openCheck = (s: Service) => { setSelectedService(s); };
 
-  const submitCheck = async () => {
-    if (!selectedService) return;
-    const parsed = imeiSchema.safeParse(imei);
-    if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
-    if (!profile || Number(profile.balance) < Number(selectedService.price)) {
-      toast.error("Insufficient balance. Please top up.");
-      return;
-    }
-    setSubmitting(true);
-    const { data, error } = await supabase.functions.invoke("check-imei", {
-      body: { service_id: selectedService.id, imei: parsed.data },
-    });
-    setSubmitting(false);
-    if (error) { toast.error(error.message); return; }
-    setCheckResult(data);
-    refreshProfile();
-    load();
-    if (data?.status === "completed") toast.success("Check complete");
-    else if (data?.status === "failed") toast.error(data?.error ?? "Check failed");
-  };
+  const refreshAfterRun = () => { refreshProfile(); load(); };
 
   const requestTopup = async () => {
     const amt = Number(topupAmount);
@@ -397,44 +376,12 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!selectedService} onOpenChange={(o) => !o && setSelectedService(null)}>
-        <DialogContent className="glass">
-          <DialogHeader>
-            <DialogTitle>{selectedService?.name}</DialogTitle>
-            <DialogDescription>
-              Cost: <span className="font-mono text-primary font-bold">${Number(selectedService?.price ?? 0).toFixed(2)}</span> · Delivery: {selectedService?.delivery_time}
-            </DialogDescription>
-          </DialogHeader>
-          {!checkResult ? (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="dash-imei">IMEI / Serial</Label>
-                <Input id="dash-imei" value={imei} onChange={(e) => setImei(e.target.value)} placeholder="e.g. 356938035643809" maxLength={20} className="font-mono" />
-              </div>
-              <div className="flex items-center justify-between text-sm glass rounded-md p-3">
-                <span className="text-muted-foreground flex items-center gap-2"><Wallet className="w-4 h-4" /> Your balance</span>
-                <span className="font-mono font-bold">${Number(profile?.balance ?? 0).toFixed(2)}</span>
-              </div>
-              <Button variant="hero" className="w-full" onClick={submitCheck} disabled={submitting}>
-                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                Submit Check
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {checkResult.status === "completed" ? (
-                <div className="flex items-center gap-3 text-success"><CheckCircle2 className="w-6 h-6" /> Check completed</div>
-              ) : (
-                <div className="flex items-center gap-3 text-destructive"><XCircle className="w-6 h-6" /> Check failed</div>
-              )}
-              <pre className="glass rounded-md p-4 text-xs font-mono whitespace-pre-wrap break-words max-h-80 overflow-auto">
-                {checkResult.result || checkResult.error || "No response"}
-              </pre>
-              <Button variant="glass" className="w-full" onClick={() => setSelectedService(null)}>Close</Button>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <ImeiCheckDialog
+        service={selectedService}
+        balance={Number(profile?.balance ?? 0)}
+        onClose={() => setSelectedService(null)}
+        onAfterRun={refreshAfterRun}
+      />
     </Layout>
   );
 }
