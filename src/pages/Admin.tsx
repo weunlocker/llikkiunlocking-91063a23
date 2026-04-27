@@ -694,10 +694,11 @@ function AdminSettings() {
 
         <div className="glass rounded-2xl p-6 space-y-3">
           <h3 className="font-bold">API Providers (Dhru / GSM / Custom)</h3>
-          <p className="text-sm text-muted-foreground">Configure each provider per service: API URL, method, headers, POST body template, and Success Rules for response parsing.</p>
-          <Button size="sm" onClick={() => navigate("/admin/services")}>
-            Manage Services
-          </Button>
+          <p className="text-sm text-muted-foreground">Save each upstream supplier once in <b>Suppliers</b>, then pick it from any service. For one-off direct API URLs, configure them per-service.</p>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => navigate("/admin/suppliers")}>Manage Suppliers</Button>
+            <Button size="sm" variant="outline" onClick={() => navigate("/admin/services")}>Open Services</Button>
+          </div>
         </div>
       </div>
     </AdminLayout>
