@@ -772,8 +772,26 @@ function AdminSuppliers() {
     setTesting(false);
   };
 
-  return (
-    <AdminLayout
+  const syncSupplier = async (s: Supplier, mode: "preview" | "import" = "preview", markupPct = 0) => {
+    if (s.type !== "dhru") { toast.error("Sync only works for Dhru suppliers"); return; }
+    if (mode === "preview") setSyncing(s.id); else setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("supplier-sync", { body: { supplier_id: s.id, mode, markup: markupPct } });
+      if (error) throw new Error(error.message);
+      const res = data as { count: number; services?: Array<{ id: string | number; name: string; price?: string | number; time?: string }>; created?: number; updated?: number; error?: string };
+      if (res.error) throw new Error(res.error);
+      if (mode === "preview") {
+        setSyncResult({ supplier: s, services: res.services ?? [], count: res.count });
+        toast.success(`Found ${res.count} services`);
+      } else {
+        toast.success(`Imported: ${res.created} new, ${res.updated} updated`);
+        setSyncResult(null);
+      }
+    } catch (e) {
+      toast.error("Sync failed: " + (e instanceof Error ? e.message : "unknown"));
+    }
+    setSyncing(null); setImporting(false);
+  };
       title="Suppliers"
       subtitle={`${list.length} API providers configured`}
       actions={
