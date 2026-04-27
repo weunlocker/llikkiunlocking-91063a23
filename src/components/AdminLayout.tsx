@@ -4,13 +4,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, Briefcase, ListOrdered, Wallet, Settings,
-  ShieldCheck, LogOut, ExternalLink, Bell,
+  ShieldCheck, LogOut, ExternalLink, Bell, Plug,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 const navItems = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/suppliers", label: "Suppliers", icon: Plug },
   { to: "/admin/services", label: "Services", icon: Briefcase },
   { to: "/admin/orders", label: "Orders", icon: ListOrdered },
   { to: "/admin/transactions", label: "Transactions", icon: Wallet },

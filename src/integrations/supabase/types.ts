@@ -149,6 +149,8 @@ export type Database = {
           price: number
           response_template: string | null
           success_rules: Json | null
+          supplier_action: string | null
+          supplier_id: string | null
           updated_at: string
         }
         Insert: {
@@ -166,6 +168,8 @@ export type Database = {
           price?: number
           response_template?: string | null
           success_rules?: Json | null
+          supplier_action?: string | null
+          supplier_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -183,6 +187,55 @@ export type Database = {
           price?: number
           response_template?: string | null
           success_rules?: Json | null
+          supplier_action?: string | null
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          active: boolean
+          created_at: string
+          dhru_api_key: string | null
+          dhru_username: string | null
+          endpoint_url: string
+          id: string
+          name: string
+          notes: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          dhru_api_key?: string | null
+          dhru_username?: string | null
+          endpoint_url: string
+          id?: string
+          name: string
+          notes?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          dhru_api_key?: string | null
+          dhru_username?: string | null
+          endpoint_url?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          type?: string
           updated_at?: string
         }
         Relationships: []

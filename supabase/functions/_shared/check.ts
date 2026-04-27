@@ -137,28 +137,79 @@ export async function executeCheck(opts: {
   let errorMsg: string | null = null;
   let rawData: unknown = null;
 
-  if (!service.api_url) {
+  // Resolve supplier (if linked) — supplier overrides per-service api_url
+  let supplier: Record<string, unknown> | null = null;
+  if (service.supplier_id) {
+    const { data: sup } = await supabase.from("suppliers").select("*").eq("id", service.supplier_id).maybeSingle();
+    if (sup) {
+      if (!sup.active) {
+        await supabase.from("profiles").update({ balance }).eq("id", opts.userId);
+        await supabase.from("orders").update({ status: "failed", error_message: "Supplier disabled" }).eq("id", order.id);
+        return { ok: false, status: 503, body: { error: "Supplier disabled" } };
+      }
+      supplier = sup;
+    }
+  }
+
+  const hasUpstream = !!supplier || !!service.api_url;
+  if (!hasUpstream) {
     resultText = `Demo mode — no upstream API configured for "${service.name}".\nIMEI: ${opts.imei}\nResult: simulated success.`;
     success = true;
   } else {
     try {
-      const url = service.api_url
-        .replace(/\{IMEI\}/gi, encodeURIComponent(opts.imei))
-        .replace(/\{imei\}/g, encodeURIComponent(opts.imei));
+      let url: string;
       const headers: Record<string, string> = { "Accept": "application/json, text/plain, */*" };
-      const customHeaders = (service.api_headers ?? {}) as Record<string, string>;
-      Object.assign(headers, customHeaders);
-      const init: RequestInit = { method: service.api_method || "GET", headers };
-      if (init.method === "POST") {
-        if (service.api_request_body && service.api_request_body.trim()) {
-          const bodyTpl = service.api_request_body
-            .replace(/\{IMEI\}/gi, opts.imei)
-            .replace(/\{imei\}/g, opts.imei);
-          if (!headers["Content-Type"]) headers["Content-Type"] = "application/json";
-          init.body = bodyTpl;
+      const init: RequestInit = { method: "GET", headers };
+
+      if (supplier) {
+        // Build request from supplier
+        url = String(supplier.endpoint_url);
+        if (supplier.type === "dhru") {
+          // Dhru API: POST x-www-form-urlencoded with username, apikey, action, service, imei
+          init.method = "POST";
+          headers["Content-Type"] = "application/x-www-form-urlencoded";
+          const action = (service.supplier_action || "").toString();
+          const params = new URLSearchParams();
+          params.set("username", String(supplier.dhru_username ?? ""));
+          params.set("apikey", String(supplier.dhru_api_key ?? ""));
+          params.set("action", "placeimeiorder");
+          params.set("service", action);
+          params.set("imei", opts.imei);
+          init.body = params.toString();
         } else {
-          headers["Content-Type"] = "application/json";
-          init.body = JSON.stringify({ imei: opts.imei });
+          // generic supplier: substitute {IMEI} and {ACTION} in endpoint
+          url = url
+            .replace(/\{IMEI\}/gi, encodeURIComponent(opts.imei))
+            .replace(/\{ACTION\}/gi, encodeURIComponent(String(service.supplier_action ?? "")));
+          init.method = service.api_method || "GET";
+          const customHeaders = (service.api_headers ?? {}) as Record<string, string>;
+          Object.assign(headers, customHeaders);
+          if (init.method === "POST") {
+            headers["Content-Type"] = headers["Content-Type"] ?? "application/json";
+            init.body = (service.api_request_body || JSON.stringify({ imei: opts.imei }))
+              .replace(/\{IMEI\}/gi, opts.imei)
+              .replace(/\{ACTION\}/gi, String(service.supplier_action ?? ""));
+          }
+        }
+      } else {
+        // Direct per-service API
+        url = service.api_url
+          .replace(/\{IMEI\}/gi, encodeURIComponent(opts.imei))
+          .replace(/\{imei\}/g, encodeURIComponent(opts.imei));
+        const customHeaders = (service.api_headers ?? {}) as Record<string, string>;
+        Object.assign(headers, customHeaders);
+        init.method = service.api_method || "GET";
+        if (init.method === "POST") {
+          if (service.api_request_body && service.api_request_body.trim()) {
+            const bodyTpl = service.api_request_body
+              .replace(/\{IMEI\}/gi, opts.imei)
+              .replace(/\{imei\}/g, opts.imei);
+            if (!headers["Content-Type"]) headers["Content-Type"] = "application/json";
+            init.body = bodyTpl;
+          } else {
+            headers["Content-Type"] = "application/json";
+            init.body = JSON.stringify({ imei: opts.imei });
+          }
         }
       }
       const resp = await fetch(url, init);
