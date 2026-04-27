@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [services, setServices] = useState<Service[]>([]);
   const [topupOpen, setTopupOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState("10");
+  const [topupSuccess, setTopupSuccess] = useState<{ amount: number; newBalance: number } | null>(null);
   const [newKeyName, setNewKeyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
@@ -121,9 +122,10 @@ export default function Dashboard() {
     if (!amt || amt < 1 || amt > 10000) { toast.error("Amount must be 1-10000"); return; }
     const { error } = await supabase.functions.invoke("wallet-topup", { body: { amount: amt } });
     if (error) { toast.error(error.message); return; }
-    toast.success(`$${amt.toFixed(2)} added to your wallet (demo top-up)`);
     setTopupOpen(false);
-    refreshProfile();
+    const updated = await refreshProfile();
+    const newBalance = Number((updated as { balance?: number } | null)?.balance ?? (Number(profile?.balance ?? 0) + amt));
+    setTopupSuccess({ amount: amt, newBalance });
     load();
   };
 
