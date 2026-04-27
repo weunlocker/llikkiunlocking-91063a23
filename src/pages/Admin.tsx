@@ -354,15 +354,43 @@ function AdminServices() {
                 <div><Label>Price (USD)</Label><Input type="number" step="0.01" value={editing.price ?? 0} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} /></div>
                 <div><Label>Delivery Time</Label><Input value={editing.delivery_time ?? ""} onChange={(e) => setEditing({ ...editing, delivery_time: e.target.value })} maxLength={50} /></div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2"><Label>API URL ({"{IMEI}"} placeholder)</Label><Input value={editing.api_url ?? ""} onChange={(e) => setEditing({ ...editing, api_url: e.target.value })} placeholder="https://provider.com/check.php?imei={IMEI}&key=XXX" /></div>
-                <div><Label>Method</Label>
-                  <Select value={editing.api_method ?? "GET"} onValueChange={(v) => setEditing({ ...editing, api_method: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="GET">GET</SelectItem><SelectItem value="POST">POST</SelectItem></SelectContent>
+              {/* Supplier picker */}
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                <Label className="text-sm font-bold text-primary">Supplier (optional)</Label>
+                <p className="text-xs text-muted-foreground">Pick a saved supplier to route this service through. Leave as "None" to use a direct API URL below.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Select
+                    value={editing.supplier_id ?? "none"}
+                    onValueChange={(v) => setEditing({ ...editing, supplier_id: v === "none" ? null : v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="None — use direct API URL" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None — use direct API URL</SelectItem>
+                      {suppliers.map((sp) => (
+                        <SelectItem key={sp.id} value={sp.id}>{sp.name} ({sp.type})</SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
+                  <Input
+                    value={editing.supplier_action ?? ""}
+                    onChange={(e) => setEditing({ ...editing, supplier_action: e.target.value })}
+                    placeholder="Service code (e.g. 129)"
+                    disabled={!editing.supplier_id}
+                  />
                 </div>
               </div>
+
+              {!editing.supplier_id && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2"><Label>API URL ({"{IMEI}"} placeholder)</Label><Input value={editing.api_url ?? ""} onChange={(e) => setEditing({ ...editing, api_url: e.target.value })} placeholder="https://provider.com/check.php?imei={IMEI}&key=XXX" /></div>
+                  <div><Label>Method</Label>
+                    <Select value={editing.api_method ?? "GET"} onValueChange={(v) => setEditing({ ...editing, api_method: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="GET">GET</SelectItem><SelectItem value="POST">POST</SelectItem></SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
               {editing.api_method === "POST" && (
                 <div>
                   <Label>POST Body Template</Label>
