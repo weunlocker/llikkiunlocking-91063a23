@@ -257,6 +257,7 @@ export type Database = {
       suppliers: {
         Row: {
           active: boolean
+          api_format: string
           created_at: string
           dhru_api_key: string | null
           dhru_username: string | null
@@ -269,6 +270,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          api_format?: string
           created_at?: string
           dhru_api_key?: string | null
           dhru_username?: string | null
@@ -281,6 +283,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          api_format?: string
           created_at?: string
           dhru_api_key?: string | null
           dhru_username?: string | null
