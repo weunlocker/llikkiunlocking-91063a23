@@ -322,7 +322,11 @@ function AdminServices() {
                   <td className="px-5 py-3"><span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">{s.category}</span></td>
                   <td className="px-5 py-3 font-mono">${Number(s.price).toFixed(2)}</td>
                   <td className="px-5 py-3 text-muted-foreground text-xs">{s.delivery_time}</td>
-                  <td className="px-5 py-3 text-xs text-muted-foreground truncate max-w-[200px]">{s.api_url || <span className="text-warning">⚠ not set</span>}</td>
+                  <td className="px-5 py-3 text-xs text-muted-foreground truncate max-w-[200px]">
+                    {s.supplier_id
+                      ? <span className="text-primary">via {suppliers.find((x) => x.id === s.supplier_id)?.name ?? "supplier"}{s.supplier_action ? ` · #${s.supplier_action}` : ""}</span>
+                      : (s.api_url || <span className="text-warning">⚠ not set</span>)}
+                  </td>
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
                     <Button size="icon" variant="ghost" onClick={() => setEditing(s)}><Edit className="w-4 h-4" /></Button>
