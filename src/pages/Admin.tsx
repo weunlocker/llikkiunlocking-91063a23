@@ -870,9 +870,12 @@ function AdminSuppliers() {
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
                     {s.type === "dhru" && (
-                      <Button size="sm" variant="outline" className="mr-1" onClick={() => syncSupplier(s, "preview")} disabled={syncing === s.id}>
-                        {syncing === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <><RefreshCw className="w-4 h-4 mr-1" />Sync</>}
-                      </Button>
+                      <>
+                        {counts[s.id] != null && <span className="text-xs text-muted-foreground mr-2">{counts[s.id]} synced</span>}
+                        <Button size="sm" variant="outline" className="mr-1" onClick={() => syncSupplier(s)} disabled={syncing === s.id}>
+                          {syncing === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <><RefreshCw className="w-4 h-4 mr-1" />Sync</>}
+                        </Button>
+                      </>
                     )}
                     <Button size="icon" variant="ghost" onClick={() => setEditing(s)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => del(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
