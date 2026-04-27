@@ -30,14 +30,23 @@ function AdminDashboard() {
 
   useEffect(() => {
     (async () => {
-      const [u, s, o, txAll, recentO] = await Promise.all([
+      const [u, s, o, txAll, recentO, profs, svcs] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("services").select("id", { count: "exact", head: true }),
         supabase.from("orders").select("status,price_charged"),
         supabase.from("transactions").select("amount,type").eq("type", "topup"),
-        supabase.from("orders").select("*, services(name), profiles!orders_user_id_fkey(email)").order("created_at", { ascending: false }).limit(8),
+        supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(8),
+        supabase.from("profiles").select("id,email"),
+        supabase.from("services").select("id,name"),
       ]);
       const orders = (o.data ?? []) as { status: string; price_charged: number }[];
+      const profMap = new Map((profs.data ?? []).map((p: { id: string; email: string | null }) => [p.id, p.email]));
+      const svcMap = new Map((svcs.data ?? []).map((s: { id: string; name: string }) => [s.id, s.name]));
+      const enriched = (recentO.data ?? []).map((row: { user_id: string; service_id: string; [k: string]: unknown }) => ({
+        ...row,
+        profiles: { email: profMap.get(row.user_id) ?? null },
+        services: { name: svcMap.get(row.service_id) ?? "—" },
+      })) as unknown as OrderRow[];
       setStats({
         users: u.count ?? 0,
         services: s.count ?? 0,
@@ -46,7 +55,7 @@ function AdminDashboard() {
         pending: orders.filter((x) => x.status === "pending").length,
         failed: orders.filter((x) => x.status === "failed").length,
       });
-      setRecent((recentO.data ?? []) as unknown as OrderRow[]);
+      setRecent(enriched);
       setLoading(false);
     })();
   }, []);
