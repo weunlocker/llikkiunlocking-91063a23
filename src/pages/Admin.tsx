@@ -711,6 +711,10 @@ function AdminSuppliers() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Supplier> | null>(null);
   const [testing, setTesting] = useState(false);
+  const [syncing, setSyncing] = useState<string | null>(null);
+  const [syncResult, setSyncResult] = useState<{ supplier: Supplier; services: Array<{ id: string | number; name: string; price?: string | number; time?: string }>; count: number } | null>(null);
+  const [markup, setMarkup] = useState(0);
+  const [importing, setImporting] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("suppliers").select("*").order("name");
