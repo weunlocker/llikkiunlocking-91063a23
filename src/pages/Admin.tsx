@@ -763,17 +763,19 @@ function AdminSettings() {
 /* ---------- Suppliers ---------- */
 function AdminSuppliers() {
   const [list, setList] = useState<Supplier[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Supplier> | null>(null);
   const [testing, setTesting] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
-  const [syncResult, setSyncResult] = useState<{ supplier: Supplier; services: Array<{ id: string | number; name: string; price?: string | number; time?: string }>; count: number } | null>(null);
-  const [markup, setMarkup] = useState(0);
-  const [importing, setImporting] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("suppliers").select("*").order("name");
     setList((data ?? []) as unknown as Supplier[]);
+    const { data: ss } = await supabase.from("supplier_services").select("supplier_id");
+    const c: Record<string, number> = {};
+    (ss ?? []).forEach((r: { supplier_id: string }) => { c[r.supplier_id] = (c[r.supplier_id] ?? 0) + 1; });
+    setCounts(c);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
