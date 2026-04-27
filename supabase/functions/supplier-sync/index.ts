@@ -155,10 +155,14 @@ Deno.serve(async (req) => {
       if (error) return json(500, { error: error.message });
     }
 
+    // Remember which request format works for this supplier
+    await admin.from("suppliers").update({ api_format: usedFormat }).eq("id", supplier_id);
+
     return json(200, {
       ok: true,
       count: unique.length,
       action_used: usedAction,
+      format: usedFormat,
       services: unique.map((s) => ({ id: s.id, name: s.name, group: s.group, price: s.price, time: s.time })),
     });
   } catch (e) {
