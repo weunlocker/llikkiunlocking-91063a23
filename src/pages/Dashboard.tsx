@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [services, setServices] = useState<Service[]>([]);
   const [topupOpen, setTopupOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState("10");
+  const [topupSuccess, setTopupSuccess] = useState<{ amount: number; newBalance: number } | null>(null);
   const [newKeyName, setNewKeyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
@@ -121,9 +122,10 @@ export default function Dashboard() {
     if (!amt || amt < 1 || amt > 10000) { toast.error("Amount must be 1-10000"); return; }
     const { error } = await supabase.functions.invoke("wallet-topup", { body: { amount: amt } });
     if (error) { toast.error(error.message); return; }
-    toast.success(`$${amt.toFixed(2)} added to your wallet (demo top-up)`);
     setTopupOpen(false);
-    refreshProfile();
+    await refreshProfile();
+    const newBalance = Number(profile?.balance ?? 0) + amt;
+    setTopupSuccess({ amount: amt, newBalance });
     load();
   };
 
@@ -354,6 +356,28 @@ export default function Dashboard() {
               ))}
             </div>
             <Button variant="hero" className="w-full" onClick={requestTopup}>Add ${Number(topupAmount || 0).toFixed(2)}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!topupSuccess} onOpenChange={(o) => !o && setTopupSuccess(null)}>
+        <DialogContent className="glass max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-success">
+              <CheckCircle2 className="w-6 h-6" /> Top-up successful
+            </DialogTitle>
+            <DialogDescription>Your wallet has been credited.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="rounded-lg border border-success/30 bg-success/10 p-4 text-center">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">Added</div>
+              <div className="text-3xl font-bold text-success">+${topupSuccess?.amount.toFixed(2)}</div>
+            </div>
+            <div className="flex items-center justify-between rounded-md bg-secondary/40 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">New balance</span>
+              <span className="font-mono font-bold">${topupSuccess?.newBalance.toFixed(2)}</span>
+            </div>
+            <Button variant="hero" className="w-full" onClick={() => setTopupSuccess(null)}>Done</Button>
           </div>
         </DialogContent>
       </Dialog>
