@@ -226,10 +226,55 @@ export async function executeCheck(opts: {
         }
       }
 
-      if (!resp.ok) {
+      // ---- Dhru async branch: capture reference id, leave order pending for poller
+      if (supplier && supplier.type === "dhru") {
+        if (!resp.ok) {
+          errorMsg = `Dhru returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
+        } else {
+          // Dhru may reject inline (ERROR field) or accept (SUCCESS with reference id)
+          const p = parsed as Record<string, unknown> | null;
+          const errBlock = p?.ERROR ?? p?.error;
+          if (errBlock) {
+            const errMsg = (() => {
+              const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
+              const e = eArr as Record<string, unknown> | undefined;
+              return (e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Rejected by supplier").toString();
+            })();
+            errorMsg = errMsg;
+          } else {
+            // Look for reference id in SUCCESS payload
+            const findRef = (n: unknown): string | null => {
+              if (!n || typeof n !== "object") return null;
+              const o = n as Record<string, unknown>;
+              const ref = o.REFERENCEID ?? o.referenceid ?? o.REFERENCE ?? o.reference ?? o.ID ?? o.id;
+              if (ref != null && (typeof ref === "string" || typeof ref === "number")) return String(ref);
+              for (const v of Object.values(o)) { const r2 = findRef(v); if (r2) return r2; }
+              return null;
+            };
+            const refId = findRef(p?.SUCCESS ?? p?.success ?? p);
+            if (!refId) {
+              errorMsg = "Dhru did not return a reference id: " + (typeof raw === "string" ? raw.slice(0, 200) : JSON.stringify(raw).slice(0, 200));
+            } else {
+              // Order placed; leave as pending — poller will pick it up
+              await supabase.from("orders").update({
+                supplier_reference: refId,
+                result: `Order placed with supplier (ref ${refId}). Awaiting result…`,
+              }).eq("id", order.id);
+              notifyUser(supabase, opts.userId,
+                `⏳ Check submitted — ${service.name}`,
+                `IMEI: ${opts.imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
+              );
+              return {
+                ok: true, status: 202,
+                body: { status: "pending", imei: opts.imei, service: service.name, reference: refId, balance_after: newBalance, order_id: order.id, message: "Order placed with supplier — awaiting result." },
+              };
+            }
+          }
+        }
+      } else if (!resp.ok) {
         errorMsg = `Provider returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
       } else {
-        // Evaluate admin-defined success rules
+        // Synchronous (direct API or generic supplier): evaluate rules immediately
         const ruleResult = evaluateRules(service.success_rules as SuccessRule[] | null, parsed);
         if (!ruleResult.ok) {
           const r = ruleResult.failedRule!;

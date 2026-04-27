@@ -50,11 +50,14 @@ export type Database = {
           error_message: string | null
           id: string
           imei: string
+          last_polled_at: string | null
+          poll_attempts: number
           price_charged: number
           result: string | null
           service_id: string
           source: string
           status: Database["public"]["Enums"]["order_status"]
+          supplier_reference: string | null
           updated_at: string
           user_id: string
         }
@@ -63,11 +66,14 @@ export type Database = {
           error_message?: string | null
           id?: string
           imei: string
+          last_polled_at?: string | null
+          poll_attempts?: number
           price_charged?: number
           result?: string | null
           service_id: string
           source?: string
           status?: Database["public"]["Enums"]["order_status"]
+          supplier_reference?: string | null
           updated_at?: string
           user_id: string
         }
@@ -76,11 +82,14 @@ export type Database = {
           error_message?: string | null
           id?: string
           imei?: string
+          last_polled_at?: string | null
+          poll_attempts?: number
           price_charged?: number
           result?: string | null
           service_id?: string
           source?: string
           status?: Database["public"]["Enums"]["order_status"]
+          supplier_reference?: string | null
           updated_at?: string
           user_id?: string
         }
