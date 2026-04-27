@@ -944,6 +944,47 @@ function AdminSuppliers() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!syncResult} onOpenChange={(o) => !o && setSyncResult(null)}>
+        <DialogContent className="glass max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{syncResult?.supplier.name} — {syncResult?.services.length} services synced</DialogTitle>
+            {syncResult?.action_used && <p className="text-xs text-muted-foreground">via Dhru action <code className="px-1 bg-secondary/50 rounded">{syncResult.action_used}</code></p>}
+          </DialogHeader>
+          {syncResult && (
+            <div className="space-y-3 overflow-hidden flex flex-col flex-1">
+              <Input placeholder={`Search ${syncResult.services.length} services…`} value={syncQ} onChange={(e) => setSyncQ(e.target.value)} />
+              <div className="rounded-xl border border-border/50 overflow-y-auto flex-1">
+                <table className="w-full text-xs">
+                  <thead className="bg-secondary/40 text-left uppercase tracking-wider sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2">Code</th>
+                      <th className="px-3 py-2">Group</th>
+                      <th className="px-3 py-2">Name</th>
+                      <th className="px-3 py-2 text-right">Credit</th>
+                      <th className="px-3 py-2">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {syncResult.services
+                      .filter((sv) => !syncQ || sv.name.toLowerCase().includes(syncQ.toLowerCase()) || sv.id.includes(syncQ) || (sv.group ?? "").toLowerCase().includes(syncQ.toLowerCase()))
+                      .map((sv) => (
+                        <tr key={sv.id} className="border-t border-border/50 hover:bg-secondary/20">
+                          <td className="px-3 py-1.5 font-mono text-primary">{sv.id}</td>
+                          <td className="px-3 py-1.5 text-muted-foreground">{sv.group ?? "—"}</td>
+                          <td className="px-3 py-1.5">{sv.name}</td>
+                          <td className="px-3 py-1.5 text-right">{sv.price ?? "—"}</td>
+                          <td className="px-3 py-1.5 text-muted-foreground">{sv.time ?? "—"}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-muted-foreground">These are now cached. Open <b>Services → New / Edit</b>, pick this supplier, and you'll see the searchable list.</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </AdminLayout>
   );
 }
