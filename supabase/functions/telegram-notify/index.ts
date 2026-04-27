@@ -17,8 +17,9 @@ Deno.serve(async (req) => {
     const user_id = payload.user_id;
     const subject = payload.subject;
     const body = payload.body ?? payload.message ?? payload.text;
-    if (!user_id || !body) {
-      return new Response(JSON.stringify({ error: "user_id and body (or message) required" }), {
+    const directChatId: string | undefined = payload.chat_id;
+    if ((!user_id && !directChatId) || !body) {
+      return new Response(JSON.stringify({ error: "user_id (or chat_id) and body (or message) required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -29,22 +30,28 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("telegram_chat_id, notify_telegram, email")
-      .eq("id", user_id)
-      .maybeSingle();
+    let chatId: string | null = directChatId ?? null;
+    let allow = !!directChatId; // direct chat_id always allowed (admin test)
 
-    if (!profile) {
-      return new Response(JSON.stringify({ ok: false, reason: "no_profile" }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!chatId && user_id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("telegram_chat_id, notify_telegram, email")
+        .eq("id", user_id)
+        .maybeSingle();
+      if (!profile) {
+        return new Response(JSON.stringify({ ok: false, reason: "no_profile" }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      chatId = profile.telegram_chat_id;
+      allow = !!(profile.notify_telegram && profile.telegram_chat_id);
     }
 
     const results: Record<string, unknown> = { telegram: "skipped", email: "skipped" };
 
     // Telegram
-    if (profile.notify_telegram && profile.telegram_chat_id) {
+    if (allow && chatId) {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
       if (LOVABLE_API_KEY && TELEGRAM_API_KEY) {
