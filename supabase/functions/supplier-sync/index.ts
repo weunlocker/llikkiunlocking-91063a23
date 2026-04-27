@@ -8,29 +8,41 @@ const corsHeaders = {
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-type DhruService = { id: string | number; name: string; price?: string | number; time?: string; info?: string; raw?: unknown };
+type DhruService = { id: string; name: string; price?: string | number | null; time?: string | null; info?: string | null; group?: string | null; raw?: unknown };
 
+/**
+ * Dhru imeiservicelist returns either:
+ *   { SUCCESS:[ { LIST:{ "GroupId": { GROUPNAME, SERVICES:{ "SvcId": {SERVICEID, SERVICENAME, CREDIT, TIME, ...} } } } } ] }
+ *   { SUCCESS:{ ... } }
+ * or a flat structure depending on Dhru version. Walk recursively and pull anything that
+ * looks like a service.
+ */
 function flatten(obj: unknown): DhruService[] {
   const out: DhruService[] = [];
-  const walk = (node: unknown) => {
-    if (!node) return;
-    if (Array.isArray(node)) { node.forEach(walk); return; }
+  const walk = (node: unknown, group?: string) => {
+    if (node == null) return;
+    if (Array.isArray(node)) { node.forEach((n) => walk(n, group)); return; }
     if (typeof node !== "object") return;
     const o = node as Record<string, unknown>;
-    const id = o.SERVICEID ?? o.serviceid ?? o.id;
-    const name = o.SERVICENAME ?? o.servicename ?? o.name;
-    if (id != null && name != null) {
+
+    const id = o.SERVICEID ?? o.serviceid ?? o.Serviceid ?? o.id ?? o.ID;
+    const name = o.SERVICENAME ?? o.servicename ?? o.Servicename ?? o.name ?? o.NAME ?? o.TITLE ?? o.title;
+
+    if (id != null && name != null && (typeof id === "string" || typeof id === "number")) {
       out.push({
-        id: id as string | number,
+        id: String(id),
         name: String(name),
-        price: (o.CREDIT ?? o.credit ?? o.price) as string | number | undefined,
-        time: (o.TIME ?? o.time) as string | undefined,
-        info: (o.INFO ?? o.info ?? o.description) as string | undefined,
+        price: (o.CREDIT ?? o.credit ?? o.Credit ?? o.PRICE ?? o.price) as string | number | null | undefined ?? null,
+        time: (o.TIME ?? o.time ?? o.Time ?? o.DELIVERY ?? o.delivery) as string | null | undefined ?? null,
+        info: (o.INFO ?? o.info ?? o.Info ?? o.DESCRIPTION ?? o.description ?? o.NOTE ?? o.note) as string | null | undefined ?? null,
+        group: group ?? null,
         raw: o,
       });
       return;
     }
-    for (const v of Object.values(o)) walk(v);
+
+    const groupName = (o.GROUPNAME ?? o.groupname ?? o.GroupName ?? o.NAME ?? o.name) as string | undefined;
+    for (const v of Object.values(o)) walk(v, typeof groupName === "string" ? groupName : group);
   };
   walk(obj);
   return out;
@@ -58,41 +70,61 @@ Deno.serve(async (req) => {
     if (!sup) return json(404, { error: "Supplier not found" });
     if (sup.type !== "dhru") return json(400, { error: "Sync only supported for Dhru-type suppliers" });
 
-    const params = new URLSearchParams();
-    params.set("username", sup.dhru_username ?? "");
-    params.set("apikey", sup.dhru_api_key ?? "");
-    params.set("action", "imeiservicelist");
-    const r = await fetch(sup.endpoint_url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
-    const text = await r.text();
-    let payload: unknown;
-    try { payload = JSON.parse(text); } catch { return json(502, { error: "Supplier returned non-JSON", raw: text.slice(0, 500) }); }
-    const services = flatten(payload);
+    // Try multiple Dhru actions — different installs use different action names
+    const actions = ["imeiservicelist", "getimeiservices", "imeiservices"];
+    let services: DhruService[] = [];
+    let lastRaw = "";
+    let usedAction = "";
+
+    for (const action of actions) {
+      const params = new URLSearchParams();
+      params.set("username", sup.dhru_username ?? "");
+      params.set("apikey", sup.dhru_api_key ?? "");
+      params.set("action", action);
+      const r = await fetch(sup.endpoint_url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
+      const text = await r.text();
+      lastRaw = text;
+      console.log(`[supplier-sync] action=${action} status=${r.status} sample=`, text.slice(0, 400));
+      let payload: unknown;
+      try { payload = JSON.parse(text); } catch { continue; }
+      const found = flatten(payload);
+      if (found.length > 0) { services = found; usedAction = action; break; }
+    }
+
+    if (services.length === 0) {
+      return json(502, {
+        error: "Supplier returned no services. Check API credentials / endpoint, or your Dhru account may not expose IMEI services.",
+        raw_sample: lastRaw.slice(0, 800),
+      });
+    }
 
     // Dedupe by id
     const seen = new Set<string>();
-    const unique = services.filter((s) => { const k = String(s.id); if (seen.has(k)) return false; seen.add(k); return true; });
+    const unique = services.filter((s) => { if (seen.has(s.id)) return false; seen.add(s.id); return true; });
 
-    // Refresh cache: delete old + insert fresh
+    // Refresh cache
     await admin.from("supplier_services").delete().eq("supplier_id", supplier_id);
-    if (unique.length) {
-      const rows = unique.map((s) => ({
-        supplier_id,
-        action_code: String(s.id),
-        name: s.name,
-        credit: s.price != null ? Number(String(s.price).replace(/[^0-9.]/g, "")) || null : null,
-        delivery_time: s.time ?? null,
-        info: s.info ?? null,
-        raw: s.raw ?? null,
-      }));
-      // Insert in chunks of 500
-      for (let i = 0; i < rows.length; i += 500) {
-        const slice = rows.slice(i, i + 500);
-        const { error } = await admin.from("supplier_services").insert(slice);
-        if (error) return json(500, { error: error.message });
-      }
+    const rows = unique.map((s) => ({
+      supplier_id,
+      action_code: s.id,
+      name: s.group ? `${s.group} — ${s.name}` : s.name,
+      credit: s.price != null && s.price !== "" ? Number(String(s.price).replace(/[^0-9.]/g, "")) || null : null,
+      delivery_time: s.time ?? null,
+      info: s.info ?? null,
+      raw: s.raw ?? null,
+    }));
+    for (let i = 0; i < rows.length; i += 500) {
+      const slice = rows.slice(i, i + 500);
+      const { error } = await admin.from("supplier_services").insert(slice);
+      if (error) return json(500, { error: error.message });
     }
 
-    return json(200, { ok: true, count: unique.length });
+    return json(200, {
+      ok: true,
+      count: unique.length,
+      action_used: usedAction,
+      services: unique.map((s) => ({ id: s.id, name: s.name, group: s.group, price: s.price, time: s.time })),
+    });
   } catch (e) {
     return json(500, { error: e instanceof Error ? e.message : "unknown" });
   }
