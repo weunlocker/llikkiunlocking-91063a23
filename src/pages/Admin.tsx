@@ -598,26 +598,59 @@ function AdminNotifications() {
 
 /* ---------- Settings ---------- */
 function AdminSettings() {
+  const navigate = useNavigate();
+  const [testChatId, setTestChatId] = useState("");
+  const [testing, setTesting] = useState(false);
+
+  const sendTestTelegram = async () => {
+    if (!testChatId.trim()) return toast.error("Enter a chat ID");
+    setTesting(true);
+    const { data, error } = await supabase.functions.invoke("telegram-notify", {
+      body: { user_id: "00000000-0000-0000-0000-000000000000", chat_id: testChatId.trim(), subject: "Test from LIKKI UNLOCKING", message: "✅ Telegram is wired up correctly." },
+    });
+    setTesting(false);
+    if (error) return toast.error(error.message);
+    if ((data as { ok?: boolean })?.ok) toast.success("Test sent — check Telegram");
+    else toast.error("Failed: " + JSON.stringify(data));
+  };
+
   return (
     <AdminLayout title="Settings" subtitle="Platform configuration">
       <div className="grid md:grid-cols-2 gap-4 max-w-4xl">
-        <div className="glass rounded-2xl p-6">
-          <h3 className="font-bold mb-2">Brand</h3>
-          <p className="text-sm text-muted-foreground mb-4">LIKKI UNLOCKING — #1 Direct Wholesale Supplier</p>
-          <p className="text-xs text-muted-foreground">To change logo, replace <code className="px-1 bg-secondary/50 rounded">src/assets/logo.png</code></p>
+        <div className="glass rounded-2xl p-6 space-y-3">
+          <h3 className="font-bold">Brand</h3>
+          <p className="text-sm text-muted-foreground">LIKKI UNLOCKING — #1 Direct Wholesale Supplier</p>
+          <p className="text-xs text-muted-foreground">Logo file: <code className="px-1 bg-secondary/50 rounded">src/assets/logo.png</code>. To replace, upload a new image in chat and ask to swap the logo.</p>
         </div>
-        <div className="glass rounded-2xl p-6">
-          <h3 className="font-bold mb-2">Telegram Bot</h3>
-          <p className="text-sm text-muted-foreground mb-2">Connected via Lovable Cloud connector.</p>
-          <p className="text-xs text-muted-foreground">Clients link their account in Dashboard → Notifications.</p>
+
+        <div className="glass rounded-2xl p-6 space-y-3">
+          <h3 className="font-bold">Telegram Bot</h3>
+          <p className="text-sm text-muted-foreground">Connected via Lovable Cloud connector. Clients link their account in <button className="underline text-primary" onClick={() => window.open("/dashboard", "_blank")}>Dashboard → Notifications</button>.</p>
+          <div className="space-y-2 pt-2 border-t border-border/40">
+            <Label className="text-xs">Send test message to chat ID</Label>
+            <div className="flex gap-2">
+              <Input placeholder="123456789" value={testChatId} onChange={(e) => setTestChatId(e.target.value)} />
+              <Button size="sm" onClick={sendTestTelegram} disabled={testing}>
+                {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send"}
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="glass rounded-2xl p-6">
-          <h3 className="font-bold mb-2">Email</h3>
-          <p className="text-sm text-muted-foreground">Verify a sender domain in Cloud → Emails to enable email notifications.</p>
+
+        <div className="glass rounded-2xl p-6 space-y-3">
+          <h3 className="font-bold">Email Notifications</h3>
+          <p className="text-sm text-muted-foreground">Email sending requires a verified sender domain. Ask in chat: "set up email domain" to configure it.</p>
+          <Button size="sm" variant="outline" onClick={() => navigate("/admin/notifications")}>
+            Open Broadcasts
+          </Button>
         </div>
-        <div className="glass rounded-2xl p-6">
-          <h3 className="font-bold mb-2">API Providers</h3>
-          <p className="text-sm text-muted-foreground">Configure Dhru / GSM / custom APIs per service in the Services tab. Use POST body templates and Success Rules for accurate parsing.</p>
+
+        <div className="glass rounded-2xl p-6 space-y-3">
+          <h3 className="font-bold">API Providers (Dhru / GSM / Custom)</h3>
+          <p className="text-sm text-muted-foreground">Configure each provider per service: API URL, method, headers, POST body template, and Success Rules for response parsing.</p>
+          <Button size="sm" onClick={() => navigate("/admin/services")}>
+            Manage Services
+          </Button>
         </div>
       </div>
     </AdminLayout>
