@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Loader2, RotateCcw, Search, TrendingUp, Users as UsersIcon, Briefcase, ListOrdered, DollarSign, AlertCircle } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, RotateCcw, Search, TrendingUp, Users as UsersIcon, Briefcase, ListOrdered, DollarSign, AlertCircle, RefreshCw, Download } from "lucide-react";
 import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 
@@ -711,6 +711,10 @@ function AdminSuppliers() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Supplier> | null>(null);
   const [testing, setTesting] = useState(false);
+  const [syncing, setSyncing] = useState<string | null>(null);
+  const [syncResult, setSyncResult] = useState<{ supplier: Supplier; services: Array<{ id: string | number; name: string; price?: string | number; time?: string }>; count: number } | null>(null);
+  const [markup, setMarkup] = useState(0);
+  const [importing, setImporting] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("suppliers").select("*").order("name");
@@ -768,6 +772,27 @@ function AdminSuppliers() {
     setTesting(false);
   };
 
+  const syncSupplier = async (s: Supplier, mode: "preview" | "import" = "preview", markupPct = 0) => {
+    if (s.type !== "dhru") { toast.error("Sync only works for Dhru suppliers"); return; }
+    if (mode === "preview") setSyncing(s.id); else setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("supplier-sync", { body: { supplier_id: s.id, mode, markup: markupPct } });
+      if (error) throw new Error(error.message);
+      const res = data as { count: number; services?: Array<{ id: string | number; name: string; price?: string | number; time?: string }>; created?: number; updated?: number; error?: string };
+      if (res.error) throw new Error(res.error);
+      if (mode === "preview") {
+        setSyncResult({ supplier: s, services: res.services ?? [], count: res.count });
+        toast.success(`Found ${res.count} services`);
+      } else {
+        toast.success(`Imported: ${res.created} new, ${res.updated} updated`);
+        setSyncResult(null);
+      }
+    } catch (e) {
+      toast.error("Sync failed: " + (e instanceof Error ? e.message : "unknown"));
+    }
+    setSyncing(null); setImporting(false);
+  };
+
   return (
     <AdminLayout
       title="Suppliers"
@@ -792,6 +817,11 @@ function AdminSuppliers() {
                   <td className="px-5 py-3 text-xs text-muted-foreground truncate max-w-[400px]">{s.endpoint_url}</td>
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
+                    {s.type === "dhru" && (
+                      <Button size="sm" variant="outline" className="mr-1" onClick={() => syncSupplier(s, "preview")} disabled={syncing === s.id}>
+                        {syncing === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <><RefreshCw className="w-4 h-4 mr-1" />Sync</>}
+                      </Button>
+                    )}
                     <Button size="icon" variant="ghost" onClick={() => setEditing(s)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => del(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </td>
@@ -846,6 +876,46 @@ function AdminSuppliers() {
                   <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
                   <Button variant="hero" onClick={save}>Save</Button>
                 </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!syncResult} onOpenChange={(o) => !o && setSyncResult(null)}>
+        <DialogContent className="glass max-w-3xl max-h-[90vh] overflow-auto">
+          <DialogHeader><DialogTitle>Sync preview — {syncResult?.supplier.name}</DialogTitle></DialogHeader>
+          {syncResult && (
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                Found <b className="text-foreground">{syncResult.count}</b> services from supplier. Adjust price markup and import — existing services (matched by supplier action code) will be updated, new ones created.
+              </div>
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <Label>Price markup %</Label>
+                  <Input type="number" value={markup} onChange={(e) => setMarkup(Number(e.target.value) || 0)} placeholder="e.g. 25 = +25% over supplier credit" />
+                </div>
+                <Button variant="hero" onClick={() => syncSupplier(syncResult.supplier, "import", markup)} disabled={importing}>
+                  {importing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
+                  Import all {syncResult.count}
+                </Button>
+              </div>
+              <div className="glass rounded-xl overflow-hidden max-h-[50vh] overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-secondary/40 text-left uppercase tracking-wider sticky top-0">
+                    <tr><th className="px-3 py-2">Code</th><th className="px-3 py-2">Name</th><th className="px-3 py-2">Credit</th><th className="px-3 py-2">Time</th></tr>
+                  </thead>
+                  <tbody>
+                    {syncResult.services.map((s) => (
+                      <tr key={String(s.id)} className="border-t border-border/50">
+                        <td className="px-3 py-1.5 font-mono">{String(s.id)}</td>
+                        <td className="px-3 py-1.5">{s.name}</td>
+                        <td className="px-3 py-1.5">{s.price ?? "—"}</td>
+                        <td className="px-3 py-1.5">{s.time ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
