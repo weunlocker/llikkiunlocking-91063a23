@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              chat_id: profile.telegram_chat_id,
+              chat_id: chatId,
               text,
               parse_mode: "HTML",
             }),
