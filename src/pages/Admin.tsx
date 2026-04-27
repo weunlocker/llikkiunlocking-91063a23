@@ -236,6 +236,7 @@ function AdminServices() {
   const [supSvc, setSupSvc] = useState<SupplierService[]>([]);
   const [supSvcLoading, setSupSvcLoading] = useState(false);
   const [supSvcQ, setSupSvcQ] = useState("");
+  const [supSvcOpen, setSupSvcOpen] = useState(false);
 
   const load = async () => {
     const [{ data: svc }, { data: sup }] = await Promise.all([
@@ -398,44 +399,71 @@ function AdminServices() {
                           No cached services for this supplier. Go to <b>Suppliers</b> → click <b>Sync</b>, then come back. You can also enter the service code manually below.
                           <Input className="mt-2" value={editing.supplier_action ?? ""} onChange={(e) => setEditing({ ...editing, supplier_action: e.target.value })} placeholder="Service code (e.g. 129)" />
                         </div>
-                      ) : (
-                        <>
-                          <Input value={supSvcQ} onChange={(e) => setSupSvcQ(e.target.value)} placeholder={`Search ${supSvc.length} synced services…`} />
-                          <div className="max-h-56 overflow-y-auto rounded border border-border/50 bg-background/50">
-                            {supSvc
-                              .filter((s) => !supSvcQ || s.name.toLowerCase().includes(supSvcQ.toLowerCase()) || s.action_code.includes(supSvcQ))
-                              .slice(0, 200)
-                              .map((s) => {
-                                const selected = editing.supplier_action === s.action_code;
-                                return (
-                                  <button
-                                    key={s.action_code}
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      setEditing((prev) => ({
-                                        ...prev,
-                                        supplier_action: s.action_code,
-                                        name: prev.name || s.name,
-                                        delivery_time: prev.delivery_time && prev.delivery_time !== "Instant" ? prev.delivery_time : (s.delivery_time || "Instant"),
-                                        price: prev.price && Number(prev.price) > 0 ? prev.price : (s.credit != null ? Number(s.credit) : prev.price),
-                                      }));
-                                      setSupSvcQ("");
-                                    }}
-                                    className={`w-full text-left px-3 py-1.5 text-xs flex justify-between gap-2 hover:bg-primary/10 ${selected ? "bg-primary/20 ring-1 ring-primary" : ""}`}
-                                  >
-                                    <span className="truncate"><span className="font-mono text-primary">#{s.action_code}</span> {s.name}</span>
-                                    <span className="text-muted-foreground whitespace-nowrap">{s.credit != null ? `${s.credit} cr` : ""}{s.delivery_time ? ` · ${s.delivery_time}` : ""}</span>
-                                  </button>
-                                );
-                              })}
-                          </div>
-                          {editing.supplier_action && (
-                            <div className="text-xs text-success">Selected: <span className="font-mono">#{editing.supplier_action}</span></div>
-                          )}
-                        </>
-                      )}
+                      ) : (() => {
+                        const sel = supSvc.find((x) => x.action_code === editing.supplier_action);
+                        if (!supSvcOpen && sel) {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => { setSupSvcOpen(true); setSupSvcQ(""); }}
+                              className="w-full text-left rounded-md border border-primary/40 bg-background/50 px-3 py-2 text-sm flex items-center justify-between gap-2 hover:bg-primary/10"
+                            >
+                              <span className="truncate"><span className="font-mono text-primary">#{sel.action_code}</span> {sel.name}</span>
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">{sel.credit != null ? `${sel.credit} cr` : ""}{sel.delivery_time ? ` · ${sel.delivery_time}` : ""} · change ▾</span>
+                            </button>
+                          );
+                        }
+                        if (!supSvcOpen && !sel) {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => { setSupSvcOpen(true); setSupSvcQ(""); }}
+                              className="w-full text-left rounded-md border border-border bg-background/50 px-3 py-2 text-sm text-muted-foreground hover:bg-primary/10"
+                            >
+                              Select a synced service ({supSvc.length} available) ▾
+                            </button>
+                          );
+                        }
+                        return (
+                          <>
+                            <Input autoFocus value={supSvcQ} onChange={(e) => setSupSvcQ(e.target.value)} placeholder={`Search ${supSvc.length} synced services…`} />
+                            <div className="max-h-56 overflow-y-auto rounded border border-border/50 bg-background/50">
+                              {supSvc
+                                .filter((s) => !supSvcQ || s.name.toLowerCase().includes(supSvcQ.toLowerCase()) || s.action_code.includes(supSvcQ))
+                                .slice(0, 200)
+                                .map((s) => {
+                                  const selected = editing.supplier_action === s.action_code;
+                                  return (
+                                    <button
+                                      key={s.action_code}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setEditing((prev) => ({
+                                          ...prev,
+                                          supplier_action: s.action_code,
+                                          name: prev.name || s.name,
+                                          delivery_time: prev.delivery_time && prev.delivery_time !== "Instant" ? prev.delivery_time : (s.delivery_time || "Instant"),
+                                          price: prev.price && Number(prev.price) > 0 ? prev.price : (s.credit != null ? Number(s.credit) : prev.price),
+                                        }));
+                                        setSupSvcQ("");
+                                        setSupSvcOpen(false);
+                                      }}
+                                      className={`w-full text-left px-3 py-1.5 text-xs flex justify-between gap-2 hover:bg-primary/10 ${selected ? "bg-primary/20 ring-1 ring-primary" : ""}`}
+                                    >
+                                      <span className="truncate"><span className="font-mono text-primary">#{s.action_code}</span> {s.name}</span>
+                                      <span className="text-muted-foreground whitespace-nowrap">{s.credit != null ? `${s.credit} cr` : ""}{s.delivery_time ? ` · ${s.delivery_time}` : ""}</span>
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                            <div className="flex justify-end">
+                              <button type="button" onClick={() => setSupSvcOpen(false)} className="text-xs text-muted-foreground hover:text-foreground">Close</button>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
