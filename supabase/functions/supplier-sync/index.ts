@@ -70,35 +70,58 @@ Deno.serve(async (req) => {
     if (!sup) return json(404, { error: "Supplier not found" });
     if (sup.type !== "dhru") return json(400, { error: "Sync only supported for Dhru-type suppliers" });
 
-    // Try multiple Dhru actions — different installs use different action names
+    // DHRU has TWO formats:
+    //  - Classic API: flat form fields (username, apikey, action)
+    //  - Bulk API v6.1+: form field "data" containing JSON {username, apikey, action}
+    // We try both. Different action names also vary by host.
     const actions = ["imeiservicelist", "getimeiservices", "imeiservices"];
     let services: DhruService[] = [];
     let lastRaw = "";
     let lastErrorMsg = "";
     let usedAction = "";
+    let usedFormat = "";
 
-    for (const action of actions) {
-      const params = new URLSearchParams();
-      params.set("username", sup.dhru_username ?? "");
-      params.set("apikey", sup.dhru_api_key ?? "");
-      params.set("action", action);
-      const r = await fetch(sup.endpoint_url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
-      const text = await r.text();
-      lastRaw = text;
-      console.log(`[supplier-sync] action=${action} status=${r.status} sample=`, text.slice(0, 400));
-      let payload: unknown;
-      try { payload = JSON.parse(text); } catch { continue; }
-      // Detect Dhru error envelope
-      const p = payload as Record<string, unknown> | null;
-      const errBlock = p?.ERROR ?? p?.error;
-      if (errBlock) {
-        const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
-        const e = eArr as Record<string, unknown> | undefined;
-        lastErrorMsg = String(e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Supplier returned an error");
-        continue;
+    const buildRequests = (action: string) => {
+      const classic = new URLSearchParams();
+      classic.set("username", sup.dhru_username ?? "");
+      classic.set("apikey", sup.dhru_api_key ?? "");
+      classic.set("action", action);
+
+      const bulk = new URLSearchParams();
+      bulk.set("data", JSON.stringify({
+        username: sup.dhru_username ?? "",
+        apikey: sup.dhru_api_key ?? "",
+        action,
+      }));
+      return [
+        { format: "classic", body: classic.toString() },
+        { format: "bulk", body: bulk.toString() },
+      ];
+    };
+
+    outer: for (const action of actions) {
+      for (const variant of buildRequests(action)) {
+        const r = await fetch(sup.endpoint_url, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: variant.body,
+        });
+        const text = await r.text();
+        lastRaw = text;
+        console.log(`[supplier-sync] action=${action} fmt=${variant.format} status=${r.status} sample=`, text.slice(0, 300));
+        let payload: unknown;
+        try { payload = JSON.parse(text); } catch { continue; }
+        const p = payload as Record<string, unknown> | null;
+        const errBlock = p?.ERROR ?? p?.error;
+        if (errBlock) {
+          const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
+          const e = eArr as Record<string, unknown> | undefined;
+          lastErrorMsg = String(e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Supplier returned an error");
+          continue;
+        }
+        const found = flatten(payload);
+        if (found.length > 0) { services = found; usedAction = action; usedFormat = variant.format; break outer; }
       }
-      const found = flatten(payload);
-      if (found.length > 0) { services = found; usedAction = action; break; }
     }
 
     if (services.length === 0) {
