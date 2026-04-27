@@ -27,12 +27,12 @@ export default function Home() {
             <span>Trusted by 10,000+ professionals worldwide</span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
-            Instant IMEI Checks.<br />
-            <span className="glow-text">Built for Pros.</span>
+          <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tight mb-6 animate-fade-up uppercase" style={{ animationDelay: "0.1s" }}>
+            LIKKI <span className="glow-text">UNLOCKING</span><br />
+            <span className="text-3xl md:text-4xl font-semibold tracking-wide normal-case">#1 Direct Wholesale Supplier</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: "0.2s" }}>
-            iCloud status, carrier lookup, blacklist verification, warranty info — everything you need to verify any device, in seconds.
+            iCloud status, carrier lookup, blacklist verification, model & warranty info, plus full unlocking services — verify and unlock any device in seconds.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up" style={{ animationDelay: "0.3s" }}>

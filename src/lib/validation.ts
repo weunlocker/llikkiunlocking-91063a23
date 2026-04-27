@@ -26,3 +26,11 @@ export const serviceSchema = z.object({
   category: z.string().trim().max(50).optional(),
   active: z.boolean(),
 });
+
+export const successRuleSchema = z.object({
+  path: z.string().min(1).max(100),
+  op: z.enum(["eq", "neq", "contains", "not_contains", "exists", "truthy"]),
+  value: z.union([z.string(), z.number(), z.boolean()]).optional(),
+});
+
+export const telegramChatIdSchema = z.string().trim().regex(/^-?\d{5,20}$/, "Telegram chat ID must be a number (5-20 digits)").or(z.literal(""));
