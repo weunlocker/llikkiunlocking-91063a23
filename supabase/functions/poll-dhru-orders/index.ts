@@ -54,10 +54,19 @@ Deno.serve(async (req) => {
 
     try {
       const params = new URLSearchParams();
-      params.set("username", sup.dhru_username ?? "");
-      params.set("apikey", sup.dhru_api_key ?? "");
-      params.set("action", "getimeiorder");
-      params.set("id", String(o.supplier_reference));
+      if (sup.api_format === "bulk") {
+        params.set("data", JSON.stringify({
+          username: sup.dhru_username ?? "",
+          apikey: sup.dhru_api_key ?? "",
+          action: "getimeiorder",
+          id: String(o.supplier_reference),
+        }));
+      } else {
+        params.set("username", sup.dhru_username ?? "");
+        params.set("apikey", sup.dhru_api_key ?? "");
+        params.set("action", "getimeiorder");
+        params.set("id", String(o.supplier_reference));
+      }
       const r = await fetch(sup.endpoint_url, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
