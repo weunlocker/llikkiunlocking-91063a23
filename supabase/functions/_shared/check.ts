@@ -15,16 +15,81 @@ export function makeServiceClient() {
   );
 }
 
+// -------- helpers --------
+
+function getByPath(obj: unknown, path: string): unknown {
+  if (obj == null) return undefined;
+  const parts = path.split(/[.\[\]]+/).filter(Boolean);
+  let cur: any = obj;
+  for (const p of parts) {
+    if (cur == null) return undefined;
+    cur = cur[p];
+  }
+  return cur;
+}
+
 function applyTemplate(template: string, data: unknown): string {
-  if (!template) return JSON.stringify(data, null, 2);
-  return template.replace(/\{(\w+)\}/g, (_, k) => {
-    if (data && typeof data === "object" && k in (data as Record<string, unknown>)) {
-      const v = (data as Record<string, unknown>)[k];
-      return v === null || v === undefined ? "" : String(v);
-    }
-    return `{${k}}`;
+  if (!template) return typeof data === "string" ? data : JSON.stringify(data, null, 2);
+  return template.replace(/\{([\w\.\[\]]+)\}/g, (_, k) => {
+    if (k.toLowerCase() === "imei") return ""; // handled by caller usually
+    const v = getByPath(data, k);
+    if (v === null || v === undefined) return "";
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
   });
 }
+
+type SuccessRule = { path: string; op: string; value?: unknown };
+
+function evaluateRules(rules: SuccessRule[] | undefined | null, data: unknown): { ok: boolean; failedRule?: SuccessRule } {
+  if (!rules || !Array.isArray(rules) || rules.length === 0) return { ok: true };
+  for (const rule of rules) {
+    const actual = getByPath(data, rule.path);
+    let pass = false;
+    switch (rule.op) {
+      case "eq": pass = String(actual) === String(rule.value); break;
+      case "neq": pass = String(actual) !== String(rule.value); break;
+      case "contains": pass = typeof actual === "string" && typeof rule.value === "string" && actual.toLowerCase().includes(rule.value.toLowerCase()); break;
+      case "not_contains": pass = !(typeof actual === "string" && typeof rule.value === "string" && actual.toLowerCase().includes(rule.value.toLowerCase())); break;
+      case "exists": pass = actual !== undefined && actual !== null && actual !== ""; break;
+      case "truthy": pass = !!actual && actual !== "false" && actual !== "0" && actual !== 0; break;
+      default: pass = true;
+    }
+    if (!pass) return { ok: false, failedRule: rule };
+  }
+  return { ok: true };
+}
+
+function normalizeHtml(s: string): string {
+  return s
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+async function notifyUser(supabase: ReturnType<typeof makeServiceClient>, userId: string, subject: string, body: string) {
+  try {
+    await supabase.functions.invoke("telegram-notify", {
+      body: { user_id: userId, subject, body },
+    });
+  } catch (e) {
+    console.error("notifyUser failed", e);
+  }
+}
+
+// -------- main --------
 
 export async function executeCheck(opts: {
   userId: string;
@@ -34,7 +99,6 @@ export async function executeCheck(opts: {
 }) {
   const supabase = makeServiceClient();
 
-  // Load service & user atomically-ish
   const [{ data: service, error: sErr }, { data: profile, error: pErr }] = await Promise.all([
     supabase.from("services").select("*").eq("id", opts.serviceId).maybeSingle(),
     supabase.from("profiles").select("*").eq("id", opts.userId).maybeSingle(),
@@ -49,71 +113,85 @@ export async function executeCheck(opts: {
   const balance = Number(profile.balance);
   if (balance < price) return { ok: false, status: 402, body: { error: "Insufficient balance", balance } };
 
-  // Deduct first
   const newBalance = +(balance - price).toFixed(2);
   const { error: balErr } = await supabase.from("profiles").update({ balance: newBalance }).eq("id", opts.userId);
   if (balErr) return { ok: false, status: 500, body: { error: "Failed to charge wallet" } };
 
-  // Create order (pending)
   const { data: order, error: oErr } = await supabase.from("orders").insert({
     user_id: opts.userId, service_id: service.id, imei: opts.imei,
     status: "pending", price_charged: price, source: opts.source,
   }).select().single();
 
   if (oErr || !order) {
-    // refund
     await supabase.from("profiles").update({ balance }).eq("id", opts.userId);
     return { ok: false, status: 500, body: { error: "Failed to create order" } };
   }
 
-  // Charge transaction
   await supabase.from("transactions").insert({
     user_id: opts.userId, type: "charge", amount: -price, balance_after: newBalance,
     description: `Check: ${service.name}`, order_id: order.id,
   });
 
-  // Call provider
   let resultText = "";
   let success = false;
   let errorMsg: string | null = null;
+  let rawData: unknown = null;
 
   if (!service.api_url) {
-    // mock response when no API configured
     resultText = `Demo mode — no upstream API configured for "${service.name}".\nIMEI: ${opts.imei}\nResult: simulated success.`;
     success = true;
   } else {
     try {
-      const url = service.api_url.replace(/\{IMEI\}/gi, encodeURIComponent(opts.imei));
+      const url = service.api_url
+        .replace(/\{IMEI\}/gi, encodeURIComponent(opts.imei))
+        .replace(/\{imei\}/g, encodeURIComponent(opts.imei));
       const headers: Record<string, string> = { "Accept": "application/json, text/plain, */*" };
       const customHeaders = (service.api_headers ?? {}) as Record<string, string>;
       Object.assign(headers, customHeaders);
       const init: RequestInit = { method: service.api_method || "GET", headers };
       if (init.method === "POST") {
-        headers["Content-Type"] = "application/json";
-        init.body = JSON.stringify({ imei: opts.imei });
+        if (service.api_request_body && service.api_request_body.trim()) {
+          const bodyTpl = service.api_request_body
+            .replace(/\{IMEI\}/gi, opts.imei)
+            .replace(/\{imei\}/g, opts.imei);
+          if (!headers["Content-Type"]) headers["Content-Type"] = "application/json";
+          init.body = bodyTpl;
+        } else {
+          headers["Content-Type"] = "application/json";
+          init.body = JSON.stringify({ imei: opts.imei });
+        }
       }
       const resp = await fetch(url, init);
       const ct = resp.headers.get("content-type") || "";
       const raw = ct.includes("json") ? await resp.json() : await resp.text();
+      rawData = raw;
+
+      // Try to parse string responses as JSON for rules / templating
+      let parsed: unknown = raw;
+      if (typeof raw === "string") {
+        const trimmed = raw.trim();
+        if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+          try { parsed = JSON.parse(trimmed); rawData = parsed; } catch { /* keep as string */ }
+        }
+      }
+
       if (!resp.ok) {
         errorMsg = `Provider returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
       } else {
-        resultText = service.response_template
-          ? applyTemplate(service.response_template, raw)
-          : (typeof raw === "string" ? raw : JSON.stringify(raw, null, 2));
-        // Normalize HTML output: convert <br> to newlines, strip remaining tags, decode common entities
-        resultText = resultText
-          .replace(/<br\s*\/?>/gi, "\n")
-          .replace(/<\/p>/gi, "\n")
-          .replace(/<[^>]+>/g, "")
-          .replace(/&nbsp;/g, " ")
-          .replace(/&amp;/g, "&")
-          .replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">")
-          .replace(/&quot;/g, '"')
-          .replace(/\n{3,}/g, "\n\n")
-          .trim();
-        success = true;
+        // Evaluate admin-defined success rules
+        const ruleResult = evaluateRules(service.success_rules as SuccessRule[] | null, parsed);
+        if (!ruleResult.ok) {
+          const r = ruleResult.failedRule!;
+          const actualVal = getByPath(parsed, r.path);
+          errorMsg = `Rejected by rule: ${r.path} ${r.op}${r.value !== undefined ? ` ${JSON.stringify(r.value)}` : ""} (got ${JSON.stringify(actualVal)})`;
+        } else {
+          resultText = service.response_template
+            ? applyTemplate(service.response_template, parsed)
+            : (typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2));
+          resultText = normalizeHtml(resultText);
+          if (!resultText) resultText = "(empty response)";
+          success = true;
+        }
       }
     } catch (e) {
       errorMsg = e instanceof Error ? e.message : "Provider call failed";
@@ -121,18 +199,25 @@ export async function executeCheck(opts: {
   }
 
   if (!success) {
-    // refund automatically on provider failure
     const refundedBalance = +(newBalance + price).toFixed(2);
     await supabase.from("profiles").update({ balance: refundedBalance }).eq("id", opts.userId);
-    await supabase.from("orders").update({ status: "failed", error_message: errorMsg }).eq("id", order.id);
+    await supabase.from("orders").update({ status: "failed", error_message: errorMsg, result: rawData ? (typeof rawData === "string" ? rawData : JSON.stringify(rawData)) : null }).eq("id", order.id);
     await supabase.from("transactions").insert({
       user_id: opts.userId, type: "refund", amount: price, balance_after: refundedBalance,
       description: `Auto-refund: ${service.name}`, order_id: order.id,
     });
+    notifyUser(supabase, opts.userId,
+      `❌ Check failed — ${service.name}`,
+      `IMEI: ${opts.imei}\nReason: ${errorMsg}\nRefunded: $${price.toFixed(2)}\nBalance: $${refundedBalance.toFixed(2)}`,
+    );
     return { ok: false, status: 502, body: { status: "failed", error: errorMsg, balance_after: refundedBalance, order_id: order.id } };
   }
 
   await supabase.from("orders").update({ status: "completed", result: resultText }).eq("id", order.id);
+  notifyUser(supabase, opts.userId,
+    `✅ Check completed — ${service.name}`,
+    `IMEI: ${opts.imei}\n\n${resultText}\n\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
+  );
   return {
     ok: true, status: 200,
     body: { status: "completed", imei: opts.imei, service: service.name, result: resultText, balance_after: newBalance, order_id: order.id },
