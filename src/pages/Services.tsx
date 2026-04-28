@@ -47,20 +47,25 @@ export default function Services() {
               <h2 className="text-xl font-bold mb-4 capitalize flex items-center gap-2">
                 <span className="w-1 h-6 bg-gradient-primary rounded-full" /> {cat}
               </h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                 {items.map((s) => (
-                  <div key={s.id} className="glass rounded-xl p-6 hover:border-primary/40 hover:shadow-elegant transition-all flex flex-col">
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => openCheck(s)}
+                    className="text-left glass rounded-xl p-5 sm:p-6 hover:border-primary/40 hover:shadow-elegant transition-all flex flex-col cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
                     <div className="flex items-start justify-between mb-3">
                       <Smartphone className="w-5 h-5 text-primary" />
                       <div className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
                     </div>
-                    <h3 className="font-bold mb-2">{s.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-4 flex-1">{s.description}</p>
-                    <div className="flex items-center justify-between">
-                      <div className="text-2xl font-bold font-mono">${Number(s.price).toFixed(2)}</div>
-                      <Button variant="neon" size="sm" onClick={() => openCheck(s)}>Check IMEI</Button>
+                    <h3 className="font-bold mb-2 hover:text-primary transition-colors">{s.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2">{s.description}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-xl sm:text-2xl font-bold font-mono">${Number(s.price).toFixed(2)}</div>
+                      <Button variant="neon" size="sm" asChild={false} onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

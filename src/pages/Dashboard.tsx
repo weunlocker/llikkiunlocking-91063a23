@@ -180,19 +180,24 @@ export default function Dashboard() {
                     return s.name.toLowerCase().includes(q) || (s.description ?? "").toLowerCase().includes(q) || (s.category ?? "").toLowerCase().includes(q);
                   })
                   .map((s) => (
-                    <div key={s.id} className="glass rounded-xl p-5 hover:border-primary/40 hover:shadow-elegant transition-all flex flex-col">
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => openCheck(s)}
+                      className="text-left glass rounded-xl p-4 sm:p-5 hover:border-primary/40 hover:shadow-elegant transition-all flex flex-col cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    >
                       <div className="flex items-start justify-between mb-3">
                         <Smartphone className="w-5 h-5 text-primary" />
                         <div className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
                       </div>
-                      <h3 className="font-bold mb-1">{s.name}</h3>
+                      <h3 className="font-bold mb-1 hover:text-primary transition-colors">{s.name}</h3>
                       {s.category && <div className="text-xs text-muted-foreground capitalize mb-2">{s.category}</div>}
                       <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2">{s.description}</p>
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-xl font-bold font-mono">${Number(s.price).toFixed(2)}</div>
-                        <Button variant="neon" size="sm" onClick={() => openCheck(s)}>Check IMEI</Button>
+                        <Button variant="neon" size="sm" onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
                       </div>
-                    </div>
+                    </button>
                   ))}
               </div>
             )}
