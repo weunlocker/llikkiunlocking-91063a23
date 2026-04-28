@@ -16,7 +16,7 @@ import ImeiCheckDialog from "@/components/ImeiCheckDialog";
 type Order = { id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
 type ApiKey = { id: string; name: string; key: string; active: boolean; last_used_at: string | null; created_at: string };
-type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null };
+type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null };
 
 export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
@@ -81,7 +81,7 @@ export default function Dashboard() {
       supabase.from("orders").select("id,imei,status,price_charged,result,error_message,created_at,services(name)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("api_keys").select("id,name,key,active,last_used_at,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("services").select("id,name,description,price,delivery_time,category,sample_result").eq("active", true).order("category").order("price"),
+      supabase.from("services").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color").eq("active", true).order("category").order("price"),
     ]);
     setOrders((o ?? []) as unknown as Order[]);
     setTxs((t ?? []) as Tx[]);
