@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { imeiSchema } from "@/lib/validation";
 
-type Service = { id: string; name: string; price: number; delivery_time: string };
+type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null };
 
 type SingleResult = { status: string; result?: string; error?: string } | null;
 
@@ -33,14 +33,6 @@ const FONT_OPTIONS = [
   { label: "Sans", value: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif" },
   { label: "Serif", value: "Georgia, Cambria, Times New Roman, serif" },
 ];
-
-const SAMPLE_RESULT = `Status: Successful
-Model: Apple iPhone 17 Pro (A3256)
-Brand: Apple
-Manufacturer: Apple Inc
-IMEI Number: 353708847660603
-Find My iPhone: OFF
-Sim Locked: UNLOCKED`;
 
 // Renders a result string with auto-highlighted labels (Label: value).
 function ColoredResult({ text, font, color }: { text: string; font: string; color: string }) {
