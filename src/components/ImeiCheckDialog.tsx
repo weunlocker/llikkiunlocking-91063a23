@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone } from "lucide-react";
+import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone, Type, Palette, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { imeiSchema } from "@/lib/validation";
@@ -25,8 +25,46 @@ export type ImeiCheckDialogProps = {
   service: Service | null;
   balance: number;
   onClose: () => void;
-  onAfterRun?: () => void; // refresh balance / orders
+  onAfterRun?: () => void;
 };
+
+const FONT_OPTIONS = [
+  { label: "Mono", value: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" },
+  { label: "Sans", value: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif" },
+  { label: "Serif", value: "Georgia, Cambria, Times New Roman, serif" },
+];
+
+const SAMPLE_RESULT = `Status: Successful
+Model: Apple iPhone 17 Pro (A3256)
+Brand: Apple
+Manufacturer: Apple Inc
+IMEI Number: 353708847660603
+Find My iPhone: OFF
+Sim Locked: UNLOCKED`;
+
+// Renders a result string with auto-highlighted labels (Label: value).
+function ColoredResult({ text, font, color }: { text: string; font: string; color: string }) {
+  const lines = (text || "").split("\n");
+  return (
+    <pre
+      className="glass rounded-md p-4 text-xs whitespace-pre-wrap break-words max-h-80 overflow-auto leading-relaxed"
+      style={{ fontFamily: font }}
+    >
+      {lines.map((line, i) => {
+        const m = line.match(/^([^:]{1,40}):\s*(.*)$/);
+        if (m) {
+          return (
+            <div key={i}>
+              <span className="font-semibold text-primary">{m[1]}:</span>{" "}
+              <span style={{ color }}>{m[2]}</span>
+            </div>
+          );
+        }
+        return <div key={i} style={{ color }}>{line || "\u00a0"}</div>;
+      })}
+    </pre>
+  );
+}
 
 export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun }: ImeiCheckDialogProps) {
   const [tab, setTab] = useState<"single" | "bulk">("single");
@@ -35,17 +73,19 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SingleResult>(null);
   const [rows, setRows] = useState<BulkRow[]>([]);
+  const [font, setFont] = useState<string>(FONT_OPTIONS[0].value);
+  const [color, setColor] = useState<string>("#e2e8f0");
+  const [showSample, setShowSample] = useState(false);
 
   useEffect(() => {
     if (service) {
-      setTab("single"); setImei(""); setBulkText(""); setResult(null); setRows([]);
+      setTab("single"); setImei(""); setBulkText(""); setResult(null); setRows([]); setShowSample(false);
     }
   }, [service?.id]);
 
   if (!service) return null;
   const price = Number(service.price);
 
-  // ---------- Single ----------
   const submitSingle = async () => {
     const parsed = imeiSchema.safeParse(imei);
     if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
@@ -60,14 +100,11 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
     onAfterRun?.();
     if (data?.status === "completed") toast.success("Check complete");
     else if (data?.status === "failed") toast.error(data?.error ?? "Check failed");
+    else if (data?.status === "pending") toast.info("Order queued — you'll be notified when ready");
   };
 
-  // ---------- Bulk ----------
   const parseBulk = (): string[] => {
-    const lines = bulkText
-      .split(/[\s,;\n]+/)
-      .map((l) => l.trim())
-      .filter(Boolean);
+    const lines = bulkText.split(/[\s,;\n]+/).map((l) => l.trim()).filter(Boolean);
     const seen = new Set<string>();
     return lines.filter((l) => { if (seen.has(l)) return false; seen.add(l); return true; });
   };
@@ -88,7 +125,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
     let remainingBalance = balance;
     for (let i = 0; i < initial.length; i++) {
       if (remainingBalance < price) {
-        setRows((prev) => prev.map((r, idx) => idx === i || (idx > i) ? { ...r, status: "failed", error: "Skipped — insufficient balance" } : r));
+        setRows((prev) => prev.map((r, idx) => idx >= i ? { ...r, status: "failed", error: "Skipped — insufficient balance" } : r));
         break;
       }
       setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "running" } : r));
@@ -101,8 +138,10 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
         } else if (data?.status === "completed") {
           remainingBalance -= price;
           setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "completed", result: data.result } : r));
+        } else if (data?.status === "pending") {
+          remainingBalance -= price;
+          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "completed", result: "Queued — check Orders tab" } : r));
         } else {
-          // failed = no charge (auto-refunded)
           setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "failed", error: data?.error ?? "Check failed" } : r));
         }
       } catch (e) {
@@ -112,20 +151,46 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
     }
 
     setSubmitting(false);
-    const okCount = (await new Promise<number>((resolve) => {
-      setRows((prev) => { resolve(prev.filter((r) => r.status === "completed").length); return prev; });
-    }));
-    toast.success(`Bulk done — ${okCount}/${bulkValid.length} succeeded`);
+    setRows((prev) => {
+      const okCount = prev.filter((r) => r.status === "completed").length;
+      toast.success(`Bulk done — ${okCount}/${bulkValid.length} succeeded`);
+      return prev;
+    });
   };
 
   const reset = () => { setResult(null); setRows([]); setImei(""); setBulkText(""); };
 
+  const ResultToolbar = (
+    <div className="flex flex-wrap items-center gap-2 mb-2 text-xs">
+      <Type className="w-3.5 h-3.5 text-muted-foreground" />
+      <select
+        value={font}
+        onChange={(e) => setFont(e.target.value)}
+        className="bg-background border border-border/60 rounded px-2 py-1 text-xs"
+      >
+        {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+      </select>
+      <Palette className="w-3.5 h-3.5 text-muted-foreground ml-1" />
+      <input
+        type="color"
+        value={color}
+        onChange={(e) => setColor(e.target.value)}
+        className="w-7 h-7 rounded border border-border/60 bg-transparent cursor-pointer"
+        title="Result text color"
+      />
+      <span className="text-muted-foreground">Labels auto-colored</span>
+    </div>
+  );
+
   return (
     <Dialog open={!!service} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="glass max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Smartphone className="w-5 h-5 text-primary" />{service.name}</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="glass max-w-2xl w-[calc(100vw-1.5rem)] max-h-[92vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="text-left">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Smartphone className="w-5 h-5 text-primary shrink-0" />
+            <span className="break-words">{service.name}</span>
+          </DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
             Cost per check: <span className="font-mono text-primary font-bold">${price.toFixed(2)}</span>
             {" · "}<Clock className="w-3 h-3 inline" /> {service.delivery_time}
           </DialogDescription>
@@ -147,6 +212,19 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
                 <span className="text-muted-foreground flex items-center gap-2"><Wallet className="w-4 h-4" /> Your balance</span>
                 <span className="font-mono font-bold">${balance.toFixed(2)}</span>
               </div>
+
+              <div className="rounded-lg border border-border/50 p-3">
+                <button type="button" onClick={() => setShowSample((v) => !v)} className="text-xs text-primary hover:underline">
+                  {showSample ? "Hide" : "Show"} sample result preview
+                </button>
+                {showSample && (
+                  <div className="mt-3 space-y-2">
+                    {ResultToolbar}
+                    <ColoredResult text={SAMPLE_RESULT} font={font} color={color} />
+                  </div>
+                )}
+              </div>
+
               <Button variant="hero" className="w-full" onClick={submitSingle} disabled={submitting}>
                 {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 Submit Check
@@ -180,16 +258,27 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
             </TabsContent>
           </Tabs>
         ) : result ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {result.status === "completed" ? (
               <div className="flex items-center gap-3 text-success"><CheckCircle2 className="w-6 h-6" /> Check completed</div>
+            ) : result.status === "pending" ? (
+              <div className="flex items-center gap-3 text-warning"><Loader2 className="w-6 h-6 animate-spin" /> Order queued — you'll be notified</div>
             ) : (
               <div className="flex items-center gap-3 text-destructive"><XCircle className="w-6 h-6" /> Check failed</div>
             )}
-            <pre className="glass rounded-md p-4 text-xs font-mono whitespace-pre-wrap break-words max-h-80 overflow-auto">
-              {result.result || result.error || "No response"}
-            </pre>
-            <div className="flex gap-2">
+            {ResultToolbar}
+            <ColoredResult text={result.result || result.error || "No response"} font={font} color={color} />
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="glass"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(result.result || result.error || "");
+                  toast.success("Copied");
+                }}
+              >
+                <Copy className="w-4 h-4" /> Copy
+              </Button>
               <Button variant="glass" className="flex-1" onClick={reset}>Run another</Button>
               <Button variant="hero" className="flex-1" onClick={onClose}>Close</Button>
             </div>
@@ -199,24 +288,23 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
             <div className="text-sm text-muted-foreground">
               {submitting ? "Running checks…" : "Bulk run finished"} ({rows.filter((r) => r.status === "completed").length}/{rows.length} succeeded)
             </div>
+            {ResultToolbar}
             <div className="max-h-96 overflow-y-auto rounded border border-border/50 divide-y divide-border/40">
               {rows.map((r, i) => (
                 <div key={i} className="p-3 text-xs space-y-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono">{r.imei}</span>
-                    {r.status === "pending" && <span className="text-muted-foreground">Pending…</span>}
-                    {r.status === "running" && <span className="text-primary flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" />Running</span>}
-                    {r.status === "completed" && <span className="text-success flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />Done</span>}
-                    {r.status === "failed" && <span className="text-destructive flex items-center gap-1"><XCircle className="w-3 h-3" />Failed</span>}
+                    <span className="font-mono break-all">{r.imei}</span>
+                    {r.status === "pending" && <span className="text-muted-foreground shrink-0">Pending…</span>}
+                    {r.status === "running" && <span className="text-primary flex items-center gap-1 shrink-0"><Loader2 className="w-3 h-3 animate-spin" />Running</span>}
+                    {r.status === "completed" && <span className="text-success flex items-center gap-1 shrink-0"><CheckCircle2 className="w-3 h-3" />Done</span>}
+                    {r.status === "failed" && <span className="text-destructive flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Failed</span>}
                   </div>
-                  {r.result && (
-                    <pre className="bg-background/50 rounded p-2 font-mono text-[10px] whitespace-pre-wrap break-words max-h-32 overflow-auto">{r.result}</pre>
-                  )}
+                  {r.result && <ColoredResult text={r.result} font={font} color={color} />}
                   {r.error && <div className="text-destructive">{r.error}</div>}
                 </div>
               ))}
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button variant="glass" className="flex-1" onClick={reset} disabled={submitting}>Run more</Button>
               <Button variant="hero" className="flex-1" onClick={onClose} disabled={submitting}>Close</Button>
             </div>
