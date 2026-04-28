@@ -205,17 +205,19 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
                 <span className="font-mono font-bold">${balance.toFixed(2)}</span>
               </div>
 
-              <div className="rounded-lg border border-border/50 p-3">
-                <button type="button" onClick={() => setShowSample((v) => !v)} className="text-xs text-primary hover:underline">
-                  {showSample ? "Hide" : "Show"} sample result preview
-                </button>
-                {showSample && (
-                  <div className="mt-3 space-y-2">
-                    {ResultToolbar}
-                    <ColoredResult text={SAMPLE_RESULT} font={font} color={color} />
-                  </div>
-                )}
-              </div>
+              {service.sample_result && service.sample_result.trim() && (
+                <div className="rounded-lg border border-border/50 p-3">
+                  <button type="button" onClick={() => setShowSample((v) => !v)} className="text-xs text-primary hover:underline">
+                    {showSample ? "Hide" : "Show"} sample result preview
+                  </button>
+                  {showSample && (
+                    <div className="mt-3 space-y-2">
+                      {ResultToolbar}
+                      <ColoredResult text={service.sample_result} font={font} color={color} />
+                    </div>
+                  )}
+                </div>
+              )}
 
               <Button variant="hero" className="w-full" onClick={submitSingle} disabled={submitting}>
                 {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
