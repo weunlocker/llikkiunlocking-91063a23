@@ -500,16 +500,69 @@ function AdminServices() {
                 <Label>Response Template (optional)</Label>
                 <Textarea value={editing.response_template ?? ""} onChange={(e) => setEditing({ ...editing, response_template: e.target.value })} placeholder="Model: {model}&#10;IMEI: {imei}" rows={3} />
               </div>
-              <div>
-                <Label>Sample Result (shown to clients as a preview before they submit)</Label>
-                <Textarea
-                  value={editing.sample_result ?? ""}
-                  onChange={(e) => setEditing({ ...editing, sample_result: e.target.value })}
-                  placeholder={"Model : IPHONE 11 128GB PURPLE [A2111] [IPHONE12,1]\nIMEI/SN : 356543109054733\nFind My iPhone : OFF"}
-                  rows={4}
-                  className="font-mono text-xs"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Leave empty to hide the preview for this service.</p>
+              <div className="space-y-3">
+                <div>
+                  <Label>Sample Result (shown to clients as a preview before they submit)</Label>
+                  <Textarea
+                    value={editing.sample_result ?? ""}
+                    onChange={(e) => setEditing({ ...editing, sample_result: e.target.value })}
+                    placeholder={"Model : IPHONE 11 128GB PURPLE [A2111] [IPHONE12,1]\nIMEI/SN : 356543109054733\nFind My iPhone : OFF"}
+                    rows={4}
+                    className="font-mono text-xs"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Leave empty to hide the preview for this service.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Result Font</Label>
+                    <select
+                      value={editing.result_font ?? "mono"}
+                      onChange={(e) => setEditing({ ...editing, result_font: e.target.value })}
+                      className="w-full bg-background border border-border/60 rounded px-2 py-2 text-sm"
+                    >
+                      {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Result Text Color</Label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="color"
+                        value={editing.result_color ?? "#e2e8f0"}
+                        onChange={(e) => setEditing({ ...editing, result_color: e.target.value })}
+                        className="w-10 h-9 rounded border border-border/60 bg-transparent cursor-pointer"
+                      />
+                      <Input
+                        value={editing.result_color ?? "#e2e8f0"}
+                        onChange={(e) => setEditing({ ...editing, result_color: e.target.value })}
+                        className="font-mono text-xs"
+                        maxLength={9}
+                      />
+                    </div>
+                  </div>
+                </div>
+                {editing.sample_result?.trim() && (
+                  <div>
+                    <Label className="text-xs">Preview (what clients will see)</Label>
+                    <pre
+                      className="glass rounded-md p-3 text-xs whitespace-pre-wrap break-words max-h-60 overflow-auto leading-relaxed mt-1"
+                      style={{ fontFamily: fontCss(editing.result_font) }}
+                    >
+                      {editing.sample_result.split("\n").map((line, i) => {
+                        const m = line.match(/^([^:]{1,40}):\s*(.*)$/);
+                        if (m) {
+                          return (
+                            <div key={i}>
+                              <span className="font-semibold text-primary">{m[1]}:</span>{" "}
+                              <span style={{ color: editing.result_color ?? "#e2e8f0" }}>{m[2]}</span>
+                            </div>
+                          );
+                        }
+                        return <div key={i} style={{ color: editing.result_color ?? "#e2e8f0" }}>{line || "\u00a0"}</div>;
+                      })}
+                    </pre>
+                  </div>
+                )}
               </div>
               <div className="rounded-lg border border-border/60 p-3 space-y-3">
                 <div className="flex items-center justify-between">
