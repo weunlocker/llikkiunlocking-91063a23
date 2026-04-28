@@ -14,13 +14,13 @@ import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
-type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; active: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null };
+type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; active: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null };
 type Supplier = { id: string; name: string; type: "dhru" | "generic"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
 type ProfileRow = { id: string; email: string | null; display_name: string | null; balance: number; banned: boolean; created_at: string };
 type OrderRow = { id: string; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null; profiles: { email: string | null } | null };
 type TxRow = { id: string; user_id: string; amount: number; type: string; balance_after: number; description: string | null; created_at: string; profiles?: { email: string | null } | null };
 
-const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", active: true, category: "general", success_rules: [], supplier_id: null, supplier_action: "" };
+const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", sample_result: "", active: true, category: "general", success_rules: [], supplier_id: null, supplier_action: "" };
 
 /* ---------- Dashboard ---------- */
 function AdminDashboard() {
@@ -283,6 +283,7 @@ function AdminServices() {
       api_method: parsed.data.api_method,
       api_request_body: editing.api_request_body ?? null, category: parsed.data.category ?? "general",
       active: parsed.data.active, response_template: editing.response_template ?? null,
+      sample_result: editing.sample_result?.trim() ? editing.sample_result : null,
       success_rules: (editing.success_rules ?? []) as unknown as never,
       supplier_id: editing.supplier_id ?? null,
       supplier_action: editing.supplier_action || null,
@@ -489,6 +490,17 @@ function AdminServices() {
               <div>
                 <Label>Response Template (optional)</Label>
                 <Textarea value={editing.response_template ?? ""} onChange={(e) => setEditing({ ...editing, response_template: e.target.value })} placeholder="Model: {model}&#10;IMEI: {imei}" rows={3} />
+              </div>
+              <div>
+                <Label>Sample Result (shown to clients as a preview before they submit)</Label>
+                <Textarea
+                  value={editing.sample_result ?? ""}
+                  onChange={(e) => setEditing({ ...editing, sample_result: e.target.value })}
+                  placeholder={"Model : IPHONE 11 128GB PURPLE [A2111] [IPHONE12,1]\nIMEI/SN : 356543109054733\nFind My iPhone : OFF"}
+                  rows={4}
+                  className="font-mono text-xs"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Leave empty to hide the preview for this service.</p>
               </div>
               <div className="rounded-lg border border-border/60 p-3 space-y-3">
                 <div className="flex items-center justify-between">
