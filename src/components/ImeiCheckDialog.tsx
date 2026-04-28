@@ -154,27 +154,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
 
   const reset = () => { setResult(null); setRows([]); setImei(""); setBulkText(""); };
 
-  const ResultToolbar = (
-    <div className="flex flex-wrap items-center gap-2 mb-2 text-xs">
-      <Type className="w-3.5 h-3.5 text-muted-foreground" />
-      <select
-        value={font}
-        onChange={(e) => setFont(e.target.value)}
-        className="bg-background border border-border/60 rounded px-2 py-1 text-xs"
-      >
-        {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-      </select>
-      <Palette className="w-3.5 h-3.5 text-muted-foreground ml-1" />
-      <input
-        type="color"
-        value={color}
-        onChange={(e) => setColor(e.target.value)}
-        className="w-7 h-7 rounded border border-border/60 bg-transparent cursor-pointer"
-        title="Result text color"
-      />
-      <span className="text-muted-foreground">Labels auto-colored</span>
-    </div>
-  );
+  const ResultToolbar: React.ReactNode = null;
 
   return (
     <Dialog open={!!service} onOpenChange={(o) => !o && onClose()}>
