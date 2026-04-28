@@ -14,13 +14,20 @@ import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
-type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; active: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null };
+type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null };
 type Supplier = { id: string; name: string; type: "dhru" | "generic"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
 type ProfileRow = { id: string; email: string | null; display_name: string | null; balance: number; banned: boolean; created_at: string };
 type OrderRow = { id: string; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null; profiles: { email: string | null } | null };
 type TxRow = { id: string; user_id: string; amount: number; type: string; balance_after: number; description: string | null; created_at: string; profiles?: { email: string | null } | null };
 
-const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", sample_result: "", active: true, category: "general", success_rules: [], supplier_id: null, supplier_action: "" };
+const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", sample_result: "", result_font: "mono", result_color: "#e2e8f0", active: true, category: "general", success_rules: [], supplier_id: null, supplier_action: "" };
+
+const FONT_OPTIONS = [
+  { label: "Mono", value: "mono", css: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" },
+  { label: "Sans", value: "sans", css: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif" },
+  { label: "Serif", value: "serif", css: "Georgia, Cambria, Times New Roman, serif" },
+];
+const fontCss = (key: string | null | undefined) => FONT_OPTIONS.find((f) => f.value === key)?.css ?? FONT_OPTIONS[0].css;
 
 /* ---------- Dashboard ---------- */
 function AdminDashboard() {
@@ -284,6 +291,8 @@ function AdminServices() {
       api_request_body: editing.api_request_body ?? null, category: parsed.data.category ?? "general",
       active: parsed.data.active, response_template: editing.response_template ?? null,
       sample_result: editing.sample_result?.trim() ? editing.sample_result : null,
+      result_font: editing.result_font ?? "mono",
+      result_color: editing.result_color ?? "#e2e8f0",
       success_rules: (editing.success_rules ?? []) as unknown as never,
       supplier_id: editing.supplier_id ?? null,
       supplier_action: editing.supplier_action || null,
