@@ -157,6 +157,7 @@ export type Database = {
           name: string
           price: number
           response_template: string | null
+          sample_result: string | null
           success_rules: Json | null
           supplier_action: string | null
           supplier_id: string | null
@@ -176,6 +177,7 @@ export type Database = {
           name: string
           price?: number
           response_template?: string | null
+          sample_result?: string | null
           success_rules?: Json | null
           supplier_action?: string | null
           supplier_id?: string | null
@@ -195,6 +197,7 @@ export type Database = {
           name?: string
           price?: number
           response_template?: string | null
+          sample_result?: string | null
           success_rules?: Json | null
           supplier_action?: string | null
           supplier_id?: string | null

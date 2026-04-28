@@ -7,7 +7,7 @@ import { Loader2, Smartphone, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
 
-type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null };
+type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null };
 
 export default function Services() {
   const { user, profile, refreshProfile } = useAuth();
@@ -17,7 +17,7 @@ export default function Services() {
   const [selected, setSelected] = useState<Service | null>(null);
 
   useEffect(() => {
-    supabase.from("services").select("id,name,description,price,delivery_time,category").eq("active", true).order("category").order("price")
+    supabase.from("services").select("id,name,description,price,delivery_time,category,sample_result").eq("active", true).order("category").order("price")
       .then(({ data }) => { setServices(data ?? []); setLoading(false); });
   }, []);
 
