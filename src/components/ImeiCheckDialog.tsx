@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone, Type, Palette, Copy } from "lucide-react";
+import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { imeiSchema } from "@/lib/validation";
 
-type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null };
+type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null; result_font?: string | null; result_color?: string | null };
 
 type SingleResult = { status: string; result?: string; error?: string } | null;
 
@@ -28,11 +28,12 @@ export type ImeiCheckDialogProps = {
   onAfterRun?: () => void;
 };
 
-const FONT_OPTIONS = [
-  { label: "Mono", value: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" },
-  { label: "Sans", value: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif" },
-  { label: "Serif", value: "Georgia, Cambria, Times New Roman, serif" },
-];
+const FONT_MAP: Record<string, string> = {
+  mono: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+  sans: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
+  serif: "Georgia, Cambria, Times New Roman, serif",
+};
+const fontCss = (key?: string | null) => FONT_MAP[key ?? "mono"] ?? FONT_MAP.mono;
 
 // Renders a result string with auto-highlighted labels (Label: value).
 function ColoredResult({ text, font, color }: { text: string; font: string; color: string }) {
@@ -65,9 +66,10 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SingleResult>(null);
   const [rows, setRows] = useState<BulkRow[]>([]);
-  const [font, setFont] = useState<string>(FONT_OPTIONS[0].value);
-  const [color, setColor] = useState<string>("#e2e8f0");
   const [showSample, setShowSample] = useState(false);
+
+  const font = fontCss(service?.result_font);
+  const color = service?.result_color || "#e2e8f0";
 
   useEffect(() => {
     if (service) {
@@ -152,27 +154,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
 
   const reset = () => { setResult(null); setRows([]); setImei(""); setBulkText(""); };
 
-  const ResultToolbar = (
-    <div className="flex flex-wrap items-center gap-2 mb-2 text-xs">
-      <Type className="w-3.5 h-3.5 text-muted-foreground" />
-      <select
-        value={font}
-        onChange={(e) => setFont(e.target.value)}
-        className="bg-background border border-border/60 rounded px-2 py-1 text-xs"
-      >
-        {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-      </select>
-      <Palette className="w-3.5 h-3.5 text-muted-foreground ml-1" />
-      <input
-        type="color"
-        value={color}
-        onChange={(e) => setColor(e.target.value)}
-        className="w-7 h-7 rounded border border-border/60 bg-transparent cursor-pointer"
-        title="Result text color"
-      />
-      <span className="text-muted-foreground">Labels auto-colored</span>
-    </div>
-  );
+  const ResultToolbar: React.ReactNode = null;
 
   return (
     <Dialog open={!!service} onOpenChange={(o) => !o && onClose()}>
