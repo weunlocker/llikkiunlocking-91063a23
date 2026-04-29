@@ -196,7 +196,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
                   {showSample && (
                     <div className="mt-3 space-y-2">
                       {ResultToolbar}
-                      <ColoredResult text={service.sample_result} font={font} color={color} />
+                      <ColoredResult text={service.sample_result} font={font} />
                     </div>
                   )}
                 </div>
@@ -244,7 +244,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
               <div className="flex items-center gap-3 text-destructive"><XCircle className="w-6 h-6" /> Check failed</div>
             )}
             {ResultToolbar}
-            <ColoredResult text={result.result || result.error || "No response"} font={font} color={color} />
+            <ColoredResult text={result.result || result.error || "No response"} font={font} />
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 variant="glass"
@@ -276,7 +276,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
                     {r.status === "completed" && <span className="text-success flex items-center gap-1 shrink-0"><CheckCircle2 className="w-3 h-3" />Done</span>}
                     {r.status === "failed" && <span className="text-destructive flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Failed</span>}
                   </div>
-                  {r.result && <ColoredResult text={r.result} font={font} color={color} />}
+                  {r.result && <ColoredResult text={r.result} font={font} />}
                   {r.error && <div className="text-destructive">{r.error}</div>}
                 </div>
               ))}
