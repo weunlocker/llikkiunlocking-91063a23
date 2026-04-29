@@ -29,22 +29,41 @@ const FONT_OPTIONS = [
 ];
 const fontCss = (key: string | null | undefined) => FONT_OPTIONS.find((f) => f.value === key)?.css ?? FONT_OPTIONS[0].css;
 
-// Render text with [[c:#hex]]...[[/c]] markers — only the wrapped portions get colored.
+// Render text with [[c:#hex]]...[[/c]] markers. Each span carries data-raw-start
+// indicating its starting offset in the RAW (with-markers) source string,
+// so DOM selection can be mapped back to raw indexes.
 function renderColored(text: string): JSX.Element[] {
   const lines = text.split("\n");
+  let rawCursor = 0; // running raw offset including newlines
   return lines.map((line, li) => {
+    const lineStart = rawCursor;
     const parts: JSX.Element[] = [];
     const re = /\[\[c:(#?[0-9a-fA-F]{3,8})\]\]([\s\S]*?)\[\[\/c\]\]/g;
     let last = 0; let m: RegExpExecArray | null; let i = 0;
     while ((m = re.exec(line)) !== null) {
-      if (m.index > last) parts.push(<span key={`t${i++}`}>{line.slice(last, m.index)}</span>);
+      if (m.index > last) {
+        parts.push(<span key={`t${i++}`} data-raw-start={lineStart + last}>{line.slice(last, m.index)}</span>);
+      }
       const color = m[1].startsWith("#") ? m[1] : `#${m[1]}`;
-      parts.push(<span key={`c${i++}`} style={{ color }}>{m[2]}</span>);
+      const innerStart = lineStart + m.index + `[[c:${m[1]}]]`.length;
+      parts.push(<span key={`c${i++}`} data-raw-start={innerStart} style={{ color }}>{m[2]}</span>);
       last = m.index + m[0].length;
     }
-    if (last < line.length) parts.push(<span key={`t${i++}`}>{line.slice(last)}</span>);
-    return <div key={li}>{parts.length ? parts : "\u00a0"}</div>;
+    if (last < line.length) {
+      parts.push(<span key={`t${i++}`} data-raw-start={lineStart + last}>{line.slice(last)}</span>);
+    }
+    rawCursor += line.length + 1; // include the \n separator
+    return <div key={li} data-raw-line-start={lineStart}>{parts.length ? parts : "\u00a0"}</div>;
   });
+}
+
+// Map a DOM node + offset (inside the preview) to a raw-string index.
+function domToRawOffset(container: HTMLElement, node: Node, offset: number): number | null {
+  let el: HTMLElement | null = node.nodeType === Node.TEXT_NODE ? node.parentElement : (node as HTMLElement);
+  // Walk up to the nearest span carrying data-raw-start
+  while (el && el !== container && !el.dataset?.rawStart) el = el.parentElement;
+  if (!el || !el.dataset.rawStart) return null;
+  return parseInt(el.dataset.rawStart, 10) + offset;
 }
 
 /* ---------- Dashboard ---------- */
