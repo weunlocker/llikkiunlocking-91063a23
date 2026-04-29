@@ -504,15 +504,18 @@ function AdminServices() {
                 <div>
                   <Label>Sample Result (shown to clients as a preview before they submit)</Label>
                   <Textarea
+                    id="sample-result-textarea"
                     value={editing.sample_result ?? ""}
                     onChange={(e) => setEditing({ ...editing, sample_result: e.target.value })}
                     placeholder={"Model : IPHONE 11 128GB PURPLE [A2111] [IPHONE12,1]\nIMEI/SN : 356543109054733\nFind My iPhone : OFF"}
-                    rows={4}
+                    rows={6}
                     className="font-mono text-xs"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Leave empty to hide the preview for this service.</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select any text in the box above, then click <b>Apply color</b> to color only that selection.
+                  </p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs">Result Font</Label>
                     <select
@@ -524,7 +527,7 @@ function AdminServices() {
                     </select>
                   </div>
                   <div>
-                    <Label className="text-xs">Result Text Color</Label>
+                    <Label className="text-xs">Pick Color</Label>
                     <div className="flex gap-2 items-center">
                       <input
                         type="color"
@@ -541,25 +544,37 @@ function AdminServices() {
                     </div>
                   </div>
                 </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" size="sm" variant="neon" onClick={() => {
+                    const ta = document.getElementById("sample-result-textarea") as HTMLTextAreaElement | null;
+                    if (!ta) return;
+                    const start = ta.selectionStart, end = ta.selectionEnd;
+                    if (start === end) { toast("Select text first", { description: "Highlight a portion of the sample text, then click Apply color." }); return; }
+                    const value = ta.value;
+                    const sel = value.slice(start, end).replace(/\[\[c:#?[0-9a-fA-F]{3,8}\]\]|\[\[\/c\]\]/g, "");
+                    const color = editing.result_color ?? "#e2e8f0";
+                    const wrapped = `[[c:${color}]]${sel}[[/c]]`;
+                    setEditing({ ...editing, sample_result: value.slice(0, start) + wrapped + value.slice(end) });
+                  }}>Apply color to selection</Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => {
+                    const ta = document.getElementById("sample-result-textarea") as HTMLTextAreaElement | null;
+                    if (!ta) return;
+                    const start = ta.selectionStart, end = ta.selectionEnd;
+                    if (start === end) { toast("Select text first"); return; }
+                    const value = ta.value;
+                    const sel = value.slice(start, end).replace(/\[\[c:#?[0-9a-fA-F]{3,8}\]\]|\[\[\/c\]\]/g, "");
+                    setEditing({ ...editing, sample_result: value.slice(0, start) + sel + value.slice(end) });
+                  }}>Clear color from selection</Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setEditing({ ...editing, sample_result: (editing.sample_result ?? "").replace(/\[\[c:#?[0-9a-fA-F]{3,8}\]\]|\[\[\/c\]\]/g, "") })}>Clear all colors</Button>
+                </div>
                 {editing.sample_result?.trim() && (
                   <div>
                     <Label className="text-xs">Preview (what clients will see)</Label>
                     <pre
-                      className="glass rounded-md p-3 text-xs whitespace-pre-wrap break-words max-h-60 overflow-auto leading-relaxed mt-1"
+                      className="glass rounded-md p-3 text-xs whitespace-pre-wrap break-words max-h-60 overflow-auto leading-relaxed mt-1 text-foreground"
                       style={{ fontFamily: fontCss(editing.result_font) }}
                     >
-                      {editing.sample_result.split("\n").map((line, i) => {
-                        const m = line.match(/^([^:]{1,40}):\s*(.*)$/);
-                        if (m) {
-                          return (
-                            <div key={i}>
-                              <span className="font-semibold" style={{ color: editing.result_color ?? "#e2e8f0" }}>{m[1]}:</span>{" "}
-                              <span className="text-foreground">{m[2]}</span>
-                            </div>
-                          );
-                        }
-                        return <div key={i} className="text-foreground">{line || "\u00a0"}</div>;
-                      })}
+                      {renderColored(editing.sample_result ?? "")}
                     </pre>
                   </div>
                 )}
