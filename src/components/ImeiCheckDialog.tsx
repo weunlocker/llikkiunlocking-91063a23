@@ -48,12 +48,12 @@ function ColoredResult({ text, font, color }: { text: string; font: string; colo
         if (m) {
           return (
             <div key={i}>
-              <span className="font-semibold text-primary">{m[1]}:</span>{" "}
-              <span style={{ color }}>{m[2]}</span>
+              <span className="font-semibold" style={{ color }}>{m[1]}:</span>{" "}
+              <span className="text-foreground">{m[2]}</span>
             </div>
           );
         }
-        return <div key={i} style={{ color }}>{line || "\u00a0"}</div>;
+        return <div key={i} className="text-foreground">{line || "\u00a0"}</div>;
       })}
     </pre>
   );
