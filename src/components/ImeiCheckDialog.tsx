@@ -70,7 +70,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
   const [showSample, setShowSample] = useState(false);
 
   const font = fontCss(service?.result_font);
-  const color = service?.result_color || "#e2e8f0";
+  
 
   useEffect(() => {
     if (service) {
