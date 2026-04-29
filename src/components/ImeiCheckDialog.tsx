@@ -35,25 +35,26 @@ const FONT_MAP: Record<string, string> = {
 };
 const fontCss = (key?: string | null) => FONT_MAP[key ?? "mono"] ?? FONT_MAP.mono;
 
-// Renders a result string with auto-highlighted labels (Label: value).
-function ColoredResult({ text, font, color }: { text: string; font: string; color: string }) {
+// Renders a result string. Only segments wrapped in [[c:#hex]]...[[/c]] get colored.
+function ColoredResult({ text, font }: { text: string; font: string }) {
   const lines = (text || "").split("\n");
   return (
     <pre
-      className="glass rounded-md p-4 text-xs whitespace-pre-wrap break-words max-h-80 overflow-auto leading-relaxed"
+      className="glass rounded-md p-4 text-xs whitespace-pre-wrap break-words max-h-80 overflow-auto leading-relaxed text-foreground"
       style={{ fontFamily: font }}
     >
-      {lines.map((line, i) => {
-        const m = line.match(/^([^:]{1,40}):\s*(.*)$/);
-        if (m) {
-          return (
-            <div key={i}>
-              <span className="font-semibold" style={{ color }}>{m[1]}:</span>{" "}
-              <span className="text-foreground">{m[2]}</span>
-            </div>
-          );
+      {lines.map((line, li) => {
+        const parts: JSX.Element[] = [];
+        const re = /\[\[c:(#?[0-9a-fA-F]{3,8})\]\]([\s\S]*?)\[\[\/c\]\]/g;
+        let last = 0; let m: RegExpExecArray | null; let i = 0;
+        while ((m = re.exec(line)) !== null) {
+          if (m.index > last) parts.push(<span key={`t${i++}`}>{line.slice(last, m.index)}</span>);
+          const color = m[1].startsWith("#") ? m[1] : `#${m[1]}`;
+          parts.push(<span key={`c${i++}`} style={{ color }}>{m[2]}</span>);
+          last = m.index + m[0].length;
         }
-        return <div key={i} className="text-foreground">{line || "\u00a0"}</div>;
+        if (last < line.length) parts.push(<span key={`t${i++}`}>{line.slice(last)}</span>);
+        return <div key={li}>{parts.length ? parts : "\u00a0"}</div>;
       })}
     </pre>
   );
