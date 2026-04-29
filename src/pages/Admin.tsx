@@ -29,6 +29,24 @@ const FONT_OPTIONS = [
 ];
 const fontCss = (key: string | null | undefined) => FONT_OPTIONS.find((f) => f.value === key)?.css ?? FONT_OPTIONS[0].css;
 
+// Render text with [[c:#hex]]...[[/c]] markers — only the wrapped portions get colored.
+function renderColored(text: string): JSX.Element[] {
+  const lines = text.split("\n");
+  return lines.map((line, li) => {
+    const parts: JSX.Element[] = [];
+    const re = /\[\[c:(#?[0-9a-fA-F]{3,8})\]\]([\s\S]*?)\[\[\/c\]\]/g;
+    let last = 0; let m: RegExpExecArray | null; let i = 0;
+    while ((m = re.exec(line)) !== null) {
+      if (m.index > last) parts.push(<span key={`t${i++}`}>{line.slice(last, m.index)}</span>);
+      const color = m[1].startsWith("#") ? m[1] : `#${m[1]}`;
+      parts.push(<span key={`c${i++}`} style={{ color }}>{m[2]}</span>);
+      last = m.index + m[0].length;
+    }
+    if (last < line.length) parts.push(<span key={`t${i++}`}>{line.slice(last)}</span>);
+    return <div key={li}>{parts.length ? parts : "\u00a0"}</div>;
+  });
+}
+
 /* ---------- Dashboard ---------- */
 function AdminDashboard() {
   const [stats, setStats] = useState({ users: 0, services: 0, orders: 0, revenue: 0, pending: 0, failed: 0 });
