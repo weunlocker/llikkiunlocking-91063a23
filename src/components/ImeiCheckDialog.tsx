@@ -35,25 +35,26 @@ const FONT_MAP: Record<string, string> = {
 };
 const fontCss = (key?: string | null) => FONT_MAP[key ?? "mono"] ?? FONT_MAP.mono;
 
-// Renders a result string with auto-highlighted labels (Label: value).
-function ColoredResult({ text, font, color }: { text: string; font: string; color: string }) {
+// Renders a result string. Only segments wrapped in [[c:#hex]]...[[/c]] get colored.
+function ColoredResult({ text, font }: { text: string; font: string }) {
   const lines = (text || "").split("\n");
   return (
     <pre
-      className="glass rounded-md p-4 text-xs whitespace-pre-wrap break-words max-h-80 overflow-auto leading-relaxed"
+      className="glass rounded-md p-4 text-xs whitespace-pre-wrap break-words max-h-80 overflow-auto leading-relaxed text-foreground"
       style={{ fontFamily: font }}
     >
-      {lines.map((line, i) => {
-        const m = line.match(/^([^:]{1,40}):\s*(.*)$/);
-        if (m) {
-          return (
-            <div key={i}>
-              <span className="font-semibold" style={{ color }}>{m[1]}:</span>{" "}
-              <span className="text-foreground">{m[2]}</span>
-            </div>
-          );
+      {lines.map((line, li) => {
+        const parts: JSX.Element[] = [];
+        const re = /\[\[c:(#?[0-9a-fA-F]{3,8})\]\]([\s\S]*?)\[\[\/c\]\]/g;
+        let last = 0; let m: RegExpExecArray | null; let i = 0;
+        while ((m = re.exec(line)) !== null) {
+          if (m.index > last) parts.push(<span key={`t${i++}`}>{line.slice(last, m.index)}</span>);
+          const color = m[1].startsWith("#") ? m[1] : `#${m[1]}`;
+          parts.push(<span key={`c${i++}`} style={{ color }}>{m[2]}</span>);
+          last = m.index + m[0].length;
         }
-        return <div key={i} className="text-foreground">{line || "\u00a0"}</div>;
+        if (last < line.length) parts.push(<span key={`t${i++}`}>{line.slice(last)}</span>);
+        return <div key={li}>{parts.length ? parts : "\u00a0"}</div>;
       })}
     </pre>
   );
@@ -69,7 +70,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
   const [showSample, setShowSample] = useState(false);
 
   const font = fontCss(service?.result_font);
-  const color = service?.result_color || "#e2e8f0";
+  
 
   useEffect(() => {
     if (service) {
@@ -195,7 +196,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
                   {showSample && (
                     <div className="mt-3 space-y-2">
                       {ResultToolbar}
-                      <ColoredResult text={service.sample_result} font={font} color={color} />
+                      <ColoredResult text={service.sample_result} font={font} />
                     </div>
                   )}
                 </div>
@@ -243,7 +244,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
               <div className="flex items-center gap-3 text-destructive"><XCircle className="w-6 h-6" /> Check failed</div>
             )}
             {ResultToolbar}
-            <ColoredResult text={result.result || result.error || "No response"} font={font} color={color} />
+            <ColoredResult text={result.result || result.error || "No response"} font={font} />
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 variant="glass"
@@ -275,7 +276,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
                     {r.status === "completed" && <span className="text-success flex items-center gap-1 shrink-0"><CheckCircle2 className="w-3 h-3" />Done</span>}
                     {r.status === "failed" && <span className="text-destructive flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Failed</span>}
                   </div>
-                  {r.result && <ColoredResult text={r.result} font={font} color={color} />}
+                  {r.result && <ColoredResult text={r.result} font={font} />}
                   {r.error && <div className="text-destructive">{r.error}</div>}
                 </div>
               ))}
