@@ -772,6 +772,7 @@ function AdminOrders() {
           {view && (
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs">Order ID</Label><div className="font-mono">#{String(view.order_number ?? 0).padStart(4, "0")}</div></div>
                 <div><Label className="text-xs">User</Label><div>{view.profiles?.email}</div></div>
                 <div><Label className="text-xs">Service</Label><div>{view.services?.name}</div></div>
                 <div><Label className="text-xs">IMEI</Label><div className="font-mono">{view.imei}</div></div>
