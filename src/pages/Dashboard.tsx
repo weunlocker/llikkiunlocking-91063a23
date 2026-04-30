@@ -10,10 +10,11 @@ import { Wallet, Key, History, Plus, Copy, Trash2, Loader2, Smartphone, Clock, C
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { telegramChatIdSchema } from "@/lib/validation";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
 
-type Order = { id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null };
+type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
 type ApiKey = { id: string; name: string; key: string; active: boolean; last_used_at: string | null; created_at: string };
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null };
@@ -37,6 +38,8 @@ export default function Dashboard() {
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [testingTg, setTestingTg] = useState(false);
+  const [orderQuery, setOrderQuery] = useState("");
+  const [orderStatus, setOrderStatus] = useState("all");
 
   useEffect(() => {
     if (profile) {
@@ -78,7 +81,7 @@ export default function Dashboard() {
   const load = async () => {
     if (!user) return;
     const [{ data: o }, { data: t }, { data: k }, { data: svc }] = await Promise.all([
-      supabase.from("orders").select("id,imei,status,price_charged,result,error_message,created_at,services(name)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
+      supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,services(name)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("api_keys").select("id,name,key,active,last_used_at,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("services").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color").eq("active", true).order("category").order("price"),
@@ -204,16 +207,50 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="orders" className="mt-5">
+            <div className="glass rounded-2xl p-4 mb-4 flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search by Order ID, IMEI/SN, service…"
+                  value={orderQuery}
+                  onChange={(e) => setOrderQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={orderStatus} onValueChange={setOrderStatus}>
+                <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All status</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="glass rounded-2xl overflow-hidden">
               {loading ? <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-primary" /></div> :
-                orders.length === 0 ? <div className="p-12 text-center text-muted-foreground">No orders yet. Visit Services to start.</div> :
+                (() => {
+                  const q = orderQuery.toLowerCase().trim();
+                  const filteredOrders = orders.filter((o) => {
+                    if (orderStatus !== "all" && o.status !== orderStatus) return false;
+                    if (!q) return true;
+                    const oid = String(o.order_number ?? "").padStart(4, "0");
+                    return oid.includes(q) ||
+                      o.imei.toLowerCase().includes(q) ||
+                      (o.services?.name ?? "").toLowerCase().includes(q) ||
+                      o.status.toLowerCase().includes(q);
+                  });
+                  if (filteredOrders.length === 0) return <div className="p-12 text-center text-muted-foreground">No orders found.</div>;
+                  return (
                 <table className="w-full text-sm">
                   <thead className="bg-secondary/40 text-left">
-                    <tr><th className="px-5 py-3">Service</th><th className="px-5 py-3">IMEI</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Price</th><th className="px-5 py-3">Date</th></tr>
+                    <tr><th className="px-5 py-3">Order ID</th><th className="px-5 py-3">Service</th><th className="px-5 py-3">IMEI</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Price</th><th className="px-5 py-3">Date</th></tr>
                   </thead>
                   <tbody>
-                    {orders.map((o) => (
+                    {filteredOrders.map((o) => (
                       <tr key={o.id} className="border-t border-border/50 hover:bg-secondary/20 cursor-pointer" onClick={() => setOrderDetail(o)}>
+                        <td className="px-5 py-3 font-mono text-xs">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
                         <td className="px-5 py-3 font-medium">{o.services?.name ?? "—"}</td>
                         <td className="px-5 py-3 font-mono text-xs">{o.imei}</td>
                         <td className={`px-5 py-3 capitalize font-medium ${statusColor(o.status)}`}>{o.status}</td>
@@ -222,7 +259,10 @@ export default function Dashboard() {
                       </tr>
                     ))}
                   </tbody>
-                </table>}
+                </table>
+                  );
+                })()
+              }
             </div>
           </TabsContent>
 
@@ -370,6 +410,7 @@ export default function Dashboard() {
         <DialogContent className="glass max-w-2xl">
           <DialogHeader><DialogTitle>{orderDetail?.services?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3">
+            <div className="text-sm"><span className="text-muted-foreground">Order ID:</span> <span className="font-mono">#{String(orderDetail?.order_number ?? 0).padStart(4, "0")}</span></div>
             <div className="text-sm"><span className="text-muted-foreground">IMEI:</span> <span className="font-mono">{orderDetail?.imei}</span></div>
             <div className="text-sm"><span className="text-muted-foreground">Status:</span> <span className={`capitalize ${statusColor(orderDetail?.status ?? "")}`}>{orderDetail?.status}</span></div>
             <div className="text-sm"><span className="text-muted-foreground">Charged:</span> <span className="font-mono">${Number(orderDetail?.price_charged ?? 0).toFixed(2)}</span></div>
