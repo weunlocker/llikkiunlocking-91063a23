@@ -271,9 +271,12 @@ function AdminUsers() {
 /* ---------- Services ---------- */
 type SupplierService = { action_code: string; name: string; credit: number | null; delivery_time: string | null };
 
+type Category = { id: string; slug: string; name: string; sort_order: number };
+
 function AdminServices() {
   const [services, setServices] = useState<Service[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Service> | null>(null);
   const [q, setQ] = useState("");
@@ -283,12 +286,14 @@ function AdminServices() {
   const [supSvcOpen, setSupSvcOpen] = useState(false);
 
   const load = async () => {
-    const [{ data: svc }, { data: sup }] = await Promise.all([
+    const [{ data: svc }, { data: sup }, { data: cats }] = await Promise.all([
       supabase.from("services").select("*").order("category").order("name"),
       supabase.from("suppliers").select("id,name,type,endpoint_url,dhru_username,dhru_api_key,active,notes").order("name"),
+      supabase.from("categories").select("id,slug,name,sort_order").order("sort_order").order("name"),
     ]);
     setServices((svc ?? []) as unknown as Service[]);
     setSuppliers((sup ?? []) as unknown as Supplier[]);
+    setCategories((cats ?? []) as Category[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -411,7 +416,18 @@ function AdminServices() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Name</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} maxLength={100} /></div>
-                <div><Label>Category</Label><Input value={editing.category ?? ""} onChange={(e) => setEditing({ ...editing, category: e.target.value })} maxLength={50} /></div>
+                <div>
+                  <Label>Category</Label>
+                  <Select value={editing.category ?? "general"} onValueChange={(v) => setEditing({ ...editing, category: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                    <SelectContent>
+                      {categories.length === 0 && <SelectItem value="general">General</SelectItem>}
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.slug}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div><Label>Description</Label><Textarea value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} maxLength={500} /></div>
               <div className="grid grid-cols-2 gap-3">
@@ -1171,6 +1187,110 @@ function AdminSuppliers() {
   );
 }
 
+/* ---------- Categories ---------- */
+function AdminCategories() {
+  const [cats, setCats] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Partial<Category> | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("categories").select("id,slug,name,sort_order").order("sort_order").order("name");
+    setCats((data ?? []) as Category[]);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  const save = async () => {
+    if (!editing) return;
+    const name = (editing.name ?? "").trim();
+    if (!name) { toast.error("Name is required"); return; }
+    const slug = (editing.slug?.trim() || slugify(name));
+    if (!slug) { toast.error("Invalid slug"); return; }
+    const payload = { name, slug, sort_order: Number(editing.sort_order ?? 0) };
+    const { error } = editing.id
+      ? await supabase.from("categories").update(payload).eq("id", editing.id)
+      : await supabase.from("categories").insert(payload);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Saved"); setEditing(null); load();
+  };
+
+  const del = async (c: Category) => {
+    if (!confirm(`Delete category "${c.name}"? Services in this category will keep the slug "${c.slug}" but it will no longer appear in the dropdown.`)) return;
+    const { error } = await supabase.from("categories").delete().eq("id", c.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Deleted"); load();
+  };
+
+  return (
+    <AdminLayout
+      title="Categories"
+      subtitle={`${cats.length} categories`}
+      actions={
+        <Button variant="hero" onClick={() => setEditing({ name: "", slug: "", sort_order: 0 })}>
+          <Plus className="w-4 h-4 mr-1" />New Category
+        </Button>
+      }
+    >
+      {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
+        <div className="glass rounded-2xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
+              <tr><th className="px-5 py-3">Name</th><th className="px-5 py-3">Slug</th><th className="px-5 py-3">Sort</th><th></th></tr>
+            </thead>
+            <tbody>
+              {cats.map((c) => (
+                <tr key={c.id} className="border-t border-border/50 hover:bg-secondary/20">
+                  <td className="px-5 py-3 font-medium">{c.name}</td>
+                  <td className="px-5 py-3 font-mono text-xs text-primary">{c.slug}</td>
+                  <td className="px-5 py-3 text-muted-foreground">{c.sort_order}</td>
+                  <td className="px-5 py-3 text-right whitespace-nowrap">
+                    <Button size="icon" variant="ghost" onClick={() => setEditing(c)}><Edit className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => del(c)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                  </td>
+                </tr>
+              ))}
+              {cats.length === 0 && <tr><td colSpan={4} className="px-5 py-10 text-center text-muted-foreground">No categories yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="glass max-w-md">
+          <DialogHeader><DialogTitle>{editing?.id ? "Edit" : "New"} Category</DialogTitle></DialogHeader>
+          {editing && (
+            <div className="space-y-4">
+              <div>
+                <Label>Name</Label>
+                <Input value={editing.name ?? ""} maxLength={50}
+                  onChange={(e) => setEditing({ ...editing, name: e.target.value, slug: editing.id ? editing.slug : slugify(e.target.value) })} />
+              </div>
+              <div>
+                <Label>Slug</Label>
+                <Input value={editing.slug ?? ""} maxLength={50}
+                  onChange={(e) => setEditing({ ...editing, slug: slugify(e.target.value) })} />
+                <p className="text-xs text-muted-foreground mt-1">Used as the value stored on services. Lowercase, dashes only.</p>
+              </div>
+              <div>
+                <Label>Sort order</Label>
+                <Input type="number" value={editing.sort_order ?? 0}
+                  onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })} />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+                <Button variant="hero" onClick={save}>Save</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </AdminLayout>
+  );
+}
+
 /* ---------- Router ---------- */
 export default function Admin() {
   return (
@@ -1178,6 +1298,7 @@ export default function Admin() {
       <Route index element={<AdminDashboard />} />
       <Route path="users" element={<AdminUsers />} />
       <Route path="suppliers" element={<AdminSuppliers />} />
+      <Route path="categories" element={<AdminCategories />} />
       <Route path="services" element={<AdminServices />} />
       <Route path="orders" element={<AdminOrders />} />
       <Route path="transactions" element={<AdminTransactions />} />
