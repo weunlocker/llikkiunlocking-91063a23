@@ -78,6 +78,7 @@ export type Database = {
           id: string
           imei: string
           last_polled_at: string | null
+          order_number: number
           poll_attempts: number
           price_charged: number
           result: string | null
@@ -94,6 +95,7 @@ export type Database = {
           id?: string
           imei: string
           last_polled_at?: string | null
+          order_number?: number
           poll_attempts?: number
           price_charged?: number
           result?: string | null
@@ -110,6 +112,7 @@ export type Database = {
           id?: string
           imei?: string
           last_polled_at?: string | null
+          order_number?: number
           poll_attempts?: number
           price_charged?: number
           result?: string | null
