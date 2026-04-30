@@ -17,7 +17,7 @@ type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null };
 type Supplier = { id: string; name: string; type: "dhru" | "generic"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
 type ProfileRow = { id: string; email: string | null; display_name: string | null; balance: number; banned: boolean; created_at: string };
-type OrderRow = { id: string; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null; profiles: { email: string | null } | null };
+type OrderRow = { id: string; order_number: number; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null; profiles: { email: string | null } | null };
 type TxRow = { id: string; user_id: string; amount: number; type: string; balance_after: number; description: string | null; created_at: string; profiles?: { email: string | null } | null };
 
 const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", sample_result: "", result_font: "mono", result_color: "#e2e8f0", active: true, category: "general", success_rules: [], supplier_id: null, supplier_action: "" };
@@ -693,10 +693,19 @@ function AdminOrders() {
   };
   useEffect(() => { load(); }, []);
 
-  const filtered = useMemo(() => orders.filter((o) =>
-    (filter === "all" || o.status === filter) &&
-    (!q || o.imei.includes(q) || o.profiles?.email?.toLowerCase().includes(q.toLowerCase()))
-  ), [orders, q, filter]);
+  const filtered = useMemo(() => {
+    const ql = q.toLowerCase().trim();
+    return orders.filter((o) => {
+      if (filter !== "all" && o.status !== filter) return false;
+      if (!ql) return true;
+      const oid = String(o.order_number ?? "").padStart(4, "0");
+      return oid.includes(ql) ||
+        o.imei.toLowerCase().includes(ql) ||
+        (o.profiles?.email ?? "").toLowerCase().includes(ql) ||
+        (o.services?.name ?? "").toLowerCase().includes(ql) ||
+        o.status.toLowerCase().includes(ql);
+    });
+  }, [orders, q, filter]);
 
   const refundOrder = async (o: OrderRow) => {
     if (!confirm(`Refund $${Number(o.price_charged).toFixed(2)}?`)) return;
@@ -723,7 +732,7 @@ function AdminOrders() {
           </Select>
           <div className="relative w-56">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9" placeholder="IMEI or email…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <Input className="pl-9" placeholder="Order ID, IMEI/SN, user, service…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
         </>
       }
@@ -732,11 +741,12 @@ function AdminOrders() {
         <div className="glass rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
-              <tr><th className="px-5 py-3">User</th><th className="px-5 py-3">Service</th><th className="px-5 py-3">IMEI</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Charged</th><th className="px-5 py-3">Date</th><th></th></tr>
+              <tr><th className="px-5 py-3">Order ID</th><th className="px-5 py-3">User</th><th className="px-5 py-3">Service</th><th className="px-5 py-3">IMEI/SN</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Charged</th><th className="px-5 py-3">Date</th><th></th></tr>
             </thead>
             <tbody>
               {filtered.map((o) => (
                 <tr key={o.id} className="border-t border-border/50 hover:bg-secondary/20 cursor-pointer" onClick={() => setView(o)}>
+                  <td className="px-5 py-3 font-mono text-xs">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
                   <td className="px-5 py-3 text-xs">{o.profiles?.email}</td>
                   <td className="px-5 py-3">{o.services?.name}</td>
                   <td className="px-5 py-3 font-mono text-xs">{o.imei}</td>
@@ -750,7 +760,7 @@ function AdminOrders() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={7} className="px-5 py-10 text-center text-muted-foreground">No orders.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={8} className="px-5 py-10 text-center text-muted-foreground">No orders.</td></tr>}
             </tbody>
           </table>
         </div>
