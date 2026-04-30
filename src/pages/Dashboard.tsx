@@ -10,6 +10,7 @@ import { Wallet, Key, History, Plus, Copy, Trash2, Loader2, Smartphone, Clock, C
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { telegramChatIdSchema } from "@/lib/validation";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
 
