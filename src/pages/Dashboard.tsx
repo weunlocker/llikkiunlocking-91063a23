@@ -37,6 +37,8 @@ export default function Dashboard() {
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [testingTg, setTestingTg] = useState(false);
+  const [orderQuery, setOrderQuery] = useState("");
+  const [orderStatus, setOrderStatus] = useState("all");
 
   useEffect(() => {
     if (profile) {
