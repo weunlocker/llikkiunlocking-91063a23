@@ -207,16 +207,50 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="orders" className="mt-5">
+            <div className="glass rounded-2xl p-4 mb-4 flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search by Order ID, IMEI/SN, service…"
+                  value={orderQuery}
+                  onChange={(e) => setOrderQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select value={orderStatus} onValueChange={setOrderStatus}>
+                <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All status</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="glass rounded-2xl overflow-hidden">
               {loading ? <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-primary" /></div> :
-                orders.length === 0 ? <div className="p-12 text-center text-muted-foreground">No orders yet. Visit Services to start.</div> :
+                (() => {
+                  const q = orderQuery.toLowerCase().trim();
+                  const filteredOrders = orders.filter((o) => {
+                    if (orderStatus !== "all" && o.status !== orderStatus) return false;
+                    if (!q) return true;
+                    const oid = String(o.order_number ?? "").padStart(4, "0");
+                    return oid.includes(q) ||
+                      o.imei.toLowerCase().includes(q) ||
+                      (o.services?.name ?? "").toLowerCase().includes(q) ||
+                      o.status.toLowerCase().includes(q);
+                  });
+                  if (filteredOrders.length === 0) return <div className="p-12 text-center text-muted-foreground">No orders found.</div>;
+                  return (
                 <table className="w-full text-sm">
                   <thead className="bg-secondary/40 text-left">
-                    <tr><th className="px-5 py-3">Service</th><th className="px-5 py-3">IMEI</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Price</th><th className="px-5 py-3">Date</th></tr>
+                    <tr><th className="px-5 py-3">Order ID</th><th className="px-5 py-3">Service</th><th className="px-5 py-3">IMEI</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Price</th><th className="px-5 py-3">Date</th></tr>
                   </thead>
                   <tbody>
-                    {orders.map((o) => (
+                    {filteredOrders.map((o) => (
                       <tr key={o.id} className="border-t border-border/50 hover:bg-secondary/20 cursor-pointer" onClick={() => setOrderDetail(o)}>
+                        <td className="px-5 py-3 font-mono text-xs">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
                         <td className="px-5 py-3 font-medium">{o.services?.name ?? "—"}</td>
                         <td className="px-5 py-3 font-mono text-xs">{o.imei}</td>
                         <td className={`px-5 py-3 capitalize font-medium ${statusColor(o.status)}`}>{o.status}</td>
@@ -225,7 +259,10 @@ export default function Dashboard() {
                       </tr>
                     ))}
                   </tbody>
-                </table>}
+                </table>
+                  );
+                })()
+              }
             </div>
           </TabsContent>
 
