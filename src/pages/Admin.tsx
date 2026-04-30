@@ -416,7 +416,18 @@ function AdminServices() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Name</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} maxLength={100} /></div>
-                <div><Label>Category</Label><Input value={editing.category ?? ""} onChange={(e) => setEditing({ ...editing, category: e.target.value })} maxLength={50} /></div>
+                <div>
+                  <Label>Category</Label>
+                  <Select value={editing.category ?? "general"} onValueChange={(v) => setEditing({ ...editing, category: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                    <SelectContent>
+                      {categories.length === 0 && <SelectItem value="general">General</SelectItem>}
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.slug}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div><Label>Description</Label><Textarea value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} maxLength={500} /></div>
               <div className="grid grid-cols-2 gap-3">
