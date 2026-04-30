@@ -271,9 +271,12 @@ function AdminUsers() {
 /* ---------- Services ---------- */
 type SupplierService = { action_code: string; name: string; credit: number | null; delivery_time: string | null };
 
+type Category = { id: string; slug: string; name: string; sort_order: number };
+
 function AdminServices() {
   const [services, setServices] = useState<Service[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Service> | null>(null);
   const [q, setQ] = useState("");
@@ -283,12 +286,14 @@ function AdminServices() {
   const [supSvcOpen, setSupSvcOpen] = useState(false);
 
   const load = async () => {
-    const [{ data: svc }, { data: sup }] = await Promise.all([
+    const [{ data: svc }, { data: sup }, { data: cats }] = await Promise.all([
       supabase.from("services").select("*").order("category").order("name"),
       supabase.from("suppliers").select("id,name,type,endpoint_url,dhru_username,dhru_api_key,active,notes").order("name"),
+      supabase.from("categories").select("id,slug,name,sort_order").order("sort_order").order("name"),
     ]);
     setServices((svc ?? []) as unknown as Service[]);
     setSuppliers((sup ?? []) as unknown as Supplier[]);
+    setCategories((cats ?? []) as Category[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
