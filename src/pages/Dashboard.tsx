@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, Key, History, Plus, Copy, Trash2, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings } from "lucide-react";
+import { Wallet, Key, History, Plus, Copy, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
@@ -21,6 +22,10 @@ type Service = { id: string; name: string; description: string | null; price: nu
 
 export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const validTabs = ["services", "orders", "wallet", "api", "settings"];
+  const tabParam = searchParams.get("tab") ?? "services";
+  const activeTab = validTabs.includes(tabParam) ? tabParam : "services";
   const [orders, setOrders] = useState<Order[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [keys, setKeys] = useState<ApiKey[]>([]);
@@ -119,17 +124,17 @@ export default function Dashboard() {
     const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length]);
     const newKey = [0, 5, 10, 15].map((i) => chars.slice(i, i + 5).join("")).join("-");
     const name = newKeyName.trim() || "Default";
+    if (keys.length > 0) {
+      const ok = window.confirm("This will replace your existing API key. Any apps using the old key will stop working. Continue?");
+      if (!ok) return;
+      const { error: delErr } = await supabase.from("api_keys").delete().eq("user_id", user.id);
+      if (delErr) { toast.error(delErr.message); return; }
+    }
     const { error } = await supabase.from("api_keys").insert({ user_id: user.id, name, key: newKey });
     if (error) { toast.error(error.message); return; }
-    toast.success("API key generated");
+    toast.success(keys.length > 0 ? "API key replaced" : "API key generated");
     setNewKeyName("");
     load();
-  };
-
-  const deleteKey = async (id: string) => {
-    const { error } = await supabase.from("api_keys").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Key deleted"); load();
   };
 
   const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("Copied"); };
@@ -153,7 +158,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <Tabs defaultValue="services">
+        <Tabs value={activeTab} onValueChange={(v) => setSearchParams(v === "services" ? {} : { tab: v }, { replace: true })}>
           <TabsList className="glass flex-wrap h-auto">
             <TabsTrigger value="services"><Smartphone className="w-4 h-4 mr-2" />Services</TabsTrigger>
             <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
@@ -294,14 +299,21 @@ export default function Dashboard() {
 
           <TabsContent value="api" className="mt-5 space-y-5">
             <div className="glass rounded-2xl p-6">
-              <h3 className="font-bold mb-4">Generate New API Key</h3>
+              <h3 className="font-bold mb-1">{keys.length === 0 ? "Generate API Key" : "Replace API Key"}</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                {keys.length === 0
+                  ? "You can have one API key on your account."
+                  : "Generating a new key will replace your current one. Old key stops working immediately."}
+              </p>
               <div className="flex gap-2">
                 <Input placeholder="Key name (e.g. Production)" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} maxLength={50} />
-                <Button variant="hero" onClick={generateKey}><Plus className="w-4 h-4" />Generate</Button>
+                <Button variant="hero" onClick={generateKey}>
+                  <Plus className="w-4 h-4" />{keys.length === 0 ? "Generate" : "Replace"}
+                </Button>
               </div>
             </div>
             <div className="glass rounded-2xl overflow-hidden">
-              {keys.length === 0 ? <div className="p-12 text-center text-muted-foreground">No API keys yet.</div> :
+              {keys.length === 0 ? <div className="p-12 text-center text-muted-foreground">No API key yet.</div> :
                 <div className="divide-y divide-border/50">
                   {keys.map((k) => (
                     <div key={k.id} className="p-5 flex items-center justify-between gap-3">
@@ -310,7 +322,6 @@ export default function Dashboard() {
                         <div className="font-mono text-xs text-muted-foreground truncate">{k.key}</div>
                       </div>
                       <Button size="icon" variant="ghost" onClick={() => copy(k.key)}><Copy className="w-4 h-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => deleteKey(k.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                     </div>
                   ))}
                 </div>}
