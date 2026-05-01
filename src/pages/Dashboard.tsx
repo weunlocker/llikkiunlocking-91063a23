@@ -120,17 +120,17 @@ export default function Dashboard() {
     const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length]);
     const newKey = [0, 5, 10, 15].map((i) => chars.slice(i, i + 5).join("")).join("-");
     const name = newKeyName.trim() || "Default";
+    if (keys.length > 0) {
+      const ok = window.confirm("This will replace your existing API key. Any apps using the old key will stop working. Continue?");
+      if (!ok) return;
+      const { error: delErr } = await supabase.from("api_keys").delete().eq("user_id", user.id);
+      if (delErr) { toast.error(delErr.message); return; }
+    }
     const { error } = await supabase.from("api_keys").insert({ user_id: user.id, name, key: newKey });
     if (error) { toast.error(error.message); return; }
-    toast.success("API key generated");
+    toast.success(keys.length > 0 ? "API key replaced" : "API key generated");
     setNewKeyName("");
     load();
-  };
-
-  const deleteKey = async (id: string) => {
-    const { error } = await supabase.from("api_keys").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Key deleted"); load();
   };
 
   const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("Copied"); };
