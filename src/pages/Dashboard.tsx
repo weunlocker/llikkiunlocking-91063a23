@@ -295,14 +295,21 @@ export default function Dashboard() {
 
           <TabsContent value="api" className="mt-5 space-y-5">
             <div className="glass rounded-2xl p-6">
-              <h3 className="font-bold mb-4">Generate New API Key</h3>
+              <h3 className="font-bold mb-1">{keys.length === 0 ? "Generate API Key" : "Replace API Key"}</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                {keys.length === 0
+                  ? "You can have one API key on your account."
+                  : "Generating a new key will replace your current one. Old key stops working immediately."}
+              </p>
               <div className="flex gap-2">
                 <Input placeholder="Key name (e.g. Production)" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} maxLength={50} />
-                <Button variant="hero" onClick={generateKey}><Plus className="w-4 h-4" />Generate</Button>
+                <Button variant="hero" onClick={generateKey}>
+                  <Plus className="w-4 h-4" />{keys.length === 0 ? "Generate" : "Replace"}
+                </Button>
               </div>
             </div>
             <div className="glass rounded-2xl overflow-hidden">
-              {keys.length === 0 ? <div className="p-12 text-center text-muted-foreground">No API keys yet.</div> :
+              {keys.length === 0 ? <div className="p-12 text-center text-muted-foreground">No API key yet.</div> :
                 <div className="divide-y divide-border/50">
                   {keys.map((k) => (
                     <div key={k.id} className="p-5 flex items-center justify-between gap-3">
@@ -311,7 +318,6 @@ export default function Dashboard() {
                         <div className="font-mono text-xs text-muted-foreground truncate">{k.key}</div>
                       </div>
                       <Button size="icon" variant="ghost" onClick={() => copy(k.key)}><Copy className="w-4 h-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => deleteKey(k.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                     </div>
                   ))}
                 </div>}
