@@ -154,7 +154,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <Tabs defaultValue="services">
+        <Tabs value={activeTab} onValueChange={(v) => setSearchParams(v === "services" ? {} : { tab: v }, { replace: true })}>
           <TabsList className="glass flex-wrap h-auto">
             <TabsTrigger value="services"><Smartphone className="w-4 h-4 mr-2" />Services</TabsTrigger>
             <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
