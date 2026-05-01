@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, Key, History, Plus, Copy, Trash2, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings } from "lucide-react";
+import { Wallet, Key, History, Plus, Copy, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
