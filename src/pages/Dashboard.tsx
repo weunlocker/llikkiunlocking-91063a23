@@ -113,7 +113,11 @@ export default function Dashboard() {
 
   const generateKey = async () => {
     if (!user) return;
-    const newKey = `imei_${crypto.randomUUID().replace(/-/g, "")}`;
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const bytes = new Uint8Array(20);
+    crypto.getRandomValues(bytes);
+    const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length]);
+    const newKey = [0, 5, 10, 15].map((i) => chars.slice(i, i + 5).join("")).join("-");
     const name = newKeyName.trim() || "Default";
     const { error } = await supabase.from("api_keys").insert({ user_id: user.id, name, key: newKey });
     if (error) { toast.error(error.message); return; }
