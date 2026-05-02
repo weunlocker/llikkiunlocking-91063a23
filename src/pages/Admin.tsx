@@ -275,6 +275,7 @@ type SupplierService = { action_code: string; name: string; credit: number | nul
 type Category = { id: string; slug: string; name: string; sort_order: number };
 
 function AdminServices() {
+  const confirm = useConfirm();
   const [services, setServices] = useState<Service[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -347,7 +348,8 @@ function AdminServices() {
     toast.success("Saved"); setEditing(null); load();
   };
   const delService = async (id: string) => {
-    if (!confirm("Delete this service?")) return;
+    const ok = await confirm({ title: "Delete service?", description: "This service will be permanently removed.", confirmText: "Delete", tone: "danger" });
+    if (!ok) return;
     const { error } = await supabase.from("services").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Deleted"); load();
@@ -672,6 +674,7 @@ function AdminServices() {
 
 /* ---------- Orders ---------- */
 function AdminOrders() {
+  const confirm = useConfirm();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -710,7 +713,8 @@ function AdminOrders() {
   }, [orders, q, filter]);
 
   const refundOrder = async (o: OrderRow) => {
-    if (!confirm(`Refund $${Number(o.price_charged).toFixed(2)}?`)) return;
+    const ok = await confirm({ title: "Refund order?", description: `Refund $${Number(o.price_charged).toFixed(2)} back to the customer's wallet.`, confirmText: "Refund", tone: "warning" });
+    if (!ok) return;
     const { error } = await supabase.functions.invoke("admin-refund-order", { body: { order_id: o.id } });
     if (error) { toast.error(error.message); return; }
     toast.success("Refunded"); load();
@@ -951,6 +955,7 @@ function AdminSettings() {
 
 /* ---------- Suppliers ---------- */
 function AdminSuppliers() {
+  const confirm = useConfirm();
   const [list, setList] = useState<Supplier[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -996,7 +1001,8 @@ function AdminSuppliers() {
   };
 
   const del = async (id: string) => {
-    if (!confirm("Delete this supplier? Services using it will fall back to direct API.")) return;
+    const ok = await confirm({ title: "Delete supplier?", description: "Services using this supplier will fall back to direct API.", confirmText: "Delete", tone: "danger" });
+    if (!ok) return;
     const { error } = await supabase.from("suppliers").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Deleted"); load();
@@ -1202,6 +1208,7 @@ function AdminSuppliers() {
 
 /* ---------- Categories ---------- */
 function AdminCategories() {
+  const confirm = useConfirm();
   const [cats, setCats] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Category> | null>(null);
@@ -1231,7 +1238,8 @@ function AdminCategories() {
   };
 
   const del = async (c: Category) => {
-    if (!confirm(`Delete category "${c.name}"? Services in this category will keep the slug "${c.slug}" but it will no longer appear in the dropdown.`)) return;
+    const ok = await confirm({ title: `Delete category "${c.name}"?`, description: `Services in this category will keep the slug "${c.slug}" but it will no longer appear in the dropdown.`, confirmText: "Delete", tone: "danger" });
+    if (!ok) return;
     const { error } = await supabase.from("categories").delete().eq("id", c.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Deleted"); load();
