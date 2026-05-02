@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Edit, Trash2, Loader2, RotateCcw, Search, TrendingUp, Users as UsersIcon, Briefcase, ListOrdered, DollarSign, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
 type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null };
