@@ -7,35 +7,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, Key, History, Plus, Copy, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings } from "lucide-react";
+import { Wallet, History, Plus, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { telegramChatIdSchema } from "@/lib/validation";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
-import { useConfirm } from "@/components/ConfirmDialog";
 
 type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
-type ApiKey = { id: string; name: string; key: string; active: boolean; last_used_at: string | null; created_at: string };
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null };
 
 export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
-  const confirm = useConfirm();
   const [searchParams, setSearchParams] = useSearchParams();
   const validTabs = ["services", "orders", "wallet", "settings"];
   const tabParam = searchParams.get("tab") ?? "services";
   const activeTab = validTabs.includes(tabParam) ? tabParam : "services";
   const [orders, setOrders] = useState<Order[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
-  const [keys, setKeys] = useState<ApiKey[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [topupOpen, setTopupOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState("10");
   const [topupSuccess, setTopupSuccess] = useState<{ amount: number; newBalance: number } | null>(null);
-  const [newKeyName, setNewKeyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
