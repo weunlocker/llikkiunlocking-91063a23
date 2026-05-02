@@ -82,15 +82,13 @@ export default function Dashboard() {
 
   const load = async () => {
     if (!user) return;
-    const [{ data: o }, { data: t }, { data: k }, { data: svc }] = await Promise.all([
+    const [{ data: o }, { data: t }, { data: svc }] = await Promise.all([
       supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,services(name)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
-      supabase.from("api_keys").select("id,name,key,active,last_used_at,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("services").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color").eq("active", true).order("category").order("price"),
     ]);
     setOrders((o ?? []) as unknown as Order[]);
     setTxs((t ?? []) as Tx[]);
-    setKeys((k ?? []) as ApiKey[]);
     setServices((svc ?? []) as Service[]);
     setLoading(false);
   };
@@ -112,34 +110,6 @@ export default function Dashboard() {
     setTopupSuccess({ amount: amt, newBalance });
     load();
   };
-
-  const generateKey = async () => {
-    if (!user) return;
-    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    const bytes = new Uint8Array(20);
-    crypto.getRandomValues(bytes);
-    const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length]);
-    const newKey = [0, 5, 10, 15].map((i) => chars.slice(i, i + 5).join("")).join("-");
-    const name = newKeyName.trim() || "Default";
-    if (keys.length > 0) {
-      const ok = await confirm({
-        title: "Replace API key?",
-        description: "Your existing API key will stop working immediately. Any apps using the old key will break.",
-        confirmText: "Replace key",
-        tone: "warning",
-      });
-      if (!ok) return;
-      const { error: delErr } = await supabase.from("api_keys").delete().eq("user_id", user.id);
-      if (delErr) { toast.error(delErr.message); return; }
-    }
-    const { error } = await supabase.from("api_keys").insert({ user_id: user.id, name, key: newKey });
-    if (error) { toast.error(error.message); return; }
-    toast.success(keys.length > 0 ? "API key replaced" : "API key generated");
-    setNewKeyName("");
-    load();
-  };
-
-  const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("Copied"); };
 
   const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground" } as Record<string, string>)[s] ?? "";
 
