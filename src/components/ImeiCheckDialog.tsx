@@ -16,7 +16,7 @@ type SingleResult = { status: string; result?: string; error?: string } | null;
 
 type BulkRow = {
   imei: string;
-  status: "pending" | "running" | "completed" | "failed";
+  status: "pending" | "running" | "successful" | "rejected" | "failed";
   result?: string;
   error?: string;
 };
@@ -117,7 +117,23 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
     setRows(initial);
     setSubmitting(true);
 
+    // Per-check timeout so one slow supplier can't freeze the whole queue.
+    const PER_CHECK_TIMEOUT_MS = 60_000;
+    const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
+      new Promise((resolve, reject) => {
+        const t = setTimeout(() => reject(new Error("Request timed out — moved on")), ms);
+        p.then((v) => { clearTimeout(t); resolve(v); }).catch((e) => { clearTimeout(t); reject(e); });
+      });
+
+    // Heuristic: server returns success=false / status "Rejected" inside result text.
+    const isRejected = (data: { status?: string; result?: string; error?: string } | null | undefined) => {
+      if (!data) return false;
+      const text = `${data.result ?? ""} ${data.error ?? ""}`.toLowerCase();
+      return /\brejected\b|"success"\s*:\s*false|\bnot\s+found\b|\bfail(ed)?\b/.test(text);
+    };
+
     let remainingBalance = balance;
+    let okCount = 0;
     for (let i = 0; i < initial.length; i++) {
       if (remainingBalance < price) {
         setRows((prev) => prev.map((r, idx) => idx >= i ? { ...r, status: "failed", error: "Skipped — insufficient balance" } : r));
@@ -125,19 +141,26 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
       }
       setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "running" } : r));
       try {
-        const { data, error } = await supabase.functions.invoke("check-imei", {
-          body: { service_id: service.id, imei: initial[i].imei },
-        });
+        const { data, error } = await withTimeout(
+          supabase.functions.invoke("check-imei", { body: { service_id: service.id, imei: initial[i].imei } }),
+          PER_CHECK_TIMEOUT_MS,
+        );
         if (error) {
           setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "failed", error: error.message } : r));
         } else if (data?.status === "completed") {
           remainingBalance -= price;
-          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "completed", result: data.result } : r));
+          if (isRejected(data)) {
+            setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "rejected", result: data.result } : r));
+          } else {
+            okCount++;
+            setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "successful", result: data.result } : r));
+          }
         } else if (data?.status === "pending") {
           remainingBalance -= price;
-          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "completed", result: "Queued — check Orders tab" } : r));
+          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "successful", result: "Queued — check Orders tab" } : r));
+          okCount++;
         } else {
-          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "failed", error: data?.error ?? "Check failed" } : r));
+          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "rejected", error: data?.error ?? "Check failed" } : r));
         }
       } catch (e) {
         setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "failed", error: e instanceof Error ? e.message : "Network error" } : r));
@@ -146,11 +169,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
     }
 
     setSubmitting(false);
-    setRows((prev) => {
-      const okCount = prev.filter((r) => r.status === "completed").length;
-      toast.success(`Bulk done — ${okCount}/${bulkValid.length} succeeded`);
-      return prev;
-    });
+    toast.success(`Bulk done — ${okCount}/${bulkValid.length} successful`);
   };
 
   const reset = () => { setResult(null); setRows([]); setImei(""); setBulkText(""); };
@@ -263,23 +282,27 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
         ) : (
           <div className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              {submitting ? "Running checks…" : "Bulk run finished"} ({rows.filter((r) => r.status === "completed").length}/{rows.length} succeeded)
+              {submitting ? "Running checks…" : "Bulk run finished"} ({rows.filter((r) => r.status === "successful").length}/{rows.length} successful)
             </div>
             {ResultToolbar}
             <div className="max-h-96 overflow-y-auto rounded border border-border/50 divide-y divide-border/40">
-              {rows.map((r, i) => (
+              {rows.map((r, i) => {
+                const queuePos = rows.slice(0, i).filter((x) => x.status === "pending" || x.status === "running").length;
+                return (
                 <div key={i} className="p-3 text-xs space-y-1">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono break-all">{r.imei}</span>
-                    {r.status === "pending" && <span className="text-muted-foreground shrink-0">Pending…</span>}
-                    {r.status === "running" && <span className="text-primary flex items-center gap-1 shrink-0"><Loader2 className="w-3 h-3 animate-spin" />Running</span>}
-                    {r.status === "completed" && <span className="text-success flex items-center gap-1 shrink-0"><CheckCircle2 className="w-3 h-3" />Done</span>}
+                    {r.status === "pending" && <span className="text-muted-foreground shrink-0">Pending{queuePos > 0 ? ` · #${queuePos + 1} in queue` : "…"}</span>}
+                    {r.status === "running" && <span className="text-primary flex items-center gap-1 shrink-0"><Loader2 className="w-3 h-3 animate-spin" />In process</span>}
+                    {r.status === "successful" && <span className="text-success flex items-center gap-1 shrink-0"><CheckCircle2 className="w-3 h-3" />Successful</span>}
+                    {r.status === "rejected" && <span className="text-warning flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Rejected</span>}
                     {r.status === "failed" && <span className="text-destructive flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Failed</span>}
                   </div>
                   {r.result && <ColoredResult text={r.result} font={font} />}
                   {r.error && <div className="text-destructive">{r.error}</div>}
                 </div>
-              ))}
+                );
+              })}
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <Button variant="glass" className="flex-1" onClick={reset} disabled={submitting}>Run more</Button>
