@@ -7,35 +7,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, Key, History, Plus, Copy, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings } from "lucide-react";
+import { Wallet, History, Plus, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { telegramChatIdSchema } from "@/lib/validation";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
-import { useConfirm } from "@/components/ConfirmDialog";
 
 type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
-type ApiKey = { id: string; name: string; key: string; active: boolean; last_used_at: string | null; created_at: string };
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null };
 
 export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
-  const confirm = useConfirm();
   const [searchParams, setSearchParams] = useSearchParams();
-  const validTabs = ["services", "orders", "wallet", "api", "settings"];
+  const validTabs = ["services", "orders", "wallet", "settings"];
   const tabParam = searchParams.get("tab") ?? "services";
   const activeTab = validTabs.includes(tabParam) ? tabParam : "services";
   const [orders, setOrders] = useState<Order[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
-  const [keys, setKeys] = useState<ApiKey[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [topupOpen, setTopupOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState("10");
   const [topupSuccess, setTopupSuccess] = useState<{ amount: number; newBalance: number } | null>(null);
-  const [newKeyName, setNewKeyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -87,15 +82,13 @@ export default function Dashboard() {
 
   const load = async () => {
     if (!user) return;
-    const [{ data: o }, { data: t }, { data: k }, { data: svc }] = await Promise.all([
+    const [{ data: o }, { data: t }, { data: svc }] = await Promise.all([
       supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,services(name)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
-      supabase.from("api_keys").select("id,name,key,active,last_used_at,created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("services").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color").eq("active", true).order("category").order("price"),
     ]);
     setOrders((o ?? []) as unknown as Order[]);
     setTxs((t ?? []) as Tx[]);
-    setKeys((k ?? []) as ApiKey[]);
     setServices((svc ?? []) as Service[]);
     setLoading(false);
   };
@@ -117,34 +110,6 @@ export default function Dashboard() {
     setTopupSuccess({ amount: amt, newBalance });
     load();
   };
-
-  const generateKey = async () => {
-    if (!user) return;
-    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    const bytes = new Uint8Array(20);
-    crypto.getRandomValues(bytes);
-    const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length]);
-    const newKey = [0, 5, 10, 15].map((i) => chars.slice(i, i + 5).join("")).join("-");
-    const name = newKeyName.trim() || "Default";
-    if (keys.length > 0) {
-      const ok = await confirm({
-        title: "Replace API key?",
-        description: "Your existing API key will stop working immediately. Any apps using the old key will break.",
-        confirmText: "Replace key",
-        tone: "warning",
-      });
-      if (!ok) return;
-      const { error: delErr } = await supabase.from("api_keys").delete().eq("user_id", user.id);
-      if (delErr) { toast.error(delErr.message); return; }
-    }
-    const { error } = await supabase.from("api_keys").insert({ user_id: user.id, name, key: newKey });
-    if (error) { toast.error(error.message); return; }
-    toast.success(keys.length > 0 ? "API key replaced" : "API key generated");
-    setNewKeyName("");
-    load();
-  };
-
-  const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("Copied"); };
 
   const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground" } as Record<string, string>)[s] ?? "";
 
@@ -170,7 +135,6 @@ export default function Dashboard() {
             <TabsTrigger value="services"><Smartphone className="w-4 h-4 mr-2" />Services</TabsTrigger>
             <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
             <TabsTrigger value="wallet"><Wallet className="w-4 h-4 mr-2" />Wallet History</TabsTrigger>
-            <TabsTrigger value="api"><Key className="w-4 h-4 mr-2" />API Keys</TabsTrigger>
             <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />Notifications</TabsTrigger>
           </TabsList>
 
@@ -301,37 +265,6 @@ export default function Dashboard() {
                     ))}
                   </tbody>
                 </table>}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="api" className="mt-5 space-y-5">
-            <div className="glass rounded-2xl p-6">
-              <h3 className="font-bold mb-1">{keys.length === 0 ? "Generate API Key" : "Replace API Key"}</h3>
-              <p className="text-xs text-muted-foreground mb-4">
-                {keys.length === 0
-                  ? "You can have one API key on your account."
-                  : "Generating a new key will replace your current one. Old key stops working immediately."}
-              </p>
-              <div className="flex gap-2">
-                <Input placeholder="Key name (e.g. Production)" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} maxLength={50} />
-                <Button variant="hero" onClick={generateKey}>
-                  <Plus className="w-4 h-4" />{keys.length === 0 ? "Generate" : "Replace"}
-                </Button>
-              </div>
-            </div>
-            <div className="glass rounded-2xl overflow-hidden">
-              {keys.length === 0 ? <div className="p-12 text-center text-muted-foreground">No API key yet.</div> :
-                <div className="divide-y divide-border/50">
-                  {keys.map((k) => (
-                    <div key={k.id} className="p-5 flex items-center justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold mb-1">{k.name}</div>
-                        <div className="font-mono text-xs text-muted-foreground truncate">{k.key}</div>
-                      </div>
-                      <Button size="icon" variant="ghost" onClick={() => copy(k.key)}><Copy className="w-4 h-4" /></Button>
-                    </div>
-                  ))}
-                </div>}
             </div>
           </TabsContent>
 
