@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { telegramChatIdSchema } from "@/lib/validation";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
@@ -22,6 +23,7 @@ type Service = { id: string; name: string; description: string | null; price: nu
 
 export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
+  const confirm = useConfirm();
   const [searchParams, setSearchParams] = useSearchParams();
   const validTabs = ["services", "orders", "wallet", "api", "settings"];
   const tabParam = searchParams.get("tab") ?? "services";
@@ -125,7 +127,12 @@ export default function Dashboard() {
     const newKey = [0, 5, 10, 15].map((i) => chars.slice(i, i + 5).join("")).join("-");
     const name = newKeyName.trim() || "Default";
     if (keys.length > 0) {
-      const ok = window.confirm("This will replace your existing API key. Any apps using the old key will stop working. Continue?");
+      const ok = await confirm({
+        title: "Replace API key?",
+        description: "Your existing API key will stop working immediately. Any apps using the old key will break.",
+        confirmText: "Replace key",
+        tone: "warning",
+      });
       if (!ok) return;
       const { error: delErr } = await supabase.from("api_keys").delete().eq("user_id", user.id);
       if (delErr) { toast.error(delErr.message); return; }
