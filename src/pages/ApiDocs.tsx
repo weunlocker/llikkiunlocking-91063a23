@@ -117,20 +117,57 @@ export default function ApiDocs() {
           </p>
         </div>
 
-        {/* Credentials card */}
+        {/* API Key generator (top of API page) */}
         <div className="glass rounded-2xl p-6 md:p-8 mb-6">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><KeyRound className="w-5 h-5 text-primary" /> Your credentials</h2>
+          <h2 className="text-xl font-bold mb-1 flex items-center gap-2"><KeyRound className="w-5 h-5 text-primary" /> Your API Key</h2>
+          <p className="text-xs text-muted-foreground mb-4">
+            {!user
+              ? "Log in to generate your personal API key."
+              : keys.length === 0
+                ? "You can have one API key on your account. Generate it below."
+                : "Generating a new key replaces your current one — old key stops working immediately."}
+          </p>
+
+          {user && (
+            <div className="flex gap-2 mb-4">
+              <Input
+                placeholder="Key name (e.g. Production)"
+                value={newKeyName}
+                onChange={(e) => setNewKeyName(e.target.value)}
+                maxLength={50}
+              />
+              <Button variant="hero" onClick={generateKey} disabled={generating}>
+                {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                {keys.length === 0 ? "Generate" : "Replace"}
+              </Button>
+            </div>
+          )}
+
+          {user && keys.length > 0 && (
+            <div className="rounded-lg border border-border/60 divide-y divide-border/40 mb-4">
+              {keys.map((k) => (
+                <div key={k.id} className="p-4 flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-muted-foreground mb-1">{k.name}</div>
+                    <div className="font-mono text-sm truncate">{k.key}</div>
+                  </div>
+                  <Button size="icon" variant="ghost" onClick={() => copy(k.key)}><Copy className="w-4 h-4" /></Button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="grid sm:grid-cols-2 gap-4">
             <Field label="Username" value={username} onCopy={copy} />
             <Field label="API URL" value={base} onCopy={copy} />
-            <Field label="API Key" value={apiKey} onCopy={copy} mono />
-            <div className="rounded-lg bg-secondary/30 border border-border/60 p-3 text-xs text-muted-foreground flex items-start gap-2">
-              <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>
-                No API key yet? Go to <a href="/dashboard" className="text-primary underline">Dashboard → API Keys</a> and click <b>Generate</b>. Your key looks like <span className="font-mono">imei_xxxxxxxx…</span>
-              </span>
-            </div>
           </div>
+
+          {!user && (
+            <div className="mt-4 rounded-lg bg-secondary/30 border border-border/60 p-3 text-xs text-muted-foreground flex items-start gap-2">
+              <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <span><a href="/login" className="text-primary underline">Log in</a> or <a href="/register" className="text-primary underline">create an account</a> to generate your API key.</span>
+            </div>
+          )}
         </div>
 
         <Tabs defaultValue="simple">
