@@ -25,7 +25,7 @@ export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
   const confirm = useConfirm();
   const [searchParams, setSearchParams] = useSearchParams();
-  const validTabs = ["services", "orders", "wallet", "api", "settings"];
+  const validTabs = ["services", "orders", "wallet", "settings"];
   const tabParam = searchParams.get("tab") ?? "services";
   const activeTab = validTabs.includes(tabParam) ? tabParam : "services";
   const [orders, setOrders] = useState<Order[]>([]);
@@ -170,7 +170,6 @@ export default function Dashboard() {
             <TabsTrigger value="services"><Smartphone className="w-4 h-4 mr-2" />Services</TabsTrigger>
             <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
             <TabsTrigger value="wallet"><Wallet className="w-4 h-4 mr-2" />Wallet History</TabsTrigger>
-            <TabsTrigger value="api"><Key className="w-4 h-4 mr-2" />API Keys</TabsTrigger>
             <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />Notifications</TabsTrigger>
           </TabsList>
 
@@ -301,37 +300,6 @@ export default function Dashboard() {
                     ))}
                   </tbody>
                 </table>}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="api" className="mt-5 space-y-5">
-            <div className="glass rounded-2xl p-6">
-              <h3 className="font-bold mb-1">{keys.length === 0 ? "Generate API Key" : "Replace API Key"}</h3>
-              <p className="text-xs text-muted-foreground mb-4">
-                {keys.length === 0
-                  ? "You can have one API key on your account."
-                  : "Generating a new key will replace your current one. Old key stops working immediately."}
-              </p>
-              <div className="flex gap-2">
-                <Input placeholder="Key name (e.g. Production)" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} maxLength={50} />
-                <Button variant="hero" onClick={generateKey}>
-                  <Plus className="w-4 h-4" />{keys.length === 0 ? "Generate" : "Replace"}
-                </Button>
-              </div>
-            </div>
-            <div className="glass rounded-2xl overflow-hidden">
-              {keys.length === 0 ? <div className="p-12 text-center text-muted-foreground">No API key yet.</div> :
-                <div className="divide-y divide-border/50">
-                  {keys.map((k) => (
-                    <div key={k.id} className="p-5 flex items-center justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold mb-1">{k.name}</div>
-                        <div className="font-mono text-xs text-muted-foreground truncate">{k.key}</div>
-                      </div>
-                      <Button size="icon" variant="ghost" onClick={() => copy(k.key)}><Copy className="w-4 h-4" /></Button>
-                    </div>
-                  ))}
-                </div>}
             </div>
           </TabsContent>
 
