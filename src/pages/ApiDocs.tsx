@@ -1,11 +1,13 @@
 import Layout from "@/components/Layout";
-import { Code2, Copy, Info, AlertTriangle, Loader2, KeyRound, Link as LinkIcon } from "lucide-react";
+import { Code2, Copy, Info, AlertTriangle, Loader2, KeyRound, Link as LinkIcon, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type SimpleService = {
   id: string;
@@ -22,9 +24,12 @@ type ApiKeyRow = { id: string; name: string; key: string };
 
 export default function ApiDocs() {
   const { user, profile } = useAuth();
+  const confirm = useConfirm();
   const [base, setBase] = useState("");
   const [services, setServices] = useState<SimpleService[]>([]);
   const [keys, setKeys] = useState<ApiKeyRow[]>([]);
+  const [newKeyName, setNewKeyName] = useState("");
+  const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,6 +58,37 @@ export default function ApiDocs() {
   const copy = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied");
+  };
+
+  const generateKey = async () => {
+    if (!user) { toast.error("Please log in first"); return; }
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const bytes = new Uint8Array(20);
+    crypto.getRandomValues(bytes);
+    const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length]);
+    const newKey = [0, 5, 10, 15].map((i) => chars.slice(i, i + 5).join("")).join("-");
+    const name = newKeyName.trim() || "Default";
+    if (keys.length > 0) {
+      const ok = await confirm({
+        title: "Replace API key?",
+        description: "Your existing API key will stop working immediately. Any apps using the old key will break.",
+        confirmText: "Replace key",
+        tone: "warning",
+      });
+      if (!ok) return;
+    }
+    setGenerating(true);
+    if (keys.length > 0) {
+      const { error: delErr } = await supabase.from("api_keys").delete().eq("user_id", user.id);
+      if (delErr) { setGenerating(false); toast.error(delErr.message); return; }
+    }
+    const { error } = await supabase.from("api_keys").insert({ user_id: user.id, name, key: newKey });
+    setGenerating(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(keys.length > 0 ? "API key replaced" : "API key generated");
+    setNewKeyName("");
+    const { data: k } = await supabase.from("api_keys").select("id, name, key").eq("user_id", user.id).order("created_at", { ascending: false });
+    setKeys((k ?? []) as ApiKeyRow[]);
   };
 
   // Split services: instant (Simple-Link compatible) vs Dhru (async, NOT for Simple Link)
