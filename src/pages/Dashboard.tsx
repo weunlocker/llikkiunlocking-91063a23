@@ -117,6 +117,12 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="container py-10">
+        {profile && (profile as unknown as { custom_message?: string }).custom_message && (
+          <div className="glass rounded-2xl p-4 mb-5 border-l-4 border-primary">
+            <div className="text-xs uppercase tracking-wider text-primary mb-1">Message from admin</div>
+            <div className="text-sm whitespace-pre-wrap">{(profile as unknown as { custom_message?: string }).custom_message}</div>
+          </div>
+        )}
         <div className="grid md:grid-cols-3 gap-5 mb-5">
           <div className="glass rounded-2xl p-6 md:col-span-2 flex items-center justify-between">
             <div>
