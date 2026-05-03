@@ -36,6 +36,23 @@ const FONT_MAP: Record<string, string> = {
 };
 const fontCss = (key?: string | null) => FONT_MAP[key ?? "mono"] ?? FONT_MAP.mono;
 
+// Extract just the human-readable response from a result that may be a JSON
+// envelope like {"success":true,"status":"...","response":"..."} or a plain string.
+function extractResponse(text?: string | null): string {
+  if (!text) return "";
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return text;
+  try {
+    const obj = JSON.parse(trimmed);
+    const val = obj?.response ?? obj?.result ?? obj?.message ?? obj?.data;
+    if (typeof val === "string") return val;
+    if (val != null) return JSON.stringify(val, null, 2);
+    return text;
+  } catch {
+    return text;
+  }
+}
+
 // Renders a result string. Segments wrapped in [[c:#hex]]...[[/c]] get colored; [[f:name]]...[[/f]] change font.
 function ColoredResult({ text, font }: { text: string; font: string }) {
   const lines = (text || "").split("\n");
