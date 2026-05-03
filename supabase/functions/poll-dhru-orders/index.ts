@@ -1,6 +1,7 @@
 // Polls all pending Dhru orders. Triggered every 30s by pg_cron.
 // Updates each order: pending -> completed/failed, refunds on failure, notifies user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { notifyUserEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
