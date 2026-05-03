@@ -983,12 +983,64 @@ function AdminSettings() {
   const navigate = useNavigate();
   const [testChatId, setTestChatId] = useState("");
   const [testing, setTesting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [s, setS] = useState({
+    brand_name: "", tagline: "", logo_url: "",
+    seo_title: "", seo_description: "", seo_keywords: "",
+    facebook_url: "", twitter_url: "", instagram_url: "", youtube_url: "",
+    telegram_url: "", whatsapp_number: "",
+    contact_email: "", contact_phone: "", address: "", footer_text: "",
+  });
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("site_settings").select("*").eq("id", 1).maybeSingle();
+      if (data) {
+        const r = data as unknown as Record<string, string | null>;
+        setS({
+          brand_name: r.brand_name ?? "", tagline: r.tagline ?? "", logo_url: r.logo_url ?? "",
+          seo_title: r.seo_title ?? "", seo_description: r.seo_description ?? "", seo_keywords: r.seo_keywords ?? "",
+          facebook_url: r.facebook_url ?? "", twitter_url: r.twitter_url ?? "", instagram_url: r.instagram_url ?? "", youtube_url: r.youtube_url ?? "",
+          telegram_url: r.telegram_url ?? "", whatsapp_number: r.whatsapp_number ?? "",
+          contact_email: r.contact_email ?? "", contact_phone: r.contact_phone ?? "", address: r.address ?? "", footer_text: r.footer_text ?? "",
+        });
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  const set = <K extends keyof typeof s>(k: K, v: string) => setS((p) => ({ ...p, [k]: v }));
+
+  const save = async () => {
+    setSaving(true);
+    const payload = Object.fromEntries(Object.entries(s).map(([k, v]) => [k, v === "" ? null : v])) as never;
+    const { error } = await supabase.from("site_settings").update(payload).eq("id", 1);
+    setSaving(false);
+    if (error) toast.error(error.message);
+    else { toast.success("Settings saved"); }
+  };
+
+  const onUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "png";
+    const path = `logo-${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("branding").upload(path, file, { upsert: true, contentType: file.type });
+    if (upErr) { setUploading(false); toast.error(upErr.message); return; }
+    const { data } = supabase.storage.from("branding").getPublicUrl(path);
+    set("logo_url", data.publicUrl);
+    setUploading(false);
+    toast.success("Logo uploaded — click Save to apply");
+  };
 
   const sendTestTelegram = async () => {
     if (!testChatId.trim()) return toast.error("Enter a chat ID");
     setTesting(true);
     const { data, error } = await supabase.functions.invoke("telegram-notify", {
-      body: { user_id: "00000000-0000-0000-0000-000000000000", chat_id: testChatId.trim(), subject: "Test from LIKKI UNLOCKING", message: "✅ Telegram is wired up correctly." },
+      body: { user_id: "00000000-0000-0000-0000-000000000000", chat_id: testChatId.trim(), subject: "Test", message: "✅ Telegram is wired up correctly." },
     });
     setTesting(false);
     if (error) return toast.error(error.message);
@@ -996,18 +1048,67 @@ function AdminSettings() {
     else toast.error("Failed: " + JSON.stringify(data));
   };
 
+  if (loading) return <AdminLayout title="Settings" subtitle="Platform configuration"><div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div></AdminLayout>;
+
   return (
-    <AdminLayout title="Settings" subtitle="Platform configuration">
-      <div className="grid md:grid-cols-2 gap-4 max-w-4xl">
+    <AdminLayout
+      title="Settings"
+      subtitle="Platform configuration"
+      actions={<Button variant="hero" onClick={save} disabled={saving}>{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}</Button>}
+    >
+      <div className="grid lg:grid-cols-2 gap-4 max-w-6xl">
+        {/* Brand */}
         <div className="glass rounded-2xl p-6 space-y-3">
           <h3 className="font-bold">Brand</h3>
-          <p className="text-sm text-muted-foreground">LIKKI UNLOCKING — #1 Direct Wholesale Supplier</p>
-          <p className="text-xs text-muted-foreground">Logo file: <code className="px-1 bg-secondary/50 rounded">src/assets/logo.png</code>. To replace, upload a new image in chat and ask to swap the logo.</p>
+          <div><Label>Brand Name</Label><Input value={s.brand_name} onChange={(e) => set("brand_name", e.target.value)} placeholder="LIKKI UNLOCKING" /></div>
+          <div><Label>Tagline</Label><Input value={s.tagline} onChange={(e) => set("tagline", e.target.value)} placeholder="#1 Direct Wholesale Supplier" /></div>
+          <div>
+            <Label>Logo</Label>
+            <div className="flex items-center gap-3 mt-1">
+              {s.logo_url && <img src={s.logo_url} alt="logo" className="h-10 bg-white rounded p-1" />}
+              <Input type="file" accept="image/*" onChange={onUploadLogo} disabled={uploading} />
+            </div>
+            <Input className="mt-2" value={s.logo_url} onChange={(e) => set("logo_url", e.target.value)} placeholder="Or paste image URL" />
+          </div>
         </div>
 
+        {/* SEO */}
+        <div className="glass rounded-2xl p-6 space-y-3">
+          <h3 className="font-bold">SEO</h3>
+          <div><Label>Meta Title</Label><Input value={s.seo_title} onChange={(e) => set("seo_title", e.target.value)} placeholder="LIKKI UNLOCKING — IMEI Checks & Unlocks" /></div>
+          <div><Label>Meta Description</Label><Textarea rows={3} value={s.seo_description} onChange={(e) => set("seo_description", e.target.value)} placeholder="Short site description (under 160 chars)" /></div>
+          <div><Label>Keywords (comma separated)</Label><Input value={s.seo_keywords} onChange={(e) => set("seo_keywords", e.target.value)} placeholder="imei, unlock, icloud" /></div>
+        </div>
+
+        {/* Contact */}
+        <div className="glass rounded-2xl p-6 space-y-3">
+          <h3 className="font-bold">Contact / Admin Details</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Email</Label><Input type="email" value={s.contact_email} onChange={(e) => set("contact_email", e.target.value)} placeholder="support@example.com" /></div>
+            <div><Label>Phone</Label><Input value={s.contact_phone} onChange={(e) => set("contact_phone", e.target.value)} placeholder="+1 555 1234" /></div>
+          </div>
+          <div><Label>Address</Label><Textarea rows={2} value={s.address} onChange={(e) => set("address", e.target.value)} /></div>
+          <div><Label>Footer Text</Label><Input value={s.footer_text} onChange={(e) => set("footer_text", e.target.value)} placeholder="Optional small print" /></div>
+        </div>
+
+        {/* Social */}
+        <div className="glass rounded-2xl p-6 space-y-3">
+          <h3 className="font-bold">Social & Floating Buttons</h3>
+          <p className="text-xs text-muted-foreground">Telegram + WhatsApp show as floating buttons on every page (right-bottom corner).</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Telegram (link or @username)</Label><Input value={s.telegram_url} onChange={(e) => set("telegram_url", e.target.value)} placeholder="@likkiunlocking" /></div>
+            <div><Label>WhatsApp Number</Label><Input value={s.whatsapp_number} onChange={(e) => set("whatsapp_number", e.target.value)} placeholder="+15551234567" /></div>
+            <div><Label>Facebook URL</Label><Input value={s.facebook_url} onChange={(e) => set("facebook_url", e.target.value)} /></div>
+            <div><Label>Instagram URL</Label><Input value={s.instagram_url} onChange={(e) => set("instagram_url", e.target.value)} /></div>
+            <div><Label>Twitter / X URL</Label><Input value={s.twitter_url} onChange={(e) => set("twitter_url", e.target.value)} /></div>
+            <div><Label>YouTube URL</Label><Input value={s.youtube_url} onChange={(e) => set("youtube_url", e.target.value)} /></div>
+          </div>
+        </div>
+
+        {/* Telegram bot */}
         <div className="glass rounded-2xl p-6 space-y-3">
           <h3 className="font-bold">Telegram Bot</h3>
-          <p className="text-sm text-muted-foreground">Connected via Lovable Cloud connector. Clients link their account in <button className="underline text-primary" onClick={() => window.open("/dashboard", "_blank")}>Dashboard → Notifications</button>.</p>
+          <p className="text-sm text-muted-foreground">Connected via Lovable Cloud. Clients link their account in Dashboard → Notifications.</p>
           <div className="space-y-2 pt-2 border-t border-border/40">
             <Label className="text-xs">Send test message to chat ID</Label>
             <div className="flex gap-2">
@@ -1019,22 +1120,21 @@ function AdminSettings() {
           </div>
         </div>
 
-        <div className="glass rounded-2xl p-6 space-y-3">
-          <h3 className="font-bold">Email Notifications</h3>
-          <p className="text-sm text-muted-foreground">Email sending requires a verified sender domain. Ask in chat: "set up email domain" to configure it.</p>
-          <Button size="sm" variant="outline" onClick={() => navigate("/admin/notifications")}>
-            Open Broadcasts
-          </Button>
-        </div>
-
+        {/* API providers */}
         <div className="glass rounded-2xl p-6 space-y-3">
           <h3 className="font-bold">API Providers (Dhru / GSM / Custom)</h3>
-          <p className="text-sm text-muted-foreground">Save each upstream supplier once in <b>Suppliers</b>, then pick it from any service. For one-off direct API URLs, configure them per-service.</p>
+          <p className="text-sm text-muted-foreground">Save each upstream supplier once in <b>Suppliers</b>, then pick it from any service.</p>
           <div className="flex gap-2">
             <Button size="sm" onClick={() => navigate("/admin/suppliers")}>Manage Suppliers</Button>
             <Button size="sm" variant="outline" onClick={() => navigate("/admin/services")}>Open Services</Button>
           </div>
         </div>
+      </div>
+
+      <div className="mt-6 flex justify-end max-w-6xl">
+        <Button variant="hero" size="lg" onClick={save} disabled={saving}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
+        </Button>
       </div>
     </AdminLayout>
   );

@@ -3,11 +3,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { LogOut, LayoutDashboard, Wallet, Zap } from "lucide-react";
 import { ReactNode } from "react";
-import logo from "@/assets/logo.png";
+import defaultLogo from "@/assets/logo.png";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, profile, isAdmin, signOut } = useAuth();
+  const { settings } = useSiteSettings();
   const navigate = useNavigate();
+  const logoSrc = settings.logo_url || defaultLogo;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -15,7 +18,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="container flex h-16 items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2 group min-w-0">
             <div className="bg-white rounded-md px-2 py-1 shadow-neon">
-              <img src={logo} alt="LIKKI UNLOCKING logo" className="h-7 md:h-8 w-auto block" />
+              <img src={logoSrc} alt={`${settings.brand_name} logo`} className="h-7 md:h-8 w-auto block" />
             </div>
           </Link>
 
@@ -76,8 +79,16 @@ export default function Layout({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
 
       <footer className="border-t border-border/50 mt-20">
-        <div className="container py-8 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} LIKKI UNLOCKING · #1 Direct Wholesale Supplier</p>
+        <div className="container py-8 text-center text-sm text-muted-foreground space-y-2">
+          <p>© {new Date().getFullYear()} {settings.brand_name}{settings.tagline ? ` · ${settings.tagline}` : ""}</p>
+          {(settings.contact_email || settings.contact_phone) && (
+            <p className="text-xs">
+              {settings.contact_email && <a href={`mailto:${settings.contact_email}`} className="hover:text-primary">{settings.contact_email}</a>}
+              {settings.contact_email && settings.contact_phone && " · "}
+              {settings.contact_phone && <a href={`tel:${settings.contact_phone}`} className="hover:text-primary">{settings.contact_phone}</a>}
+            </p>
+          )}
+          {settings.footer_text && <p className="text-xs">{settings.footer_text}</p>}
         </div>
       </footer>
     </div>
