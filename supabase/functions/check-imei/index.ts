@@ -26,12 +26,16 @@ Deno.serve(async (req) => {
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return json(400, { error: parsed.error.flatten().fieldErrors });
 
-    const result = await executeCheck({
+    const result = await executeCheckAsync({
       userId: user.id,
       serviceId: parsed.data.service_id,
       imei: parsed.data.imei,
       source: "web",
     });
+    if (result.background) {
+      // @ts-ignore EdgeRuntime is provided by Deno Deploy
+      try { EdgeRuntime.waitUntil(result.background); } catch { /* ignore */ }
+    }
     return json(result.status, result.body);
   } catch (e) {
     console.error("check-imei error:", e);
