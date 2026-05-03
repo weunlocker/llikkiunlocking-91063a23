@@ -173,6 +173,7 @@ function AdminUsers() {
   const [creditUser, setCreditUser] = useState<ProfileRow | null>(null);
   const [creditAmount, setCreditAmount] = useState("10");
   const [makeAdminUser, setMakeAdminUser] = useState<ProfileRow | null>(null);
+  const [editUser, setEditUser] = useState<ProfileRow | null>(null);
 
   const load = async () => {
     const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
@@ -203,6 +204,18 @@ function AdminUsers() {
     toast.success(`${u.email} is now admin`); setMakeAdminUser(null);
   };
 
+  const groupBadge = (g?: string | null) => {
+    const k = String(g ?? "standard").toLowerCase();
+    const map: Record<string, string> = {
+      diamond: "bg-primary/20 text-primary",
+      gold: "bg-warning/20 text-warning",
+      silver: "bg-muted-foreground/20 text-muted-foreground",
+      standard: "bg-secondary text-foreground",
+    };
+    const label = k === "diamond" ? "💎 Diamond" : k === "gold" ? "🥇 Gold" : k === "silver" ? "🥈 Silver" : "Standard";
+    return <span className={`text-xs px-2 py-0.5 rounded ${map[k]}`}>{label}</span>;
+  };
+
   return (
     <AdminLayout
       title="Users"
@@ -218,28 +231,36 @@ function AdminUsers() {
         <div className="glass rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
-              <tr><th className="px-5 py-3">Email</th><th className="px-5 py-3">Name</th><th className="px-5 py-3 text-right">Balance</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Joined</th><th></th></tr>
+              <tr><th className="px-5 py-3">Email</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Group</th><th className="px-5 py-3 text-right">Balance</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Joined</th><th></th></tr>
             </thead>
             <tbody>
               {filtered.map((u) => (
                 <tr key={u.id} className="border-t border-border/50 hover:bg-secondary/20">
                   <td className="px-5 py-3">{u.email}</td>
                   <td className="px-5 py-3 text-muted-foreground">{u.display_name}</td>
+                  <td className="px-5 py-3">{groupBadge((u as ProfileRow & { user_group?: string }).user_group)}</td>
                   <td className="px-5 py-3 text-right font-mono font-bold">${Number(u.balance).toFixed(2)}</td>
                   <td className="px-5 py-3">{u.banned ? <span className="text-destructive">● Banned</span> : <span className="text-success">● Active</span>}</td>
                   <td className="px-5 py-3 text-xs text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
                   <td className="px-5 py-3 text-right space-x-1 whitespace-nowrap">
-                    <Button size="sm" variant="neon" onClick={() => { setCreditUser(u); setCreditAmount("10"); }}>Refill</Button>
+                    <Button size="sm" variant="neon" onClick={() => setEditUser(u)}>Edit</Button>
+                    <Button size="sm" variant="ghost" onClick={() => { setCreditUser(u); setCreditAmount("10"); }}>Refill</Button>
                     <Button size="sm" variant="ghost" onClick={() => toggleBan(u)}>{u.banned ? "Unban" : "Ban"}</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setMakeAdminUser(u)}>Make Admin</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setMakeAdminUser(u)}>Admin</Button>
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">No users found.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={7} className="px-5 py-10 text-center text-muted-foreground">No users found.</td></tr>}
             </tbody>
           </table>
         </div>
       }
+
+      <AdminUserEditDialog
+        user={editUser as unknown as EditableUser}
+        onClose={() => setEditUser(null)}
+        onSaved={load}
+      />
 
       <Dialog open={!!creditUser} onOpenChange={(o) => !o && setCreditUser(null)}>
         <DialogContent className="glass">
