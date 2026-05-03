@@ -8,6 +8,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { ConfirmProvider } from "@/components/ConfirmDialog";
 import { SiteSettingsProvider } from "@/hooks/useSiteSettings";
 import FloatingContact from "@/components/FloatingContact";
+import AIChatWidget from "@/components/AIChatWidget";
 import Home from "./pages/Home";
 import Services from "./pages/Services";
 import Pricing from "./pages/Pricing";
