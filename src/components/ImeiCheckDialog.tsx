@@ -303,6 +303,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
               <Button variant="hero" className="flex-1" onClick={onClose} disabled={submitting}>Close</Button>
             </div>
           </div>
+        )}
       </DialogContent>
     </Dialog>
   );
