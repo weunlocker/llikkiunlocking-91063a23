@@ -222,40 +222,67 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
+          api_enabled: boolean
           balance: number
           banned: boolean
+          city: string | null
+          country: string | null
           created_at: string
+          custom_message: string | null
           display_name: string | null
           email: string | null
           id: string
           notify_email: boolean
           notify_telegram: boolean
+          phone: string | null
+          pincode: string | null
+          state: string | null
           telegram_chat_id: string | null
           updated_at: string
+          user_group: string
         }
         Insert: {
+          address?: string | null
+          api_enabled?: boolean
           balance?: number
           banned?: boolean
+          city?: string | null
+          country?: string | null
           created_at?: string
+          custom_message?: string | null
           display_name?: string | null
           email?: string | null
           id: string
           notify_email?: boolean
           notify_telegram?: boolean
+          phone?: string | null
+          pincode?: string | null
+          state?: string | null
           telegram_chat_id?: string | null
           updated_at?: string
+          user_group?: string
         }
         Update: {
+          address?: string | null
+          api_enabled?: boolean
           balance?: number
           banned?: boolean
+          city?: string | null
+          country?: string | null
           created_at?: string
+          custom_message?: string | null
           display_name?: string | null
           email?: string | null
           id?: string
           notify_email?: boolean
           notify_telegram?: boolean
+          phone?: string | null
+          pincode?: string | null
+          state?: string | null
           telegram_chat_id?: string | null
           updated_at?: string
+          user_group?: string
         }
         Relationships: []
       }
@@ -507,6 +534,36 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_service_overrides: {
+        Row: {
+          created_at: string
+          custom_price: number | null
+          enabled: boolean
+          id: string
+          service_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_price?: number | null
+          enabled?: boolean
+          id?: string
+          service_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_price?: number | null
+          enabled?: boolean
+          id?: string
+          service_id?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
