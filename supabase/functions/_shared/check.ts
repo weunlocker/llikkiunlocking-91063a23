@@ -108,8 +108,26 @@ export async function executeCheck(opts: {
   if (!service.active) return { ok: false, status: 400, body: { error: "Service inactive" } };
   if (pErr || !profile) return { ok: false, status: 404, body: { error: "User not found" } };
   if (profile.banned) return { ok: false, status: 403, body: { error: "Account banned" } };
+  if (opts.source === "api" && profile.api_enabled === false) {
+    return { ok: false, status: 403, body: { error: "API access disabled for this account" } };
+  }
 
-  const price = Number(service.price);
+  // Per-user override (custom price + enable/disable)
+  const { data: override } = await supabase
+    .from("user_service_overrides")
+    .select("enabled, custom_price")
+    .eq("user_id", opts.userId).eq("service_id", service.id).maybeSingle();
+  if (override && override.enabled === false) {
+    return { ok: false, status: 403, body: { error: "Service not available for this account" } };
+  }
+
+  // Pricing: custom price wins; otherwise group discount on base price
+  const groupDiscount: Record<string, number> = { silver: 0.10, gold: 0.30, diamond: 0.50 };
+  const discount = groupDiscount[String(profile.user_group ?? "").toLowerCase()] ?? 0;
+  const basePrice = Number(service.price);
+  const price = override?.custom_price != null
+    ? Number(override.custom_price)
+    : +(basePrice * (1 - discount)).toFixed(2);
   const balance = Number(profile.balance);
   if (balance < price) return { ok: false, status: 402, body: { error: "Insufficient balance", balance } };
 
