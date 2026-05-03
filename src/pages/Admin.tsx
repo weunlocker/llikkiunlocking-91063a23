@@ -1037,18 +1037,6 @@ function AdminSettings() {
     const file = e.target.files?.[0]; if (file) await uploadTo("favicon_url", file, "favicon");
   };
 
-  const sendTestTelegram = async () => {
-    if (!testChatId.trim()) return toast.error("Enter a chat ID");
-    setTesting(true);
-    const { data, error } = await supabase.functions.invoke("telegram-notify", {
-      body: { user_id: "00000000-0000-0000-0000-000000000000", chat_id: testChatId.trim(), subject: "Test", message: "✅ Telegram is wired up correctly." },
-    });
-    setTesting(false);
-    if (error) return toast.error(error.message);
-    if ((data as { ok?: boolean })?.ok) toast.success("Test sent — check Telegram");
-    else toast.error("Failed: " + JSON.stringify(data));
-  };
-
   if (loading) return <AdminLayout title="Settings" subtitle="Platform configuration"><div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div></AdminLayout>;
 
   return (
