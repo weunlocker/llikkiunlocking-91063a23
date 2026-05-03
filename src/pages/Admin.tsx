@@ -135,7 +135,7 @@ function AdminDashboard() {
             })}
           </div>
 
-          <div className="mt-8 glass rounded-2xl overflow-hidden">
+          <div className="mt-8 glass rounded-2xl overflow-x-auto">
             <div className="px-5 py-4 border-b border-border/50 flex justify-between items-center">
               <h2 className="font-bold">Recent Orders</h2>
               <Button size="sm" variant="ghost" onClick={() => navigate("/admin/orders")}>View all →</Button>
@@ -229,7 +229,7 @@ function AdminUsers() {
       }
     >
       {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
-        <div className="glass rounded-2xl overflow-hidden">
+        <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
               <tr><th className="px-5 py-3">Email</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Group</th><th className="px-5 py-3 text-right">Balance</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Joined</th><th></th></tr>
@@ -404,7 +404,7 @@ function AdminServices() {
       }
     >
       {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
-        <div className="glass rounded-2xl overflow-hidden">
+        <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
               <tr><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
@@ -767,7 +767,7 @@ function AdminOrders() {
       }
     >
       {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
-        <div className="glass rounded-2xl overflow-hidden">
+        <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
               <tr><th className="px-5 py-3">Order ID</th><th className="px-5 py-3">User</th><th className="px-5 py-3">Service</th><th className="px-5 py-3">IMEI/SN</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Charged</th><th className="px-5 py-3">Date</th><th></th></tr>
@@ -918,7 +918,7 @@ function AdminTransactions() {
       </div>
     }>
       {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
-        <div className="glass rounded-2xl overflow-hidden">
+        <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
               <tr><th className="px-5 py-3">User</th><th className="px-5 py-3">Type</th><th className="px-5 py-3 text-right">Amount</th><th className="px-5 py-3 text-right">Balance After</th><th className="px-5 py-3">Description</th><th className="px-5 py-3">Date</th></tr>
@@ -1267,7 +1267,7 @@ function AdminSuppliers() {
       }
     >
       {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
-        <div className="glass rounded-2xl overflow-hidden">
+        <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
               <tr><th className="px-5 py-3">Name</th><th className="px-5 py-3">Type</th><th className="px-5 py-3">Endpoint</th><th className="px-5 py-3">Status</th><th></th></tr>
@@ -1443,7 +1443,7 @@ function AdminCategories() {
       }
     >
       {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
-        <div className="glass rounded-2xl overflow-hidden">
+        <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
               <tr><th className="px-5 py-3">Name</th><th className="px-5 py-3">Slug</th><th className="px-5 py-3">Sort</th><th></th></tr>

@@ -123,7 +123,7 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
             <div className="flex items-center gap-2 shrink-0">{actions}</div>
           </div>
         </header>
-        <main className="p-4 sm:p-6 lg:p-8 overflow-x-auto">{children}</main>
+        <main className="p-4 sm:p-6 lg:p-8 min-w-0">{children}</main>
       </div>
     </div>
   );
