@@ -43,11 +43,19 @@ Deno.serve(async (req) => {
     const newBalance = +(Number(profile.balance) + amount).toFixed(2);
     if (newBalance < 0) return json(400, { error: "Resulting balance would be negative" });
 
-    await admin.from("profiles").update({ balance: newBalance }).eq("id", user_id);
-    await admin.from("transactions").insert({
+    const { error: txErr } = await admin.from("transactions").insert({
       user_id, type: amount > 0 ? "admin_credit" : "admin_debit", amount,
       balance_after: newBalance, description: description ?? "Admin adjustment",
     });
+    if (txErr) {
+      console.error("tx insert failed", txErr);
+      return json(500, { error: `Transaction log failed: ${txErr.message}` });
+    }
+    const { error: pErr } = await admin.from("profiles").update({ balance: newBalance }).eq("id", user_id);
+    if (pErr) {
+      console.error("profile update failed", pErr);
+      return json(500, { error: `Balance update failed: ${pErr.message}` });
+    }
     try {
       await admin.functions.invoke("telegram-notify", {
         body: {
