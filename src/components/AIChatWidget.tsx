@@ -43,6 +43,24 @@ export default function AIChatWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  // Build deep links to Telegram/WhatsApp pre-filled with the chat transcript
+  const userMsgCount = messages.filter((m) => m.role === "user").length;
+  const showHandoff = userMsgCount >= 2;
+  const handoff = useMemo(() => {
+    const transcript = messages
+      .slice(-8)
+      .map((m) => `${m.role === "user" ? "Me" : brand}: ${m.content}`)
+      .join("\n");
+    const intro = `Hello ${brand} Team 👋, I was chatting with your AI assistant and need a human. Here's what we discussed:\n\n`;
+    const text = intro + transcript;
+    const enc = encodeURIComponent(text);
+    const wa = waRaw ? `https://wa.me/${waRaw.replace(/[^\d]/g, "")}?text=${enc}` : null;
+    const tgUser = tgRaw ? (tgRaw.startsWith("http") ? tgRaw.replace(/^https?:\/\/t\.me\//, "").replace(/^@/, "") : tgRaw.replace(/^@/, "")) : "";
+    const tg = tgRaw ? `https://t.me/${tgUser}?text=${enc}` : null;
+    return { wa, tg };
+  }, [messages, brand, waRaw, tgRaw]);
+
+
   useEffect(() => {
     try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages)); } catch { /* ignore */ }
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
