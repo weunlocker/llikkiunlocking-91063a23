@@ -61,7 +61,7 @@ function ColoredResult({ text, font }: { text: string; font: string }) {
   );
 }
 
-export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun }: ImeiCheckDialogProps) {
+export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun, onBulkStarted }: ImeiCheckDialogProps) {
   const [tab, setTab] = useState<"single" | "bulk">("single");
   const [imei, setImei] = useState("");
   const [bulkText, setBulkText] = useState("");
