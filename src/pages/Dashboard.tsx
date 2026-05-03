@@ -23,7 +23,7 @@ type Service = { id: string; name: string; description: string | null; price: nu
 export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const validTabs = ["services", "orders", "wallet", "settings"];
+  const validTabs = ["services", "orders", "wallet", "settings", "api"];
   const tabParam = searchParams.get("tab") ?? "services";
   const activeTab = validTabs.includes(tabParam) ? tabParam : "services";
   const [orders, setOrders] = useState<Order[]>([]);
