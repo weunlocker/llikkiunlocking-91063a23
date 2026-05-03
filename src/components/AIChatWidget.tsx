@@ -21,51 +21,85 @@ const TelegramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 export default function AIChatWidget() {
   const { pathname } = useLocation();
   const { settings } = useSiteSettings();
+  const { user, profile } = useAuth();
   if (pathname.startsWith("/admin")) return null;
   const brand = settings.brand_name || "LIKKI UNLOCKING";
   const logoUrl = settings.logo_url;
   const tgRaw = settings.telegram_url?.trim();
   const waRaw = settings.whatsapp_number?.trim();
+
+  const initialGreeting: Msg = {
+    role: "assistant",
+    content: `👋 Hi! I'm the **${brand}** assistant. Ask me anything about IMEI checks, unlocks, pricing, or how it works.`,
+  };
+
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>(() => {
-    try {
-      const raw = sessionStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch { /* ignore */ }
-    return [
-      {
-        role: "assistant",
-        content: `👋 Hi! I'm the **${brand}** assistant. Ask me anything about IMEI checks, unlocks, pricing, or how it works.`,
-      },
-    ];
-  });
+  // Fresh chat on every page load — no persistence.
+  const [messages, setMessages] = useState<Msg[]>([initialGreeting]);
+
+  // Guest contact details (asked once when user is not logged in and tries to hand off)
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [pendingChannel, setPendingChannel] = useState<Channel | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Build deep links to Telegram/WhatsApp pre-filled with the chat transcript
   const userMsgCount = messages.filter((m) => m.role === "user").length;
   const showHandoff = userMsgCount >= 2;
-  const handoff = useMemo(() => {
-    const transcript = messages
-      .slice(-8)
-      .map((m) => `${m.role === "user" ? "Me" : brand}: ${m.content}`)
-      .join("\n");
-    const intro = `Hello ${brand} Team 👋, I was chatting with your AI assistant and need a human. Here's what we discussed:\n\n`;
-    const text = intro + transcript;
-    const enc = encodeURIComponent(text);
-    const wa = waRaw ? `https://wa.me/${waRaw.replace(/[^\d]/g, "")}?text=${enc}` : null;
-    const tgUser = tgRaw ? (tgRaw.startsWith("http") ? tgRaw.replace(/^https?:\/\/t\.me\//, "").replace(/^@/, "") : tgRaw.replace(/^@/, "")) : "";
-    const tg = tgRaw ? `https://t.me/${tgUser}?text=${enc}` : null;
-    return { wa, tg };
-  }, [messages, brand, waRaw, tgRaw]);
 
+  const buildTranscript = (contact?: { name?: string; email?: string; phone?: string }) => {
+    const transcript = messages
+      .slice(-10)
+      .map((m) => `${m.role === "user" ? "Me" : brand + " AI"}: ${m.content}`)
+      .join("\n");
+    const name = contact?.name || profile?.display_name || "";
+    const email = contact?.email || profile?.email || user?.email || "";
+    const phone = contact?.phone || (profile as any)?.phone || "";
+    const contactBlock = [
+      name && `Name: ${name}`,
+      email && `Email: ${email}`,
+      phone && `Phone: ${phone}`,
+    ].filter(Boolean).join("\n");
+    return (
+      `Hello ${brand} Team 👋\n\nI was chatting with your AI assistant and need a human.\n\n` +
+      (contactBlock ? `— My details —\n${contactBlock}\n\n` : "") +
+      `— Conversation —\n${transcript}`
+    );
+  };
+
+  const openChannel = (channel: Channel, text: string) => {
+    const enc = encodeURIComponent(text);
+    let href: string | null = null;
+    if (channel === "wa" && waRaw) href = `https://wa.me/${waRaw.replace(/[^\d]/g, "")}?text=${enc}`;
+    if (channel === "tg" && tgRaw) {
+      const tgUser = tgRaw.startsWith("http") ? tgRaw.replace(/^https?:\/\/t\.me\//, "").replace(/^@/, "") : tgRaw.replace(/^@/, "");
+      href = `https://t.me/${tgUser}?text=${enc}`;
+    }
+    if (href) window.open(href, "_blank", "noopener,noreferrer");
+  };
+
+  const handleHandoff = (channel: Channel) => {
+    if (user) {
+      openChannel(channel, buildTranscript());
+    } else {
+      setPendingChannel(channel);
+    }
+  };
+
+  const submitGuestDetails = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingChannel) return;
+    if (!guestName.trim() || (!guestEmail.trim() && !guestPhone.trim())) return;
+    openChannel(pendingChannel, buildTranscript({ name: guestName, email: guestEmail, phone: guestPhone }));
+    setPendingChannel(null);
+  };
 
   useEffect(() => {
-    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages)); } catch { /* ignore */ }
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, open]);
+  }, [messages, open, pendingChannel]);
 
   const send = async () => {
     const text = input.trim();
