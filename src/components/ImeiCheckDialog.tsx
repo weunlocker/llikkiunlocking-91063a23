@@ -325,13 +325,13 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
                       {r.status === "rejected" && <span className="text-xs text-warning flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Rejected</span>}
                       {r.status === "failed" && <span className="text-xs text-destructive flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Failed</span>}
                     </div>
-                    {r.result && <ColoredResult text={r.result} font={font} />}
+                    {r.result && <ColoredResult text={extractResponse(r.result)} font={font} />}
                     {r.error && <div className="text-xs text-destructive">{r.error}</div>}
                     {r.result && (
                       <Button
                         variant="glass"
                         size="sm"
-                        onClick={() => { navigator.clipboard.writeText(r.result || ""); toast.success("Copied"); }}
+                        onClick={() => { navigator.clipboard.writeText(extractResponse(r.result)); toast.success("Copied"); }}
                       >
                         <Copy className="w-4 h-4" /> Copy
                       </Button>
