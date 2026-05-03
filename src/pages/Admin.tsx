@@ -1527,10 +1527,12 @@ function AdminTelegramBot() {
 
 /* ---------- Router ---------- */
 import AdminEmailSettings from "./AdminEmailSettings";
+import AdminPayments from "./AdminPayments";
 export default function Admin() {
   return (
     <Routes>
       <Route index element={<AdminDashboard />} />
+      <Route path="payments" element={<AdminPayments />} />
       <Route path="users" element={<AdminUsers />} />
       <Route path="suppliers" element={<AdminSuppliers />} />
       <Route path="categories" element={<AdminCategories />} />
