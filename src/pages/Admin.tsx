@@ -998,7 +998,7 @@ function AdminSettings() {
     (async () => {
       const { data } = await supabase.from("site_settings").select("*").eq("id", 1).maybeSingle();
       if (data) {
-        const r = data as Record<string, string | null>;
+        const r = data as unknown as Record<string, string | null>;
         setS({
           brand_name: r.brand_name ?? "", tagline: r.tagline ?? "", logo_url: r.logo_url ?? "",
           seo_title: r.seo_title ?? "", seo_description: r.seo_description ?? "", seo_keywords: r.seo_keywords ?? "",
@@ -1015,7 +1015,7 @@ function AdminSettings() {
 
   const save = async () => {
     setSaving(true);
-    const payload = Object.fromEntries(Object.entries(s).map(([k, v]) => [k, v === "" ? null : v]));
+    const payload = Object.fromEntries(Object.entries(s).map(([k, v]) => [k, v === "" ? null : v])) as never;
     const { error } = await supabase.from("site_settings").update(payload).eq("id", 1);
     setSaving(false);
     if (error) toast.error(error.message);
