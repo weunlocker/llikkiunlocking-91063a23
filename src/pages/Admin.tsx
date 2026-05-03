@@ -1506,22 +1506,6 @@ function AdminTelegramBot() {
   );
 }
 
-/* ---------- API Providers page ---------- */
-function AdminApiProviders() {
-  const navigate = useNavigate();
-  return (
-    <AdminLayout title="API Providers" subtitle="Dhru / GSM / Custom upstream suppliers">
-      <div className="glass rounded-2xl p-6 space-y-3 max-w-2xl">
-        <h3 className="font-bold">API Providers (Dhru / GSM / Custom)</h3>
-        <p className="text-sm text-muted-foreground">Save each upstream supplier once in <b>Suppliers</b>, then pick it from any service.</p>
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => navigate("/admin/suppliers")}>Manage Suppliers</Button>
-          <Button size="sm" variant="outline" onClick={() => navigate("/admin/services")}>Open Services</Button>
-        </div>
-      </div>
-    </AdminLayout>
-  );
-}
 
 /* ---------- Router ---------- */
 import AdminEmailSettings from "./AdminEmailSettings";
@@ -1537,7 +1521,7 @@ export default function Admin() {
       <Route path="transactions" element={<AdminTransactions />} />
       <Route path="notifications" element={<AdminNotifications />} />
       <Route path="telegram-bot" element={<AdminTelegramBot />} />
-      <Route path="api-providers" element={<AdminApiProviders />} />
+      <Route path="api-providers" element={<AdminSuppliers />} />
       <Route path="email-settings" element={<AdminEmailSettings />} />
       <Route path="settings" element={<AdminSettings />} />
     </Routes>
