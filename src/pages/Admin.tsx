@@ -1022,18 +1022,22 @@ function AdminSettings() {
     else { toast.success("Settings saved"); }
   };
 
-  const onUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadTo = async (field: "logo_url" | "favicon_url", file: File, prefix: string) => {
     setUploading(true);
     const ext = file.name.split(".").pop() || "png";
-    const path = `logo-${Date.now()}.${ext}`;
+    const path = `${prefix}-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("branding").upload(path, file, { upsert: true, contentType: file.type });
     if (upErr) { setUploading(false); toast.error(upErr.message); return; }
     const { data } = supabase.storage.from("branding").getPublicUrl(path);
-    set("logo_url", data.publicUrl);
+    set(field, data.publicUrl);
     setUploading(false);
-    toast.success("Logo uploaded — click Save to apply");
+    toast.success("Uploaded — click Save to apply");
+  };
+  const onUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (file) await uploadTo("logo_url", file, "logo");
+  };
+  const onUploadFavicon = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (file) await uploadTo("favicon_url", file, "favicon");
   };
 
   const sendTestTelegram = async () => {
