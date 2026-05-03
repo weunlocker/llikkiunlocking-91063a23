@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Bot, Send, X, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Send, X, Sparkles, MessageCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useLocation } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -10,11 +10,21 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
 const PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const STORAGE_KEY = "likki_ai_chat_v1";
 
+// Inline Telegram paper-plane glyph (brand blue)
+const TelegramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+    <path d="M21.94 4.27a1.5 1.5 0 0 0-1.6-.2L3.4 11.1c-1.1.45-1.07 2.03.05 2.43l3.9 1.4 1.5 4.8a1 1 0 0 0 1.66.42l2.3-2.18 4.16 3.06c.86.63 2.1.16 2.32-.88l3.05-13.9a1.5 1.5 0 0 0-.4-1.98ZM9.7 14.6l8.4-6.4-6.95 7.45-.2 2.97-1.25-4.02Z" />
+  </svg>
+);
+
 export default function AIChatWidget() {
   const { pathname } = useLocation();
   const { settings } = useSiteSettings();
   if (pathname.startsWith("/admin")) return null;
   const brand = settings.brand_name || "LIKKI UNLOCKING";
+  const logoUrl = settings.logo_url;
+  const tgRaw = settings.telegram_url?.trim();
+  const waRaw = settings.whatsapp_number?.trim();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,6 +42,24 @@ export default function AIChatWidget() {
   });
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Build deep links to Telegram/WhatsApp pre-filled with the chat transcript
+  const userMsgCount = messages.filter((m) => m.role === "user").length;
+  const showHandoff = userMsgCount >= 2;
+  const handoff = useMemo(() => {
+    const transcript = messages
+      .slice(-8)
+      .map((m) => `${m.role === "user" ? "Me" : brand}: ${m.content}`)
+      .join("\n");
+    const intro = `Hello ${brand} Team 👋, I was chatting with your AI assistant and need a human. Here's what we discussed:\n\n`;
+    const text = intro + transcript;
+    const enc = encodeURIComponent(text);
+    const wa = waRaw ? `https://wa.me/${waRaw.replace(/[^\d]/g, "")}?text=${enc}` : null;
+    const tgUser = tgRaw ? (tgRaw.startsWith("http") ? tgRaw.replace(/^https?:\/\/t\.me\//, "").replace(/^@/, "") : tgRaw.replace(/^@/, "")) : "";
+    const tg = tgRaw ? `https://t.me/${tgUser}?text=${enc}` : null;
+    return { wa, tg };
+  }, [messages, brand, waRaw, tgRaw]);
+
 
   useEffect(() => {
     try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages)); } catch { /* ignore */ }
@@ -126,7 +154,11 @@ export default function AIChatWidget() {
           aria-label="Chat with AI assistant"
           className="fixed right-3 bottom-32 sm:right-4 sm:bottom-36 z-40 w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-xl bg-gradient-to-br from-primary to-purple-600 text-primary-foreground flex items-center justify-center hover:scale-110 transition-transform"
         >
-          <Bot className="w-6 h-6" />
+          {logoUrl ? (
+            <img src={logoUrl} alt={brand} className="w-8 h-8 rounded-full object-cover" />
+          ) : (
+            <span className="text-sm font-extrabold tracking-tight">{brand.charAt(0)}</span>
+          )}
           <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] rounded-full px-1.5 py-0.5 font-bold">AI</span>
         </button>
       )}
@@ -136,9 +168,13 @@ export default function AIChatWidget() {
         <div className="fixed right-2 left-2 sm:left-auto sm:right-4 bottom-3 sm:bottom-4 z-50 w-auto sm:w-[380px] max-h-[80vh] flex flex-col rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary/20 to-purple-600/20 border-b border-border/60">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-primary-foreground" />
-              </div>
+              {logoUrl ? (
+                <img src={logoUrl} alt={brand} className="w-9 h-9 rounded-full object-cover ring-2 ring-primary/40" />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-primary-foreground" />
+                </div>
+              )}
               <div>
                 <div className="text-sm font-semibold leading-tight">{brand} Assistant</div>
                 <div className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -179,6 +215,35 @@ export default function AIChatWidget() {
                     <span className="w-1.5 h-1.5 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "120ms" }} />
                     <span className="w-1.5 h-1.5 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: "240ms" }} />
                   </span>
+                </div>
+              </div>
+            )}
+            {showHandoff && (handoff.tg || handoff.wa) && (
+              <div className="rounded-xl border border-border/60 bg-muted/30 p-3 space-y-2">
+                <div className="text-xs text-muted-foreground">
+                  Need a human? Continue this chat with our team — your conversation will be sent automatically.
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {handoff.wa && (
+                    <a
+                      href={handoff.wa}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#25D366] text-white hover:opacity-90 transition"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                    </a>
+                  )}
+                  {handoff.tg && (
+                    <a
+                      href={handoff.tg}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#229ED9] text-white hover:opacity-90 transition"
+                    >
+                      <TelegramIcon className="w-3.5 h-3.5" /> Telegram
+                    </a>
+                  )}
                 </div>
               </div>
             )}
