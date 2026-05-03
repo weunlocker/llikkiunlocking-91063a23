@@ -1537,7 +1537,7 @@ export default function Admin() {
       <Route path="transactions" element={<AdminTransactions />} />
       <Route path="notifications" element={<AdminNotifications />} />
       <Route path="telegram-bot" element={<AdminTelegramBot />} />
-      <Route path="api-providers" element={<AdminApiProviders />} />
+      <Route path="api-providers" element={<AdminSuppliers />} />
       <Route path="email-settings" element={<AdminEmailSettings />} />
       <Route path="settings" element={<AdminSettings />} />
     </Routes>
