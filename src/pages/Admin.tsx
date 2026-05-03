@@ -987,7 +987,7 @@ function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [s, setS] = useState({
-    brand_name: "", tagline: "", logo_url: "",
+    brand_name: "", tagline: "", logo_url: "", favicon_url: "",
     seo_title: "", seo_description: "", seo_keywords: "",
     facebook_url: "", twitter_url: "", instagram_url: "", youtube_url: "",
     telegram_url: "", whatsapp_number: "",
@@ -1000,7 +1000,7 @@ function AdminSettings() {
       if (data) {
         const r = data as unknown as Record<string, string | null>;
         setS({
-          brand_name: r.brand_name ?? "", tagline: r.tagline ?? "", logo_url: r.logo_url ?? "",
+          brand_name: r.brand_name ?? "", tagline: r.tagline ?? "", logo_url: r.logo_url ?? "", favicon_url: r.favicon_url ?? "",
           seo_title: r.seo_title ?? "", seo_description: r.seo_description ?? "", seo_keywords: r.seo_keywords ?? "",
           facebook_url: r.facebook_url ?? "", twitter_url: r.twitter_url ?? "", instagram_url: r.instagram_url ?? "", youtube_url: r.youtube_url ?? "",
           telegram_url: r.telegram_url ?? "", whatsapp_number: r.whatsapp_number ?? "",
@@ -1022,18 +1022,22 @@ function AdminSettings() {
     else { toast.success("Settings saved"); }
   };
 
-  const onUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadTo = async (field: "logo_url" | "favicon_url", file: File, prefix: string) => {
     setUploading(true);
     const ext = file.name.split(".").pop() || "png";
-    const path = `logo-${Date.now()}.${ext}`;
+    const path = `${prefix}-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("branding").upload(path, file, { upsert: true, contentType: file.type });
     if (upErr) { setUploading(false); toast.error(upErr.message); return; }
     const { data } = supabase.storage.from("branding").getPublicUrl(path);
-    set("logo_url", data.publicUrl);
+    set(field, data.publicUrl);
     setUploading(false);
-    toast.success("Logo uploaded — click Save to apply");
+    toast.success("Uploaded — click Save to apply");
+  };
+  const onUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (file) await uploadTo("logo_url", file, "logo");
+  };
+  const onUploadFavicon = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; if (file) await uploadTo("favicon_url", file, "favicon");
   };
 
   const sendTestTelegram = async () => {
@@ -1069,6 +1073,15 @@ function AdminSettings() {
               <Input type="file" accept="image/*" onChange={onUploadLogo} disabled={uploading} />
             </div>
             <Input className="mt-2" value={s.logo_url} onChange={(e) => set("logo_url", e.target.value)} placeholder="Or paste image URL" />
+          </div>
+          <div>
+            <Label>Favicon (browser tab icon)</Label>
+            <div className="flex items-center gap-3 mt-1">
+              {s.favicon_url && <img src={s.favicon_url} alt="favicon" className="h-8 w-8 bg-white rounded p-1 object-contain" />}
+              <Input type="file" accept="image/png,image/x-icon,image/svg+xml,image/jpeg" onChange={onUploadFavicon} disabled={uploading} />
+            </div>
+            <Input className="mt-2" value={s.favicon_url} onChange={(e) => set("favicon_url", e.target.value)} placeholder="Or paste favicon URL (.png / .ico)" />
+            <p className="text-xs text-muted-foreground mt-1">Recommended: square PNG, 32×32 or 64×64.</p>
           </div>
         </div>
 

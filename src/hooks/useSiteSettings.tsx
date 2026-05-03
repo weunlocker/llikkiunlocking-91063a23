@@ -5,6 +5,7 @@ export type SiteSettings = {
   brand_name: string;
   tagline: string | null;
   logo_url: string | null;
+  favicon_url: string | null;
   seo_title: string | null;
   seo_description: string | null;
   seo_keywords: string | null;
@@ -23,7 +24,7 @@ export type SiteSettings = {
 const DEFAULTS: SiteSettings = {
   brand_name: "LIKKI UNLOCKING",
   tagline: "#1 Direct Wholesale Supplier",
-  logo_url: null,
+  logo_url: null, favicon_url: null,
   seo_title: null, seo_description: null, seo_keywords: null,
   facebook_url: null, twitter_url: null, instagram_url: null, youtube_url: null,
   telegram_url: null, whatsapp_number: null,
@@ -56,7 +57,12 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     };
     setMeta("description", settings.seo_description);
     setMeta("keywords", settings.seo_keywords);
-  }, [settings.seo_title, settings.seo_description, settings.seo_keywords]);
+    if (settings.favicon_url) {
+      let link = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
+      if (!link) { link = document.createElement("link"); link.rel = "icon"; document.head.appendChild(link); }
+      link.href = settings.favicon_url;
+    }
+  }, [settings.seo_title, settings.seo_description, settings.seo_keywords, settings.favicon_url]);
 
   return <SiteCtx.Provider value={{ settings, loading, refresh }}>{children}</SiteCtx.Provider>;
 }

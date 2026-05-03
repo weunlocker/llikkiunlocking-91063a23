@@ -428,6 +428,7 @@ export type Database = {
           contact_phone: string | null
           created_at: string
           facebook_url: string | null
+          favicon_url: string | null
           footer_text: string | null
           id: number
           instagram_url: string | null
@@ -449,6 +450,7 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           facebook_url?: string | null
+          favicon_url?: string | null
           footer_text?: string | null
           id?: number
           instagram_url?: string | null
@@ -470,6 +472,7 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string
           facebook_url?: string | null
+          favicon_url?: string | null
           footer_text?: string | null
           id?: number
           instagram_url?: string | null
