@@ -319,6 +319,10 @@ export default function Dashboard() {
               </div>
             </div>
           </TabsContent>
+
+          <TabsContent value="api" className="mt-5">
+            <ApiDocs embedded />
+          </TabsContent>
         </Tabs>
       </div>
 
