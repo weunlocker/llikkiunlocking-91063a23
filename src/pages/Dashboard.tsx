@@ -195,8 +195,8 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="services" className="mt-5">
-            <div className="glass rounded-2xl p-4 mb-4">
-              <div className="relative">
+            <div className="glass rounded-2xl p-4 mb-4 flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search services..."
@@ -205,20 +205,50 @@ export default function Dashboard() {
                   className="pl-9"
                 />
               </div>
+              <div className="flex gap-1 glass rounded-md p-1 self-start">
+                <Button size="sm" variant={serviceView === "grid" ? "neon" : "ghost"} onClick={() => setServiceView("grid")} title="Grid view"><LayoutGrid className="w-4 h-4" /></Button>
+                <Button size="sm" variant={serviceView === "list" ? "neon" : "ghost"} onClick={() => setServiceView("list")} title="List view"><List className="w-4 h-4" /></Button>
+              </div>
             </div>
             {loading ? (
               <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>
             ) : services.length === 0 ? (
               <div className="glass rounded-2xl p-12 text-center text-muted-foreground">No services available yet.</div>
-            ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {services
-                  .filter((s) => {
-                    const q = serviceQuery.toLowerCase().trim();
-                    if (!q) return true;
-                    return s.name.toLowerCase().includes(q) || (s.description ?? "").toLowerCase().includes(q) || (s.category ?? "").toLowerCase().includes(q);
-                  })
-                  .map((s) => (
+            ) : (() => {
+              const filtered = services.filter((s) => {
+                const q = serviceQuery.toLowerCase().trim();
+                if (!q) return true;
+                return s.name.toLowerCase().includes(q) || (s.description ?? "").toLowerCase().includes(q) || (s.category ?? "").toLowerCase().includes(q);
+              });
+              if (serviceView === "list") {
+                return (
+                  <div className="glass rounded-2xl divide-y divide-border/50 overflow-hidden">
+                    {filtered.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => openCheck(s)}
+                        className="w-full text-left flex items-center gap-3 sm:gap-4 px-4 py-3 hover:bg-secondary/30 transition-colors"
+                      >
+                        <Smartphone className="w-5 h-5 text-primary shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold truncate">{s.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {s.category && <span className="capitalize mr-2">{s.category}</span>}
+                            {s.description && <span>· {s.description}</span>}
+                          </div>
+                        </div>
+                        <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground shrink-0"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
+                        <div className="text-base font-bold font-mono shrink-0">${Number(s.price).toFixed(2)}</div>
+                        <Button variant="neon" size="sm" className="shrink-0" onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check</Button>
+                      </button>
+                    ))}
+                  </div>
+                );
+              }
+              return (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filtered.map((s) => (
                     <button
                       key={s.id}
                       type="button"
@@ -238,8 +268,9 @@ export default function Dashboard() {
                       </div>
                     </button>
                   ))}
-              </div>
-            )}
+                </div>
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="orders" className="mt-5">
