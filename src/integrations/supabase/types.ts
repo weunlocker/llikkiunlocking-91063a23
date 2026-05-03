@@ -420,6 +420,72 @@ export type Database = {
           },
         ]
       }
+      site_settings: {
+        Row: {
+          address: string | null
+          brand_name: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          facebook_url: string | null
+          footer_text: string | null
+          id: number
+          instagram_url: string | null
+          logo_url: string | null
+          seo_description: string | null
+          seo_keywords: string | null
+          seo_title: string | null
+          tagline: string | null
+          telegram_url: string | null
+          twitter_url: string | null
+          updated_at: string
+          whatsapp_number: string | null
+          youtube_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          brand_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          facebook_url?: string | null
+          footer_text?: string | null
+          id?: number
+          instagram_url?: string | null
+          logo_url?: string | null
+          seo_description?: string | null
+          seo_keywords?: string | null
+          seo_title?: string | null
+          tagline?: string | null
+          telegram_url?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+          youtube_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          brand_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          facebook_url?: string | null
+          footer_text?: string | null
+          id?: number
+          instagram_url?: string | null
+          logo_url?: string | null
+          seo_description?: string | null
+          seo_keywords?: string | null
+          seo_title?: string | null
+          tagline?: string | null
+          telegram_url?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+          youtube_url?: string | null
+        }
+        Relationships: []
+      }
       supplier_services: {
         Row: {
           action_code: string
