@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { ConfirmProvider } from "@/components/ConfirmDialog";
+import { SiteSettingsProvider } from "@/hooks/useSiteSettings";
+import FloatingContact from "@/components/FloatingContact";
 import Home from "./pages/Home";
 import Services from "./pages/Services";
 import Pricing from "./pages/Pricing";
@@ -25,7 +27,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <SiteSettingsProvider>
           <ConfirmProvider>
+          <FloatingContact />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/services" element={<Services />} />
@@ -38,6 +42,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </ConfirmProvider>
+          </SiteSettingsProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
