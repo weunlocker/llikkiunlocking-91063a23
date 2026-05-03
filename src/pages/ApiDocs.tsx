@@ -130,31 +130,20 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
           </p>
 
           {user && (
-            <div className="flex gap-2 mb-4">
-              <Input
-                placeholder="Key name (e.g. Production)"
-                value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
-                maxLength={50}
-              />
+            <div className="flex gap-2 mb-4 items-stretch">
+              <div className="flex-1 rounded-lg border border-border/60 bg-background/40 px-4 py-2 flex items-center justify-between gap-2 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-xs text-muted-foreground">Default</div>
+                  <div className="font-mono text-sm truncate">{keys[0]?.key ?? "No API key yet"}</div>
+                </div>
+                {keys[0] && (
+                  <Button size="icon" variant="ghost" onClick={() => copy(keys[0].key)}><Copy className="w-4 h-4" /></Button>
+                )}
+              </div>
               <Button variant="hero" onClick={generateKey} disabled={generating}>
                 {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                 {keys.length === 0 ? "Generate" : "Replace"}
               </Button>
-            </div>
-          )}
-
-          {user && keys.length > 0 && (
-            <div className="rounded-lg border border-border/60 divide-y divide-border/40 mb-4">
-              {keys.map((k) => (
-                <div key={k.id} className="p-4 flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-muted-foreground mb-1">{k.name}</div>
-                    <div className="font-mono text-sm truncate">{k.key}</div>
-                  </div>
-                  <Button size="icon" variant="ghost" onClick={() => copy(k.key)}><Copy className="w-4 h-4" /></Button>
-                </div>
-              ))}
             </div>
           )}
 
