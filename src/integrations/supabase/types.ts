@@ -274,6 +274,84 @@ export type Database = {
           },
         ]
       }
+      payment_orders: {
+        Row: {
+          amount: number
+          checkout_url: string | null
+          created_at: string
+          credited: boolean
+          currency: string
+          id: string
+          merchant_trade_no: string
+          prepay_id: string | null
+          provider: string
+          raw: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          checkout_url?: string | null
+          created_at?: string
+          credited?: boolean
+          currency?: string
+          id?: string
+          merchant_trade_no: string
+          prepay_id?: string | null
+          provider?: string
+          raw?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          checkout_url?: string | null
+          created_at?: string
+          credited?: boolean
+          currency?: string
+          id?: string
+          merchant_trade_no?: string
+          prepay_id?: string | null
+          provider?: string
+          raw?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_settings: {
+        Row: {
+          ask_admin_enabled: boolean
+          binance_api_key: string | null
+          binance_enabled: boolean
+          binance_secret_key: string | null
+          id: number
+          topup_amounts: Json
+          updated_at: string
+        }
+        Insert: {
+          ask_admin_enabled?: boolean
+          binance_api_key?: string | null
+          binance_enabled?: boolean
+          binance_secret_key?: string | null
+          id?: number
+          topup_amounts?: Json
+          updated_at?: string
+        }
+        Update: {
+          ask_admin_enabled?: boolean
+          binance_api_key?: string | null
+          binance_enabled?: boolean
+          binance_secret_key?: string | null
+          id?: number
+          topup_amounts?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
