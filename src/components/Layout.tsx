@@ -24,7 +24,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               { to: "/", label: "Home" },
               { to: "/services", label: "Services" },
               { to: "/pricing", label: "Pricing" },
-              { to: "/api-docs", label: "API" },
+              ...(!user ? [{ to: "/api-docs", label: "API" }] : []),
             ].map((l) => (
               <NavLink
                 key={l.to}
