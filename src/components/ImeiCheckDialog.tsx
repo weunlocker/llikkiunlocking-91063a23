@@ -92,11 +92,17 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
     });
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
-    setResult(data);
     onAfterRun?.();
+    if (data?.status === "pending") {
+      // Non-instant service — don't hang the popup. Order goes to "pending"
+      // and the cron poller will update it to success/rejected.
+      toast.info("Order placed — pending. Check the Orders tab for updates.");
+      onClose();
+      return;
+    }
+    setResult(data);
     if (data?.status === "completed") toast.success("Check complete");
     else if (data?.status === "failed") toast.error(data?.error ?? "Check failed");
-    else if (data?.status === "pending") toast.info("Order queued — you'll be notified when ready");
   };
 
   const parseBulk = (): string[] => {
