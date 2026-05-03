@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ type Service = { id: string; name: string; description: string | null; price: nu
 
 export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
+  const { settings } = useSiteSettings();
   const [searchParams, setSearchParams] = useSearchParams();
   const validTabs = ["services", "orders", "wallet", "settings", "api"];
   const tabParam = searchParams.get("tab") ?? "services";
@@ -48,6 +50,11 @@ export default function Dashboard() {
   const customMessage = (profile as unknown as { custom_message?: string } | null)?.custom_message ?? "";
   const [serviceView, setServiceView] = useState<"grid" | "list">(() => (localStorage.getItem("serviceView") as "grid" | "list") || "grid");
   useEffect(() => { localStorage.setItem("serviceView", serviceView); }, [serviceView]);
+  const [paySettings, setPaySettings] = useState<{ binance_enabled: boolean; topup_amounts: number[]; ask_admin_enabled: boolean } | null>(null);
+  useEffect(() => {
+    supabase.from("payment_settings").select("binance_enabled,topup_amounts,ask_admin_enabled").eq("id", 1).maybeSingle()
+      .then(({ data }) => { if (data) setPaySettings({ binance_enabled: !!data.binance_enabled, topup_amounts: (data.topup_amounts as number[]) ?? [5,10,20,30], ask_admin_enabled: !!data.ask_admin_enabled }); });
+  }, []);
 
   useEffect(() => {
     if (profile) {
@@ -117,16 +124,24 @@ export default function Dashboard() {
 
   const refreshAfterRun = () => { refreshProfile(); load(); };
 
-  const requestTopup = async () => {
-    const amt = Number(topupAmount);
-    if (!amt || amt < 1 || amt > 10000) { toast.error("Amount must be 1-10000"); return; }
-    const { error } = await supabase.functions.invoke("wallet-topup", { body: { amount: amt } });
-    if (error) { toast.error(error.message); return; }
+  const requestTopup = async (overrideAmt?: number) => {
+    const amt = overrideAmt ?? Number(topupAmount);
+    if (!amt || amt < 1 || amt > 10000) { toast.error("Invalid amount"); return; }
+    if (!paySettings?.binance_enabled) { toast.error("Payments not available — please contact admin"); return; }
+    const { data, error } = await supabase.functions.invoke("binance-create-order", { body: { amount: amt } });
+    if (error || !data?.checkoutUrl) { toast.error(error?.message || "Failed to create payment"); return; }
+    window.open(data.checkoutUrl, "_blank", "noopener,noreferrer");
+    toast.success("Complete payment in the new tab — wallet credits automatically.");
     setTopupOpen(false);
-    await refreshProfile();
-    const newBalance = Number(profile?.balance ?? 0) + amt;
-    setTopupSuccess({ amount: amt, newBalance });
-    load();
+  };
+
+  const askAdmin = () => {
+    const wa = settings.whatsapp_number?.replace(/\D/g, "");
+    const tg = settings.telegram_url;
+    const msg = encodeURIComponent(`Hi, I need help with a wallet top-up on ${settings.brand_name}.`);
+    if (wa) window.open(`https://wa.me/${wa}?text=${msg}`, "_blank", "noopener,noreferrer");
+    else if (tg) window.open(tg, "_blank", "noopener,noreferrer");
+    else toast.error("Admin contact not configured");
   };
 
   const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground" } as Record<string, string>)[s] ?? "";
@@ -430,17 +445,17 @@ export default function Dashboard() {
         <DialogContent className="glass">
           <DialogHeader><DialogTitle>Top Up Wallet</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Demo mode: top-up is instant. Connect Stripe later for real payments.</p>
-            <div>
-              <Label>Amount (USD)</Label>
-              <Input type="number" min="1" max="10000" value={topupAmount} onChange={(e) => setTopupAmount(e.target.value)} />
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {[5, 10, 25, 50].map((a) => (
-                <Button key={a} variant="glass" onClick={() => setTopupAmount(String(a))}>${a}</Button>
+            <p className="text-sm text-muted-foreground">Pay securely via Binance Pay — your wallet is credited automatically.</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {(paySettings?.topup_amounts ?? [5, 10, 20, 30]).map((a) => (
+                <Button key={a} variant="hero" onClick={() => requestTopup(a)}>${a}</Button>
               ))}
             </div>
-            <Button variant="hero" className="w-full" onClick={requestTopup}>Add ${Number(topupAmount || 0).toFixed(2)}</Button>
+            {paySettings?.ask_admin_enabled !== false && (
+              <Button variant="neon" className="w-full" onClick={askAdmin}>
+                Need help with payment? Contact admin
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
