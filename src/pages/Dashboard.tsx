@@ -48,6 +48,11 @@ export default function Dashboard() {
   const customMessage = (profile as unknown as { custom_message?: string } | null)?.custom_message ?? "";
   const [serviceView, setServiceView] = useState<"grid" | "list">(() => (localStorage.getItem("serviceView") as "grid" | "list") || "grid");
   useEffect(() => { localStorage.setItem("serviceView", serviceView); }, [serviceView]);
+  const [paySettings, setPaySettings] = useState<{ binance_enabled: boolean; topup_amounts: number[]; ask_admin_enabled: boolean } | null>(null);
+  useEffect(() => {
+    supabase.from("payment_settings").select("binance_enabled,topup_amounts,ask_admin_enabled").eq("id", 1).maybeSingle()
+      .then(({ data }) => { if (data) setPaySettings({ binance_enabled: !!data.binance_enabled, topup_amounts: (data.topup_amounts as number[]) ?? [5,10,20,30], ask_admin_enabled: !!data.ask_admin_enabled }); });
+  }, []);
 
   useEffect(() => {
     if (profile) {
