@@ -30,10 +30,22 @@ function render(tpl: string, data: Record<string, unknown>): string {
   });
 }
 
+function friendlySmtpError(message: string): string {
+  const lower = message.toLowerCase();
+  if (message.includes("535") || lower.includes("authentication")) {
+    return "SMTP login failed. The mail server rejected the username or password. Re-enter or reset the mailbox password, and make sure the SMTP Username is the full email address.";
+  }
+  if (lower.includes("certificate") || lower.includes("tls") || lower.includes("ssl")) {
+    return "SMTP TLS/SSL connection failed. Check that the SMTP port and TLS/SSL setting match your mail provider.";
+  }
+  return message;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  let body: Body | null = null;
   try {
-    const body = (await req.json()) as Body;
+    body = (await req.json()) as Body;
     if (!body?.event || !body?.to) {
       return new Response(JSON.stringify({ error: "event + to required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -57,7 +69,15 @@ Deno.serve(async (req) => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (!cfg.smtp_host || !cfg.smtp_user || !cfg.smtp_password || !cfg.from_email) {
+
+    const smtpHost = String(cfg.smtp_host ?? "").trim();
+    const smtpUser = String(cfg.smtp_user ?? "").trim();
+    const smtpPassword = String(cfg.smtp_password ?? "").trim();
+    const fromEmail = String(cfg.from_email ?? "").trim();
+    const fromName = String(cfg.from_name ?? "LIKKI UNLOCKING").trim() || "LIKKI UNLOCKING";
+    const replyTo = String(cfg.reply_to ?? "").trim() || undefined;
+
+    if (!smtpHost || !smtpUser || !smtpPassword || !fromEmail) {
       return new Response(JSON.stringify({ error: "SMTP not fully configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -65,10 +85,10 @@ Deno.serve(async (req) => {
 
     let subject: string;
     let html: string;
-    const data = { site_name: cfg.from_name ?? "", ...(body.data ?? {}) } as Record<string, unknown>;
+    const data = { site_name: fromName, ...(body.data ?? {}) } as Record<string, unknown>;
 
     if (body.event === "test") {
-      subject = body.override_subject ?? "SMTP test from " + (cfg.from_name ?? "");
+      subject = body.override_subject ?? "SMTP test from " + fromName;
       html = body.override_html ?? "<p>This is a test email. SMTP is working ✅</p>";
     } else {
       const t = (cfg as Record<string, { subject?: string; html?: string }>)[TPL_KEY[body.event]];
@@ -83,22 +103,25 @@ Deno.serve(async (req) => {
 
     const client = new SMTPClient({
       connection: {
-        hostname: cfg.smtp_host,
+        hostname: smtpHost,
         port: Number(cfg.smtp_port) || 587,
         tls: !!cfg.smtp_secure,
-        auth: { username: cfg.smtp_user, password: cfg.smtp_password },
+        auth: { username: smtpUser, password: smtpPassword },
       },
     });
 
-    await client.send({
-      from: `${cfg.from_name} <${cfg.from_email}>`,
-      to: body.to,
-      replyTo: cfg.reply_to || undefined,
-      subject,
-      html,
-      content: html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
-    });
-    await client.close();
+    try {
+      await client.send({
+        from: `${fromName} <${fromEmail}>`,
+        to: body.to,
+        replyTo,
+        subject,
+        html,
+        content: html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+      });
+    } finally {
+      await client.close().catch(() => undefined);
+    }
 
     return new Response(JSON.stringify({ ok: true }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -106,8 +129,8 @@ Deno.serve(async (req) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("send-email error", msg);
-    return new Response(JSON.stringify({ ok: false, error: msg }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ ok: false, error: friendlySmtpError(msg), detail: msg }), {
+      status: body?.event === "test" ? 200 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
