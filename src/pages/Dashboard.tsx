@@ -83,14 +83,26 @@ export default function Dashboard() {
 
   const load = async () => {
     if (!user) return;
-    const [{ data: o }, { data: t }, { data: svc }] = await Promise.all([
+    const [{ data: o }, { data: t }, { data: svc }, { data: ovs }] = await Promise.all([
       supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,services(name)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("services").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color").eq("active", true).order("category").order("price"),
+      supabase.from("user_service_overrides").select("service_id,enabled,custom_price").eq("user_id", user.id),
     ]);
+    const groupDiscount: Record<string, number> = { silver: 0.10, gold: 0.30, diamond: 0.50 };
+    const discount = groupDiscount[String((profile as unknown as { user_group?: string })?.user_group ?? "").toLowerCase()] ?? 0;
+    const ovMap = new Map((ovs ?? []).map((o: { service_id: string; enabled: boolean; custom_price: number | null }) => [o.service_id, o]));
+    const visibleSvcs = (svc ?? []).filter((s: { id: string }) => {
+      const ov = ovMap.get(s.id);
+      return !(ov && ov.enabled === false);
+    }).map((s: { id: string; price: number } & Record<string, unknown>) => {
+      const ov = ovMap.get(s.id);
+      const price = ov?.custom_price != null ? Number(ov.custom_price) : +(Number(s.price) * (1 - discount)).toFixed(2);
+      return { ...s, price } as Service;
+    });
     setOrders((o ?? []) as unknown as Order[]);
     setTxs((t ?? []) as Tx[]);
-    setServices((svc ?? []) as Service[]);
+    setServices(visibleSvcs);
     setLoading(false);
   };
 
