@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Bot, Send, X, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Send, X, Sparkles, MessageCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useLocation } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -10,11 +10,21 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
 const PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const STORAGE_KEY = "likki_ai_chat_v1";
 
+// Inline Telegram paper-plane glyph (brand blue)
+const TelegramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+    <path d="M21.94 4.27a1.5 1.5 0 0 0-1.6-.2L3.4 11.1c-1.1.45-1.07 2.03.05 2.43l3.9 1.4 1.5 4.8a1 1 0 0 0 1.66.42l2.3-2.18 4.16 3.06c.86.63 2.1.16 2.32-.88l3.05-13.9a1.5 1.5 0 0 0-.4-1.98ZM9.7 14.6l8.4-6.4-6.95 7.45-.2 2.97-1.25-4.02Z" />
+  </svg>
+);
+
 export default function AIChatWidget() {
   const { pathname } = useLocation();
   const { settings } = useSiteSettings();
   if (pathname.startsWith("/admin")) return null;
   const brand = settings.brand_name || "LIKKI UNLOCKING";
+  const logoUrl = settings.logo_url;
+  const tgRaw = settings.telegram_url?.trim();
+  const waRaw = settings.whatsapp_number?.trim();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
