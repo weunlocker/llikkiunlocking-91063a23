@@ -1,0 +1,1 @@
+UPDATE public.email_settings SET enabled=true, smtp_password='Asdcxz@1239' WHERE id=1;
