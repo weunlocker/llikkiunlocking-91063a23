@@ -235,7 +235,6 @@ export default function Dashboard() {
                       <div key={g}>
                         <div className="flex items-center gap-3 mb-3">
                           <h2 className="text-sm uppercase tracking-wider text-primary font-bold capitalize">{g}</h2>
-                          <span className="text-xs text-muted-foreground">{items.length}</span>
                           <div className="flex-1 h-px bg-border/50" />
                         </div>
                         {serviceView === "list" ? (
