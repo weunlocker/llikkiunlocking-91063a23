@@ -104,18 +104,19 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
   const dhruCheckExample = `${base}?username=${encodeURIComponent(username)}&apikey=${apiKey}&action=imeicheck&service=${sampleCode}&imei=356938035643809`;
   const dhruAccountExample = `${base}?username=${encodeURIComponent(username)}&apikey=${apiKey}&action=accountinfo`;
 
-  return (
-    <Layout>
-      <div className="container py-12 max-w-5xl">
-        <div className="text-center mb-10 animate-fade-up">
-          <Code2 className="w-12 h-12 text-primary mx-auto mb-4" />
-          <h1 className="text-4xl md:text-5xl font-bold mb-3">
-            <span className="glow-text">API Access</span>
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Works with any Dhru-compatible client — or use a Simple Link.
-          </p>
-        </div>
+  const content = (
+      <div className={embedded ? "" : "container py-12 max-w-5xl"}>
+        {!embedded && (
+          <div className="text-center mb-10 animate-fade-up">
+            <Code2 className="w-12 h-12 text-primary mx-auto mb-4" />
+            <h1 className="text-4xl md:text-5xl font-bold mb-3">
+              <span className="glow-text">API Access</span>
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Works with any Dhru-compatible client — or use a Simple Link.
+            </p>
+          </div>
+        )}
 
         {/* API Key generator (top of API page) */}
         <div className="glass rounded-2xl p-6 md:p-8 mb-6">
