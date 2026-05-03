@@ -388,6 +388,7 @@ export default function Dashboard() {
         balance={Number(profile?.balance ?? 0)}
         onClose={() => setSelectedService(null)}
         onAfterRun={refreshAfterRun}
+        onBulkStarted={() => setSearchParams({ tab: "orders" }, { replace: true })}
       />
     </Layout>
   );
