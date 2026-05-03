@@ -26,6 +26,7 @@ export type ImeiCheckDialogProps = {
   balance: number;
   onClose: () => void;
   onAfterRun?: () => void;
+  onBulkStarted?: () => void;
 };
 
 const FONT_MAP: Record<string, string> = {
@@ -60,7 +61,7 @@ function ColoredResult({ text, font }: { text: string; font: string }) {
   );
 }
 
-export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun }: ImeiCheckDialogProps) {
+export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun, onBulkStarted }: ImeiCheckDialogProps) {
   const [tab, setTab] = useState<"single" | "bulk">("single");
   const [imei, setImei] = useState("");
   const [bulkText, setBulkText] = useState("");
@@ -113,63 +114,45 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun 
     if (bulkValid.length === 0) { toast.error("Add at least one valid IMEI/Serial"); return; }
     if (balance < totalCost) { toast.error(`Need $${totalCost.toFixed(2)} — top up your wallet first.`); return; }
 
-    const initial: BulkRow[] = bulkValid.map((i) => ({ imei: i, status: "pending" }));
-    setRows(initial);
-    setSubmitting(true);
+    const serviceId = service.id;
+    const items = [...bulkValid];
+    const perPrice = price;
+    const startBalance = balance;
 
-    // Per-check timeout so one slow supplier can't freeze the whole queue.
-    const PER_CHECK_TIMEOUT_MS = 60_000;
-    const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
-      new Promise((resolve, reject) => {
-        const t = setTimeout(() => reject(new Error("Request timed out — moved on")), ms);
-        p.then((v) => { clearTimeout(t); resolve(v); }).catch((e) => { clearTimeout(t); reject(e); });
-      });
+    // Fire-and-forget: runs independently of the dialog lifecycle.
+    void (async () => {
+      const PER_CHECK_TIMEOUT_MS = 60_000;
+      const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
+        new Promise((resolve, reject) => {
+          const t = setTimeout(() => reject(new Error("Request timed out — moved on")), ms);
+          p.then((v) => { clearTimeout(t); resolve(v); }).catch((e) => { clearTimeout(t); reject(e); });
+        });
 
-    // Heuristic: server returns success=false / status "Rejected" inside result text.
-    const isRejected = (data: { status?: string; result?: string; error?: string } | null | undefined) => {
-      if (!data) return false;
-      const text = `${data.result ?? ""} ${data.error ?? ""}`.toLowerCase();
-      return /\brejected\b|"success"\s*:\s*false|\bnot\s+found\b|\bfail(ed)?\b/.test(text);
-    };
-
-    let remainingBalance = balance;
-    let okCount = 0;
-    for (let i = 0; i < initial.length; i++) {
-      if (remainingBalance < price) {
-        setRows((prev) => prev.map((r, idx) => idx >= i ? { ...r, status: "failed", error: "Skipped — insufficient balance" } : r));
-        break;
-      }
-      setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "running" } : r));
-      try {
-        const { data, error } = await withTimeout(
-          supabase.functions.invoke("check-imei", { body: { service_id: service.id, imei: initial[i].imei } }),
-          PER_CHECK_TIMEOUT_MS,
-        );
-        if (error) {
-          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "failed", error: error.message } : r));
-        } else if (data?.status === "completed") {
-          remainingBalance -= price;
-          if (isRejected(data)) {
-            setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "rejected", result: data.result } : r));
-          } else {
-            okCount++;
-            setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "successful", result: data.result } : r));
+      let remainingBalance = startBalance;
+      let okCount = 0;
+      for (let i = 0; i < items.length; i++) {
+        if (remainingBalance < perPrice) break;
+        try {
+          const { data, error } = await withTimeout(
+            supabase.functions.invoke("check-imei", { body: { service_id: serviceId, imei: items[i] } }),
+            PER_CHECK_TIMEOUT_MS,
+          );
+          if (!error && (data?.status === "completed" || data?.status === "pending")) {
+            remainingBalance -= perPrice;
+            if (data?.status === "completed") okCount++;
           }
-        } else if (data?.status === "pending") {
-          remainingBalance -= price;
-          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "successful", result: "Queued — check Orders tab" } : r));
-          okCount++;
-        } else {
-          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "rejected", error: data?.error ?? "Check failed" } : r));
+        } catch {
+          // continue
         }
-      } catch (e) {
-        setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "failed", error: e instanceof Error ? e.message : "Network error" } : r));
+        onAfterRun?.();
       }
+      toast.success(`Bulk done — ${okCount}/${items.length} processed`);
       onAfterRun?.();
-    }
+    })();
 
-    setSubmitting(false);
-    toast.success(`Bulk done — ${okCount}/${bulkValid.length} successful`);
+    toast.success(`Started ${items.length} checks in background — see Orders`);
+    onBulkStarted?.();
+    onClose();
   };
 
   const reset = () => { setResult(null); setRows([]); setImei(""); setBulkText(""); };
