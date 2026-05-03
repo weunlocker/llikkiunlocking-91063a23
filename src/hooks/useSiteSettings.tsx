@@ -24,7 +24,7 @@ export type SiteSettings = {
 const DEFAULTS: SiteSettings = {
   brand_name: "LIKKI UNLOCKING",
   tagline: "#1 Direct Wholesale Supplier",
-  logo_url: null,
+  logo_url: null, favicon_url: null,
   seo_title: null, seo_description: null, seo_keywords: null,
   facebook_url: null, twitter_url: null, instagram_url: null, youtube_url: null,
   telegram_url: null, whatsapp_number: null,
