@@ -27,6 +27,15 @@ function normalizeHtml(s: string): string {
     .replace(/\\n/g, "\n").replace(/\\r/g, "").replace(/\r\n?/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 // Maximum attempts before we give up (30s interval × 240 = 2 hours)
 const MAX_ATTEMPTS = 240;
 
@@ -37,7 +46,7 @@ Deno.serve(async (req) => {
   // Pull pending orders that have a supplier reference (i.e. async)
   const { data: pending, error } = await sb
     .from("orders")
-    .select("id, user_id, imei, price_charged, supplier_reference, poll_attempts, service_id, services(name, response_template, success_rules, supplier_id, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))")
+    .select("id, order_number, user_id, imei, price_charged, supplier_reference, poll_attempts, service_id, services(name, response_template, success_rules, supplier_id, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))")
     .eq("status", "pending")
     .not("supplier_reference", "is", null)
     .order("last_polled_at", { ascending: true, nullsFirst: true })
@@ -70,6 +79,7 @@ Deno.serve(async (req) => {
         params.set("requestformat", "JSON");
         if (username) params.set("username", username);
         params.set("ID", refId);
+        params.set("parameters", `<PARAMETERS><ID>${escapeXml(refId)}</ID></PARAMETERS>`);
       } else {
         params.set("username", username);
         params.set("apikey", apiKey);
@@ -107,13 +117,21 @@ Deno.serve(async (req) => {
       }
 
       const newAttempts = (o.poll_attempts ?? 0) + 1;
-      const isDone = status === "success" || status === "completed" || status === "complete";
-      const isFailed = status === "rejected" || status === "cancelled" || status === "failed" || status === "error";
+      const statusText = (status ?? "").toLowerCase().trim();
+      const codeText = (resultBlob?.CODE ?? resultBlob?.code ?? resultBlob?.MESSAGE ?? resultBlob?.message ?? "").toString().toLowerCase().trim();
+      const replyValue = resultBlob?.REPLY ?? resultBlob?.reply ?? resultBlob?.RESULT ?? resultBlob?.result;
+      const hasFinalReply = replyValue != null && String(replyValue).trim() !== "" && !/^(pending|processing|in process)$/i.test(String(replyValue).trim());
+      const isDone = ["success", "completed", "complete", "available", "done", "finished", "4"].includes(statusText)
+        || ["success", "completed", "complete", "available", "done", "finished"].some((word) => codeText.includes(word))
+        || (hasFinalReply && !["rejected", "cancelled", "canceled", "failed", "error", "3"].includes(statusText));
+      const isFailed = ["rejected", "cancelled", "canceled", "failed", "error", "3"].includes(statusText)
+        || ["rejected", "cancelled", "canceled", "failed", "error"].some((word) => codeText.includes(word));
 
       if (isDone) {
         const replyText: string =
           resultBlob?.REPLY ?? resultBlob?.reply ??
           resultBlob?.RESULT ?? resultBlob?.result ??
+          resultBlob?.CODE ?? resultBlob?.code ??
           resultBlob?.MESSAGE ?? resultBlob?.message ??
           (typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2));
         const finalText = normalizeHtml(typeof replyText === "string" ? replyText : JSON.stringify(replyText, null, 2)) || "(empty response)";
