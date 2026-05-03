@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Send, X, Sparkles, MessageCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useLocation } from "react-router-dom";
