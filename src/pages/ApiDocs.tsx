@@ -160,10 +160,10 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
         </div>
 
         <Tabs defaultValue="simple">
-          <TabsList className="glass">
-            <TabsTrigger value="simple"><LinkIcon className="w-4 h-4 mr-2" />Simple Link</TabsTrigger>
-            <TabsTrigger value="dhru"><Code2 className="w-4 h-4 mr-2" />Dhru-compatible API</TabsTrigger>
-            <TabsTrigger value="ids">Service IDs</TabsTrigger>
+          <TabsList className="glass w-full justify-start overflow-x-auto flex-nowrap">
+            <TabsTrigger value="simple" className="shrink-0"><LinkIcon className="w-4 h-4 mr-2" />Simple Link</TabsTrigger>
+            <TabsTrigger value="dhru" className="shrink-0"><Code2 className="w-4 h-4 mr-2" />Dhru-compatible API</TabsTrigger>
+            <TabsTrigger value="ids" className="shrink-0">Service IDs</TabsTrigger>
           </TabsList>
 
           {/* ───── Simple Link ───── */}
@@ -212,7 +212,7 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
               </p>
               <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
                 <li>Open your Dhru tool → <b>Add server</b> / <b>API settings</b>.</li>
-                <li>Set <b>API URL</b> to <span className="font-mono">{base}</span></li>
+                <li>Set <b>API URL</b> to <span className="font-mono break-all">{base}</span></li>
                 <li>Set <b>Username</b> to your account email and <b>API Key</b> to your <span className="font-mono">imei_…</span> key.</li>
                 <li>Run <b>imeiservicelist</b> to import all available services.</li>
               </ol>
@@ -318,6 +318,7 @@ function ServiceIdTable({ title, hint, services, onCopy, instant, loading }: {
       ) : services.length === 0 ? (
         <div className="p-10 text-center text-sm text-muted-foreground">No services in this group.</div>
       ) : (
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-secondary/40 text-left">
             <tr>
@@ -345,6 +346,7 @@ function ServiceIdTable({ title, hint, services, onCopy, instant, loading }: {
             })}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );
