@@ -11,7 +11,9 @@ const PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const STORAGE_KEY = "likki_ai_chat_v1";
 
 export default function AIChatWidget() {
+  const { pathname } = useLocation();
   const { settings } = useSiteSettings();
+  if (pathname.startsWith("/admin")) return null;
   const brand = settings.brand_name || "LIKKI UNLOCKING";
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
