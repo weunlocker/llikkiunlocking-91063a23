@@ -1074,6 +1074,15 @@ function AdminSettings() {
             </div>
             <Input className="mt-2" value={s.logo_url} onChange={(e) => set("logo_url", e.target.value)} placeholder="Or paste image URL" />
           </div>
+          <div>
+            <Label>Favicon (browser tab icon)</Label>
+            <div className="flex items-center gap-3 mt-1">
+              {s.favicon_url && <img src={s.favicon_url} alt="favicon" className="h-8 w-8 bg-white rounded p-1 object-contain" />}
+              <Input type="file" accept="image/png,image/x-icon,image/svg+xml,image/jpeg" onChange={onUploadFavicon} disabled={uploading} />
+            </div>
+            <Input className="mt-2" value={s.favicon_url} onChange={(e) => set("favicon_url", e.target.value)} placeholder="Or paste favicon URL (.png / .ico)" />
+            <p className="text-xs text-muted-foreground mt-1">Recommended: square PNG, 32×32 or 64×64.</p>
+          </div>
         </div>
 
         {/* SEO */}
