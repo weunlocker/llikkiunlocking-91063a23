@@ -43,6 +43,9 @@ export default function Dashboard() {
   const [testingTg, setTestingTg] = useState(false);
   const [orderQuery, setOrderQuery] = useState("");
   const [orderStatus, setOrderStatus] = useState("all");
+  const [msgOpen, setMsgOpen] = useState(false);
+  const [msgDismissed, setMsgDismissed] = useState(false);
+  const customMessage = (profile as unknown as { custom_message?: string } | null)?.custom_message ?? "";
 
   useEffect(() => {
     if (profile) {
