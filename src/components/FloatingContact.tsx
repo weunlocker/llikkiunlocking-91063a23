@@ -4,6 +4,8 @@ import { useLocation } from "react-router-dom";
 
 export default function FloatingContact() {
   const { settings } = useSiteSettings();
+  const { pathname } = useLocation();
+  if (pathname.startsWith("/admin")) return null;
   const tg = settings.telegram_url?.trim();
   const wa = settings.whatsapp_number?.trim();
   if (!tg && !wa) return null;
