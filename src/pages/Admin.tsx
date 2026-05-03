@@ -646,17 +646,6 @@ function AdminServices() {
                   }}>Clear color from selection</Button>
                   <Button type="button" size="sm" variant="ghost" onClick={() => setEditing({ ...editing, sample_result: (editing.sample_result ?? "").replace(/\[\[c:#?[0-9a-fA-F]{3,8}\]\]|\[\[\/c\]\]/g, "") })}>Clear all colors</Button>
                 </div>
-                {editing.sample_result?.trim() && (
-                  <div>
-                    <Label className="text-xs">Preview (what clients will see)</Label>
-                    <pre
-                      className="glass rounded-md p-3 text-xs whitespace-pre-wrap break-words max-h-60 overflow-auto leading-relaxed mt-1 text-foreground"
-                      style={{ fontFamily: fontCss(editing.result_font) }}
-                    >
-                      {renderColored(editing.sample_result ?? "")}
-                    </pre>
-                  </div>
-                )}
               </div>
               <div className="rounded-lg border border-border/60 p-3 space-y-3">
                 <div className="flex items-center justify-between">
