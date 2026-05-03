@@ -580,49 +580,77 @@ function AdminServices() {
                 <Textarea value={editing.response_template ?? ""} onChange={(e) => setEditing({ ...editing, response_template: e.target.value })} placeholder="Model: {model}&#10;IMEI: {imei}" rows={3} />
               </div>
               <div className="space-y-3">
-                <div>
-                  <Label>Sample Result Preview</Label>
-                  <Textarea
-                    id="sample-result-textarea"
-                    value={editing.sample_result ?? ""}
-                    onChange={(e) => setEditing({ ...editing, sample_result: e.target.value })}
-                    placeholder={"Model : IPHONE 11 128GB PURPLE [A2111] [IPHONE12,1]\nIMEI/SN : 356543109054733\nFind My iPhone : OFF"}
-                    rows={6}
-                    className="font-mono text-xs"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Select any text in the box above, then click <b>Apply color</b> to color only that selection.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Result Font</Label>
-                    <select
-                      value={editing.result_font ?? "mono"}
-                      onChange={(e) => setEditing({ ...editing, result_font: e.target.value })}
-                      className="w-full bg-background border border-border/60 rounded px-2 py-2 text-sm"
-                    >
-                      {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <Label className="text-xs">Pick Color</Label>
-                    <div className="flex gap-2 items-center">
-                      <input
-                        type="color"
-                        value={editing.result_color ?? "#e2e8f0"}
-                        onChange={(e) => setEditing({ ...editing, result_color: e.target.value })}
-                        className="w-10 h-9 rounded border border-border/60 bg-transparent cursor-pointer"
-                      />
-                      <Input
-                        value={editing.result_color ?? "#e2e8f0"}
-                        onChange={(e) => setEditing({ ...editing, result_color: e.target.value })}
-                        className="font-mono text-xs"
-                        maxLength={9}
-                      />
-                    </div>
-                  </div>
-                </div>
+                 <div>
+                   <Label>Sample Result Preview</Label>
+                   <Textarea
+                     id="sample-result-textarea"
+                     value={editing.sample_result ?? ""}
+                     onChange={(e) => setEditing({ ...editing, sample_result: e.target.value })}
+                     placeholder={"Model : IPHONE 11 128GB PURPLE [A2111] [IPHONE12,1]\nIMEI/SN : 356543109054733\nFind My iPhone : OFF"}
+                     rows={6}
+                     className="font-mono text-xs"
+                   />
+                   <p className="text-xs text-muted-foreground mt-1">
+                     Select text in the box above, then pick a <b>color</b> or <b>font</b> below — it will apply to the selection automatically.
+                   </p>
+                 </div>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                   <div>
+                     <Label className="text-xs">Result Font (default / selection)</Label>
+                     <select
+                       value={editing.result_font ?? "mono"}
+                       onChange={(e) => {
+                         const newFont = e.target.value;
+                         const ta = document.getElementById("sample-result-textarea") as HTMLTextAreaElement | null;
+                         if (ta) {
+                           const start = ta.selectionStart, end = ta.selectionEnd;
+                           if (start !== end) {
+                             const value = ta.value;
+                             const sel = value.slice(start, end).replace(/\[\[f:[a-zA-Z]+\]\]|\[\[\/f\]\]/g, "");
+                             const wrapped = `[[f:${newFont}]]${sel}[[/f]]`;
+                             setEditing({ ...editing, sample_result: value.slice(0, start) + wrapped + value.slice(end) });
+                             return;
+                           }
+                         }
+                         setEditing({ ...editing, result_font: newFont });
+                       }}
+                       className="w-full bg-background border border-border/60 rounded px-2 py-2 text-sm"
+                     >
+                       {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+                     </select>
+                   </div>
+                   <div>
+                     <Label className="text-xs">Pick Color (auto-applies to selection)</Label>
+                     <div className="flex gap-2 items-center">
+                       <input
+                         type="color"
+                         value={editing.result_color ?? "#e2e8f0"}
+                         onChange={(e) => {
+                           const newColor = e.target.value;
+                           const ta = document.getElementById("sample-result-textarea") as HTMLTextAreaElement | null;
+                           if (ta) {
+                             const start = ta.selectionStart, end = ta.selectionEnd;
+                             if (start !== end) {
+                               const value = ta.value;
+                               const sel = value.slice(start, end).replace(/\[\[c:#?[0-9a-fA-F]{3,8}\]\]|\[\[\/c\]\]/g, "");
+                               const wrapped = `[[c:${newColor}]]${sel}[[/c]]`;
+                               setEditing({ ...editing, sample_result: value.slice(0, start) + wrapped + value.slice(end), result_color: newColor });
+                               return;
+                             }
+                           }
+                           setEditing({ ...editing, result_color: newColor });
+                         }}
+                         className="w-10 h-9 rounded border border-border/60 bg-transparent cursor-pointer"
+                       />
+                       <Input
+                         value={editing.result_color ?? "#e2e8f0"}
+                         onChange={(e) => setEditing({ ...editing, result_color: e.target.value })}
+                         className="font-mono text-xs"
+                         maxLength={9}
+                       />
+                     </div>
+                   </div>
+                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" size="sm" variant="neon" onClick={() => {
                     const ta = document.getElementById("sample-result-textarea") as HTMLTextAreaElement | null;
