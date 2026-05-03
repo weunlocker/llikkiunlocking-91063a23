@@ -7,8 +7,16 @@ export default function FloatingContact() {
   const wa = settings.whatsapp_number?.trim();
   if (!tg && !wa) return null;
 
-  const waHref = wa ? `https://wa.me/${wa.replace(/[^\d]/g, "")}` : null;
-  const tgHref = tg ? (tg.startsWith("http") ? tg : `https://t.me/${tg.replace(/^@/, "")}`) : null;
+  const brand = settings.brand_name || "LIKKI UNLOCKING";
+  const waMsg = encodeURIComponent(
+    `Hello ${brand} Team 👋,\n\nI'd like to know more about your unlocking services. Could you please assist me?\n\nThank you!`
+  );
+  const tgMsg = encodeURIComponent(
+    `Hello ${brand} Team 👋, I'd like to inquire about your unlocking services. Please assist me. Thank you!`
+  );
+  const waHref = wa ? `https://wa.me/${wa.replace(/[^\d]/g, "")}?text=${waMsg}` : null;
+  const tgUser = tg ? (tg.startsWith("http") ? tg.replace(/^https?:\/\/t\.me\//, "").replace(/^@/, "") : tg.replace(/^@/, "")) : "";
+  const tgHref = tg ? `https://t.me/${tgUser}?text=${tgMsg}` : null;
 
   return (
     <div className="fixed right-3 bottom-3 sm:right-4 sm:bottom-4 z-40 flex flex-col gap-2 sm:gap-3">
