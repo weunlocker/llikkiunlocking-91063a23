@@ -117,7 +117,7 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="container py-10">
-        <div className="grid md:grid-cols-3 gap-5 mb-8">
+        <div className="grid md:grid-cols-3 gap-5 mb-5">
           <div className="glass rounded-2xl p-6 md:col-span-2 flex items-center justify-between">
             <div>
               <div className="text-sm text-muted-foreground mb-1">Wallet Balance</div>
@@ -126,8 +126,26 @@ export default function Dashboard() {
             <Button variant="hero" size="lg" onClick={() => setTopupOpen(true)}><Plus className="w-4 h-4" />Top Up</Button>
           </div>
           <div className="glass rounded-2xl p-6">
-            <div className="text-sm text-muted-foreground mb-1">Total Checks</div>
+            <div className="text-sm text-muted-foreground mb-1">Total Orders</div>
             <div className="text-4xl font-bold font-mono">{orders.length}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+          <div className="glass rounded-xl p-4">
+            <div className="text-xs text-muted-foreground">Completed</div>
+            <div className="text-2xl font-bold font-mono text-success">{orders.filter(o => o.status === "completed").length}</div>
+          </div>
+          <div className="glass rounded-xl p-4">
+            <div className="text-xs text-muted-foreground">Pending</div>
+            <div className="text-2xl font-bold font-mono text-warning">{orders.filter(o => o.status === "pending").length}</div>
+          </div>
+          <div className="glass rounded-xl p-4">
+            <div className="text-xs text-muted-foreground">Failed</div>
+            <div className="text-2xl font-bold font-mono text-destructive">{orders.filter(o => o.status === "failed").length}</div>
+          </div>
+          <div className="glass rounded-xl p-4">
+            <div className="text-xs text-muted-foreground">Refunded</div>
+            <div className="text-2xl font-bold font-mono">{orders.filter(o => o.status === "refunded").length}</div>
           </div>
         </div>
 
