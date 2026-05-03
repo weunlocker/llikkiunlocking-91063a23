@@ -57,7 +57,12 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     };
     setMeta("description", settings.seo_description);
     setMeta("keywords", settings.seo_keywords);
-  }, [settings.seo_title, settings.seo_description, settings.seo_keywords]);
+    if (settings.favicon_url) {
+      let link = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
+      if (!link) { link = document.createElement("link"); link.rel = "icon"; document.head.appendChild(link); }
+      link.href = settings.favicon_url;
+    }
+  }, [settings.seo_title, settings.seo_description, settings.seo_keywords, settings.favicon_url]);
 
   return <SiteCtx.Provider value={{ settings, loading, refresh }}>{children}</SiteCtx.Provider>;
 }
