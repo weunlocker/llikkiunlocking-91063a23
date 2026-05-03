@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { corsHeaders, executeCheck } from "../_shared/check.ts";
+import { corsHeaders, executeCheckAsync } from "../_shared/check.ts";
 
 const Body = z.object({
   service_id: z.string().uuid(),
