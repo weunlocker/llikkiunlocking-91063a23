@@ -445,17 +445,17 @@ export default function Dashboard() {
         <DialogContent className="glass">
           <DialogHeader><DialogTitle>Top Up Wallet</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Demo mode: top-up is instant. Connect Stripe later for real payments.</p>
-            <div>
-              <Label>Amount (USD)</Label>
-              <Input type="number" min="1" max="10000" value={topupAmount} onChange={(e) => setTopupAmount(e.target.value)} />
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {[5, 10, 25, 50].map((a) => (
-                <Button key={a} variant="glass" onClick={() => setTopupAmount(String(a))}>${a}</Button>
+            <p className="text-sm text-muted-foreground">Pay securely via Binance Pay — your wallet is credited automatically.</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {(paySettings?.topup_amounts ?? [5, 10, 20, 30]).map((a) => (
+                <Button key={a} variant="hero" onClick={() => requestTopup(a)}>${a}</Button>
               ))}
             </div>
-            <Button variant="hero" className="w-full" onClick={requestTopup}>Add ${Number(topupAmount || 0).toFixed(2)}</Button>
+            {paySettings?.ask_admin_enabled !== false && (
+              <Button variant="neon" className="w-full" onClick={askAdmin}>
+                Need help with payment? Contact admin
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
