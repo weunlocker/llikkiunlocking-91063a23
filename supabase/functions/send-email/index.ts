@@ -120,7 +120,11 @@ Deno.serve(async (req) => {
         content: html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
       });
     } finally {
-      await client.close().catch(() => undefined);
+      try {
+        await client.close();
+      } catch {
+        // Ignore close errors so the original SMTP result is preserved.
+      }
     }
 
     return new Response(JSON.stringify({ ok: true }), {
