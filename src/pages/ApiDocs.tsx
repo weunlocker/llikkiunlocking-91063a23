@@ -22,7 +22,7 @@ type SimpleService = {
 
 type ApiKeyRow = { id: string; name: string; key: string };
 
-export default function ApiDocs() {
+export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {}) {
   const { user, profile } = useAuth();
   const confirm = useConfirm();
   const [base, setBase] = useState("");
