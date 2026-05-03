@@ -318,6 +318,7 @@ function ServiceIdTable({ title, hint, services, onCopy, instant, loading }: {
       ) : services.length === 0 ? (
         <div className="p-10 text-center text-sm text-muted-foreground">No services in this group.</div>
       ) : (
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-secondary/40 text-left">
             <tr>
@@ -345,6 +346,7 @@ function ServiceIdTable({ title, hint, services, onCopy, instant, loading }: {
             })}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );
