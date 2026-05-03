@@ -11,14 +11,14 @@ export default function FloatingContact() {
   const tgHref = tg ? (tg.startsWith("http") ? tg : `https://t.me/${tg.replace(/^@/, "")}`) : null;
 
   return (
-    <div className="fixed right-4 bottom-4 z-50 flex flex-col gap-3">
+    <div className="fixed right-3 bottom-3 sm:right-4 sm:bottom-4 z-40 flex flex-col gap-2 sm:gap-3">
       {tgHref && (
         <a
           href={tgHref}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Contact on Telegram"
-          className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg bg-[#229ED9] text-white hover:scale-110 transition-transform"
+          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shadow-lg bg-[#229ED9] text-white hover:scale-110 transition-transform"
         >
           <Send className="w-5 h-5" />
         </a>
@@ -29,7 +29,7 @@ export default function FloatingContact() {
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Contact on WhatsApp"
-          className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg bg-[#25D366] text-white hover:scale-110 transition-transform"
+          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shadow-lg bg-[#25D366] text-white hover:scale-110 transition-transform"
         >
           <MessageCircle className="w-5 h-5" />
         </a>

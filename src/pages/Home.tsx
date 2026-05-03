@@ -21,30 +21,30 @@ export default function Home() {
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px] animate-pulse-slow" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-[120px] animate-pulse-slow" style={{ animationDelay: "1.5s" }} />
 
-        <div className="container relative py-24 md:py-32 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass text-sm mb-6 animate-fade-up">
-            <Sparkles className="w-4 h-4 text-primary" />
+        <div className="container relative py-16 sm:py-24 md:py-32 text-center">
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full glass text-xs sm:text-sm mb-5 sm:mb-6 animate-fade-up">
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
             <span>Trusted by 10,000+ professionals worldwide</span>
           </div>
 
-          <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tight mb-6 animate-fade-up uppercase" style={{ animationDelay: "0.1s" }}>
+          <h1 className="font-display text-3xl sm:text-5xl md:text-7xl font-bold tracking-tight mb-5 sm:mb-6 animate-fade-up uppercase" style={{ animationDelay: "0.1s" }}>
             LIKKI <span className="glow-text">UNLOCKING</span><br />
-            <span className="text-3xl md:text-4xl font-semibold tracking-wide normal-case">#1 Direct Wholesale Supplier</span>
+            <span className="text-xl sm:text-3xl md:text-4xl font-semibold tracking-wide normal-case">#1 Direct Wholesale Supplier</span>
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-up" style={{ animationDelay: "0.2s" }}>
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 animate-fade-up" style={{ animationDelay: "0.2s" }}>
             iCloud status, carrier lookup, blacklist verification, model & warranty info, plus full unlocking services — verify and unlock any device in seconds.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up" style={{ animationDelay: "0.3s" }}>
-            <Button asChild variant="hero" size="xl">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 animate-fade-up" style={{ animationDelay: "0.3s" }}>
+            <Button asChild variant="hero" size="xl" className="w-full sm:w-auto">
               <Link to="/register">Start Checking <ArrowRight className="w-4 h-4" /></Link>
             </Button>
-            <Button asChild variant="glass" size="xl">
+            <Button asChild variant="glass" size="xl" className="w-full sm:w-auto">
               <Link to="/services">Browse Services</Link>
             </Button>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-6 mt-12 text-sm text-muted-foreground animate-fade-up" style={{ animationDelay: "0.4s" }}>
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mt-8 sm:mt-12 text-xs sm:text-sm text-muted-foreground animate-fade-up" style={{ animationDelay: "0.4s" }}>
             {["No subscriptions", "Pay per check", "Full API access", "Instant results"].map((f) => (
               <div key={f} className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-success" /> {f}
