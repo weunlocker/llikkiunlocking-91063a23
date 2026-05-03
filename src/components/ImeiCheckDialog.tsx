@@ -270,23 +270,31 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
             <div className="text-sm text-muted-foreground">
               {submitting ? "Running checks…" : "Bulk run finished"} ({rows.filter((r) => r.status === "successful").length}/{rows.length} successful)
             </div>
-            {ResultToolbar}
-            <div className="max-h-96 overflow-y-auto rounded border border-border/50 divide-y divide-border/40">
+            <div className="max-h-[60vh] overflow-y-auto space-y-3 pr-1">
               {rows.map((r, i) => {
                 const queuePos = rows.slice(0, i).filter((x) => x.status === "pending" || x.status === "running").length;
                 return (
-                <div key={i} className="p-3 text-xs space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono break-all">{r.imei}</span>
-                    {r.status === "pending" && <span className="text-muted-foreground shrink-0">Pending{queuePos > 0 ? ` · #${queuePos + 1} in queue` : "…"}</span>}
-                    {r.status === "running" && <span className="text-primary flex items-center gap-1 shrink-0"><Loader2 className="w-3 h-3 animate-spin" />In process</span>}
-                    {r.status === "successful" && <span className="text-success flex items-center gap-1 shrink-0"><CheckCircle2 className="w-3 h-3" />Successful</span>}
-                    {r.status === "rejected" && <span className="text-warning flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Rejected</span>}
-                    {r.status === "failed" && <span className="text-destructive flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Failed</span>}
+                  <div key={i} className="rounded-lg border border-border/50 p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xs break-all">{r.imei}</span>
+                      {r.status === "pending" && <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1"><Clock className="w-3 h-3" />Pending{queuePos > 0 ? ` · #${queuePos + 1}` : ""}</span>}
+                      {r.status === "running" && <span className="text-xs text-primary flex items-center gap-1 shrink-0"><Loader2 className="w-3 h-3 animate-spin" />In process</span>}
+                      {r.status === "successful" && <span className="text-xs text-success flex items-center gap-1 shrink-0"><CheckCircle2 className="w-3 h-3" />Completed</span>}
+                      {r.status === "rejected" && <span className="text-xs text-warning flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Rejected</span>}
+                      {r.status === "failed" && <span className="text-xs text-destructive flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Failed</span>}
+                    </div>
+                    {r.result && <ColoredResult text={r.result} font={font} />}
+                    {r.error && <div className="text-xs text-destructive">{r.error}</div>}
+                    {r.result && (
+                      <Button
+                        variant="glass"
+                        size="sm"
+                        onClick={() => { navigator.clipboard.writeText(r.result || ""); toast.success("Copied"); }}
+                      >
+                        <Copy className="w-4 h-4" /> Copy
+                      </Button>
+                    )}
                   </div>
-                  {r.result && <ColoredResult text={r.result} font={font} />}
-                  {r.error && <div className="text-destructive">{r.error}</div>}
-                </div>
                 );
               })}
             </div>
@@ -295,7 +303,6 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
               <Button variant="hero" className="flex-1" onClick={onClose} disabled={submitting}>Close</Button>
             </div>
           </div>
-        )}
       </DialogContent>
     </Dialog>
   );
