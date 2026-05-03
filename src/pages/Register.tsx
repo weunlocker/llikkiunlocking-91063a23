@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Shield, Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Check, ChevronsUpDown } from "lucide-react";
+import defaultLogo from "@/assets/logo.png";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { registerSchema } from "@/lib/validation";
@@ -99,12 +101,8 @@ export default function Register() {
   return (
     <div className="min-h-screen grid-bg flex items-center justify-center p-6">
       <div className="w-full max-w-2xl animate-fade-up">
-        <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center shadow-neon">
-            <Shield className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-2xl">IMEI<span className="glow-text">Check</span></span>
-        </Link>
+        <BrandHeader />
+
         <div className="glass rounded-2xl p-8 shadow-card">
           <h1 className="text-2xl font-bold mb-1">Create your account</h1>
           <p className="text-muted-foreground text-sm mb-6">Start checking IMEIs in seconds.</p>

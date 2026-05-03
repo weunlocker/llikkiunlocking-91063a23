@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Shield, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import defaultLogo from "@/assets/logo.png";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { toast } from "sonner";
 import { loginSchema } from "@/lib/validation";
 
@@ -37,12 +39,8 @@ export default function Login() {
   return (
     <div className="min-h-screen grid-bg flex items-center justify-center p-6">
       <div className="w-full max-w-md animate-fade-up">
-        <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center shadow-neon">
-            <Shield className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-2xl">IMEI<span className="glow-text">Check</span></span>
-        </Link>
+        <BrandHeader />
+
         <div className="glass rounded-2xl p-8 shadow-card">
           <h1 className="text-2xl font-bold mb-1">Welcome back</h1>
           <p className="text-muted-foreground text-sm mb-6">Sign in to continue.</p>
