@@ -581,7 +581,7 @@ function AdminServices() {
               </div>
               <div className="space-y-3">
                 <div>
-                  <Label>Sample Result (shown to clients as a preview before they submit)</Label>
+                  <Label>Sample Result Preview</Label>
                   <Textarea
                     id="sample-result-textarea"
                     value={editing.sample_result ?? ""}
