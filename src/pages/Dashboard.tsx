@@ -117,16 +117,24 @@ export default function Dashboard() {
 
   const refreshAfterRun = () => { refreshProfile(); load(); };
 
-  const requestTopup = async () => {
-    const amt = Number(topupAmount);
-    if (!amt || amt < 1 || amt > 10000) { toast.error("Amount must be 1-10000"); return; }
-    const { error } = await supabase.functions.invoke("wallet-topup", { body: { amount: amt } });
-    if (error) { toast.error(error.message); return; }
+  const requestTopup = async (overrideAmt?: number) => {
+    const amt = overrideAmt ?? Number(topupAmount);
+    if (!amt || amt < 1 || amt > 10000) { toast.error("Invalid amount"); return; }
+    if (!paySettings?.binance_enabled) { toast.error("Payments not available — please contact admin"); return; }
+    const { data, error } = await supabase.functions.invoke("binance-create-order", { body: { amount: amt } });
+    if (error || !data?.checkoutUrl) { toast.error(error?.message || "Failed to create payment"); return; }
+    window.open(data.checkoutUrl, "_blank", "noopener,noreferrer");
+    toast.success("Complete payment in the new tab — wallet credits automatically.");
     setTopupOpen(false);
-    await refreshProfile();
-    const newBalance = Number(profile?.balance ?? 0) + amt;
-    setTopupSuccess({ amount: amt, newBalance });
-    load();
+  };
+
+  const askAdmin = () => {
+    const wa = settings.whatsapp_number?.replace(/\D/g, "");
+    const tg = settings.telegram_url;
+    const msg = encodeURIComponent(`Hi, I need help with a wallet top-up on ${settings.brand_name}.`);
+    if (wa) window.open(`https://wa.me/${wa}?text=${msg}`, "_blank", "noopener,noreferrer");
+    else if (tg) window.open(tg, "_blank", "noopener,noreferrer");
+    else toast.error("Admin contact not configured");
   };
 
   const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground" } as Record<string, string>)[s] ?? "";
