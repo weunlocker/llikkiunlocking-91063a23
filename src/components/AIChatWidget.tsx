@@ -152,7 +152,7 @@ export default function AIChatWidget() {
         <button
           onClick={() => setOpen(true)}
           aria-label="Chat with AI assistant"
-          className="fixed right-3 bottom-32 sm:right-4 sm:bottom-36 z-40 w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-xl bg-gradient-to-br from-primary to-purple-600 text-primary-foreground flex items-center justify-center hover:scale-110 transition-transform"
+          className="fixed right-3 bottom-3 sm:right-4 sm:bottom-4 z-40 w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-xl bg-gradient-to-br from-primary to-purple-600 text-primary-foreground flex items-center justify-center hover:scale-110 transition-transform"
         >
           {logoUrl ? (
             <img src={logoUrl} alt={brand} className="w-8 h-8 rounded-full object-cover" />
