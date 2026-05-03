@@ -987,7 +987,7 @@ function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [s, setS] = useState({
-    brand_name: "", tagline: "", logo_url: "",
+    brand_name: "", tagline: "", logo_url: "", favicon_url: "",
     seo_title: "", seo_description: "", seo_keywords: "",
     facebook_url: "", twitter_url: "", instagram_url: "", youtube_url: "",
     telegram_url: "", whatsapp_number: "",
