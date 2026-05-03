@@ -220,54 +220,70 @@ export default function Dashboard() {
                 if (!q) return true;
                 return s.name.toLowerCase().includes(q) || (s.description ?? "").toLowerCase().includes(q) || (s.category ?? "").toLowerCase().includes(q);
               });
-              if (serviceView === "list") {
-                return (
-                  <div className="glass rounded-2xl divide-y divide-border/50 overflow-hidden">
-                    {filtered.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => openCheck(s)}
-                        className="w-full text-left flex items-center gap-3 sm:gap-4 px-4 py-3 hover:bg-secondary/30 transition-colors"
-                      >
-                        <Smartphone className="w-5 h-5 text-primary shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold truncate">{s.name}</div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {s.category && <span className="capitalize mr-2">{s.category}</span>}
-                            {s.description && <span>· {s.description}</span>}
-                          </div>
-                        </div>
-                        <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground shrink-0"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
-                        <div className="text-base font-bold font-mono shrink-0">${Number(s.price).toFixed(2)}</div>
-                        <Button variant="neon" size="sm" className="shrink-0" onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check</Button>
-                      </button>
-                    ))}
-                  </div>
-                );
+              const groups = new Map<string, Service[]>();
+              for (const s of filtered) {
+                const k = (s.category ?? "general").trim() || "general";
+                if (!groups.has(k)) groups.set(k, []);
+                groups.get(k)!.push(s);
               }
+              const groupKeys = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b));
               return (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filtered.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => openCheck(s)}
-                      className="text-left glass rounded-xl p-4 sm:p-5 hover:border-primary/40 hover:shadow-elegant transition-all flex flex-col cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <Smartphone className="w-5 h-5 text-primary" />
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
+                <div className="space-y-6">
+                  {groupKeys.map((g) => {
+                    const items = groups.get(g)!;
+                    return (
+                      <div key={g}>
+                        <div className="flex items-center gap-3 mb-3">
+                          <h2 className="text-sm uppercase tracking-wider text-primary font-bold capitalize">{g}</h2>
+                          <span className="text-xs text-muted-foreground">{items.length}</span>
+                          <div className="flex-1 h-px bg-border/50" />
+                        </div>
+                        {serviceView === "list" ? (
+                          <div className="glass rounded-2xl divide-y divide-border/50 overflow-hidden">
+                            {items.map((s) => (
+                              <button
+                                key={s.id}
+                                type="button"
+                                onClick={() => openCheck(s)}
+                                className="w-full text-left flex items-center gap-3 sm:gap-4 px-4 py-3 hover:bg-secondary/30 transition-colors"
+                              >
+                                <Smartphone className="w-5 h-5 text-primary shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold truncate">{s.name}</div>
+                                  {s.description && <div className="text-xs text-muted-foreground truncate">{s.description}</div>}
+                                </div>
+                                <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground shrink-0"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
+                                <div className="text-base font-bold font-mono shrink-0">${Number(s.price).toFixed(2)}</div>
+                                <Button variant="neon" size="sm" className="shrink-0" onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check</Button>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {items.map((s) => (
+                              <button
+                                key={s.id}
+                                type="button"
+                                onClick={() => openCheck(s)}
+                                className="text-left glass rounded-xl p-4 sm:p-5 hover:border-primary/40 hover:shadow-elegant transition-all flex flex-col cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              >
+                                <div className="flex items-start justify-between mb-3">
+                                  <Smartphone className="w-5 h-5 text-primary" />
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
+                                </div>
+                                <h3 className="font-bold mb-1 hover:text-primary transition-colors">{s.name}</h3>
+                                <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2">{s.description}</p>
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="text-xl font-bold font-mono">${Number(s.price).toFixed(2)}</div>
+                                  <Button variant="neon" size="sm" onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <h3 className="font-bold mb-1 hover:text-primary transition-colors">{s.name}</h3>
-                      {s.category && <div className="text-xs text-muted-foreground capitalize mb-2">{s.category}</div>}
-                      <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2">{s.description}</p>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-xl font-bold font-mono">${Number(s.price).toFixed(2)}</div>
-                        <Button variant="neon" size="sm" onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
-                      </div>
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
               );
             })()}
