@@ -134,7 +134,7 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="container py-10">
-        {customMessage && !msgDismissed && (
+        {customMessage && !msgDismissed && localStorage.getItem("seenAdminMsg") !== customMessage && (
           <button
             type="button"
             onClick={() => setMsgOpen(true)}
@@ -149,7 +149,7 @@ export default function Dashboard() {
             <DialogHeader><DialogTitle>Message from admin</DialogTitle></DialogHeader>
             <div className="text-sm whitespace-pre-wrap py-2">{customMessage}</div>
             <div className="flex justify-end">
-              <Button variant="hero" onClick={() => { setMsgOpen(false); setMsgDismissed(true); }}>Close</Button>
+              <Button variant="hero" onClick={() => { localStorage.setItem("seenAdminMsg", customMessage); setMsgOpen(false); setMsgDismissed(true); }}>Close</Button>
             </div>
           </DialogContent>
         </Dialog>
