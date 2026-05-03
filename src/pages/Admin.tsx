@@ -980,9 +980,6 @@ function AdminNotifications() {
 
 /* ---------- Settings ---------- */
 function AdminSettings() {
-  const navigate = useNavigate();
-  const [testChatId, setTestChatId] = useState("");
-  const [testing, setTesting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
