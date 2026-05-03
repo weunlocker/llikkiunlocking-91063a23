@@ -413,7 +413,7 @@ function AdminServices() {
               {filtered.map((s) => (
                 <tr key={s.id} className="border-t border-border/50 hover:bg-secondary/20">
                   <td className="px-5 py-3 font-mono font-semibold text-primary">{s.service_code ?? "—"}</td>
-                  <td className="px-5 py-3 font-medium">{s.name}</td>
+                  <td className="px-5 py-3 font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => setEditing(s)}>{s.name}</td>
                   <td className="px-5 py-3"><span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">{s.category}</span></td>
                   <td className="px-5 py-3 font-mono">${Number(s.price).toFixed(2)}</td>
                   <td className="px-5 py-3 text-muted-foreground text-xs">{s.delivery_time}</td>
