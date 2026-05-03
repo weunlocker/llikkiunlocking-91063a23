@@ -1,5 +1,6 @@
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { MessageCircle, Send } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 export default function FloatingContact() {
   const { settings } = useSiteSettings();
