@@ -7,6 +7,7 @@ import {
   ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const navItems = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -25,7 +26,9 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
   children: ReactNode; title: string; subtitle?: string; actions?: ReactNode;
 }) {
   const { profile, signOut } = useAuth();
+  const { settings } = useSiteSettings();
   const navigate = useNavigate();
+  const logoSrc = settings.logo_url || logo;
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -34,11 +37,11 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
         <div className="px-5 py-5 border-b border-border/60">
           <Link to="/admin" className="flex items-center gap-3">
             <div className="bg-white rounded-md px-2 py-1 shadow-neon">
-              <img src={logo} alt="LIKKI UNLOCKING" className="h-6 w-auto block" />
+              <img src={logoSrc} alt={settings.brand_name} className="h-6 w-auto block" />
             </div>
             <div>
               <div className="text-xs uppercase tracking-wider text-primary font-bold">Admin Panel</div>
-              <div className="text-[10px] text-muted-foreground">LIKKI UNLOCKING</div>
+              <div className="text-[10px] text-muted-foreground">{settings.brand_name}</div>
             </div>
           </Link>
         </div>
