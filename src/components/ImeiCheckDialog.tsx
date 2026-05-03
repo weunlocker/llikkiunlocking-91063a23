@@ -36,6 +36,23 @@ const FONT_MAP: Record<string, string> = {
 };
 const fontCss = (key?: string | null) => FONT_MAP[key ?? "mono"] ?? FONT_MAP.mono;
 
+// Extract just the human-readable response from a result that may be a JSON
+// envelope like {"success":true,"status":"...","response":"..."} or a plain string.
+function extractResponse(text?: string | null): string {
+  if (!text) return "";
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return text;
+  try {
+    const obj = JSON.parse(trimmed);
+    const val = obj?.response ?? obj?.result ?? obj?.message ?? obj?.data;
+    if (typeof val === "string") return val;
+    if (val != null) return JSON.stringify(val, null, 2);
+    return text;
+  } catch {
+    return text;
+  }
+}
+
 // Renders a result string. Segments wrapped in [[c:#hex]]...[[/c]] get colored; [[f:name]]...[[/f]] change font.
 function ColoredResult({ text, font }: { text: string; font: string }) {
   const lines = (text || "").split("\n");
@@ -273,13 +290,13 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
               <div className="flex items-center gap-3 text-destructive"><XCircle className="w-6 h-6" /> Check failed</div>
             )}
             {ResultToolbar}
-            <ColoredResult text={result.result || result.error || "No response"} font={font} />
+            <ColoredResult text={extractResponse(result.result) || result.error || "No response"} font={font} />
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 variant="glass"
                 size="sm"
                 onClick={() => {
-                  navigator.clipboard.writeText(result.result || result.error || "");
+                  navigator.clipboard.writeText(extractResponse(result.result) || result.error || "");
                   toast.success("Copied");
                 }}
               >
@@ -308,13 +325,13 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
                       {r.status === "rejected" && <span className="text-xs text-warning flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Rejected</span>}
                       {r.status === "failed" && <span className="text-xs text-destructive flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Failed</span>}
                     </div>
-                    {r.result && <ColoredResult text={r.result} font={font} />}
+                    {r.result && <ColoredResult text={extractResponse(r.result)} font={font} />}
                     {r.error && <div className="text-xs text-destructive">{r.error}</div>}
                     {r.result && (
                       <Button
                         variant="glass"
                         size="sm"
-                        onClick={() => { navigator.clipboard.writeText(r.result || ""); toast.success("Copied"); }}
+                        onClick={() => { navigator.clipboard.writeText(extractResponse(r.result)); toast.success("Copied"); }}
                       >
                         <Copy className="w-4 h-4" /> Copy
                       </Button>
