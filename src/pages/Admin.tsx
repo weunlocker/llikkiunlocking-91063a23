@@ -164,7 +164,7 @@ function AdminDashboard() {
   );
 }
 
-const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground" } as Record<string, string>)[s] ?? "";
+const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground", in_process: "text-primary" } as Record<string, string>)[s] ?? "";
 
 /* ---------- Users ---------- */
 function AdminUsers() {
@@ -752,10 +752,11 @@ function AdminOrders() {
             <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All status</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-              <SelectItem value="refunded">Refunded</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="in_process">In process</SelectItem>
+              <SelectItem value="completed">Success</SelectItem>
+              <SelectItem value="failed">Rejected</SelectItem>
+              <SelectItem value="refunded">Refunded</SelectItem>
             </SelectContent>
           </Select>
           <div className="relative w-56">
@@ -794,27 +795,91 @@ function AdminOrders() {
         </div>
       }
 
-      <Dialog open={!!view} onOpenChange={(o) => !o && setView(null)}>
-        <DialogContent className="glass max-w-2xl max-h-[80vh] overflow-auto">
-          <DialogHeader><DialogTitle>Order Details</DialogTitle></DialogHeader>
-          {view && (
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-xs">Order ID</Label><div className="font-mono">#{String(view.order_number ?? 0).padStart(4, "0")}</div></div>
-                <div><Label className="text-xs">User</Label><div>{view.profiles?.email}</div></div>
-                <div><Label className="text-xs">Service</Label><div>{view.services?.name}</div></div>
-                <div><Label className="text-xs">IMEI</Label><div className="font-mono">{view.imei}</div></div>
-                <div><Label className="text-xs">Status</Label><div className={`capitalize ${statusColor(view.status)}`}>{view.status}</div></div>
-                <div><Label className="text-xs">Charged</Label><div className="font-mono">${Number(view.price_charged).toFixed(2)}</div></div>
-                <div><Label className="text-xs">Date</Label><div>{new Date(view.created_at).toLocaleString()}</div></div>
-              </div>
-              {view.error_message && <div><Label className="text-xs text-destructive">Error</Label><pre className="bg-destructive/10 p-3 rounded text-xs whitespace-pre-wrap">{view.error_message}</pre></div>}
-              {view.result && <div><Label className="text-xs">Result</Label><pre className="bg-secondary/40 p-3 rounded text-xs whitespace-pre-wrap max-h-60 overflow-auto">{view.result}</pre></div>}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <OrderEditDialog order={view} onClose={() => setView(null)} onSaved={load} onRefund={refundOrder} />
     </AdminLayout>
+  );
+}
+
+const STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: "pending", label: "Pending" },
+  { value: "in_process", label: "In process" },
+  { value: "completed", label: "Success" },
+  { value: "failed", label: "Rejected" },
+  { value: "refunded", label: "Refunded" },
+];
+
+function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRow | null; onClose: () => void; onSaved: () => void; onRefund: (o: OrderRow) => void }) {
+  const [status, setStatus] = useState<string>("");
+  const [result, setResult] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (order) {
+      setStatus(order.status);
+      setResult(order.result ?? "");
+      setErrorMsg(order.error_message ?? "");
+    }
+  }, [order]);
+
+  const save = async () => {
+    if (!order) return;
+    setSaving(true);
+    const { error } = await supabase.from("orders").update({
+      status: status as "pending" | "completed" | "failed" | "refunded" | "in_process",
+      result: result || null,
+      error_message: errorMsg || null,
+    }).eq("id", order.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Order updated");
+    onSaved();
+    onClose();
+  };
+
+  return (
+    <Dialog open={!!order} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="glass max-w-2xl max-h-[85vh] overflow-auto">
+        <DialogHeader><DialogTitle>Edit Order {order && `#${String(order.order_number ?? 0).padStart(4, "0")}`}</DialogTitle></DialogHeader>
+        {order && (
+          <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label className="text-xs">User</Label><div>{order.profiles?.email}</div></div>
+              <div><Label className="text-xs">Service</Label><div>{order.services?.name}</div></div>
+              <div><Label className="text-xs">IMEI</Label><div className="font-mono">{order.imei}</div></div>
+              <div><Label className="text-xs">Charged</Label><div className="font-mono">${Number(order.price_charged).toFixed(2)}</div></div>
+              <div><Label className="text-xs">Date</Label><div>{new Date(order.created_at).toLocaleString()}</div></div>
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Result text</Label>
+              <Textarea rows={8} value={result} onChange={(e) => setResult(e.target.value)} className="font-mono text-xs" placeholder="Result shown to the customer" />
+            </div>
+            <div>
+              <Label>Error / rejection message</Label>
+              <Textarea rows={3} value={errorMsg} onChange={(e) => setErrorMsg(e.target.value)} className="text-xs" placeholder="Optional" />
+            </div>
+            <div className="flex justify-between gap-2 pt-2 border-t border-border/50">
+              {order.status !== "refunded" && Number(order.price_charged) > 0 ? (
+                <Button variant="ghost" onClick={() => onRefund(order)}><RotateCcw className="w-4 h-4 mr-1" /> Refund</Button>
+              ) : <span />}
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                <Button variant="hero" onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin w-4 h-4" /> : "Save"}</Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
