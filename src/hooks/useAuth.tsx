@@ -11,6 +11,9 @@ type Profile = {
   telegram_chat_id: string | null;
   notify_telegram: boolean;
   notify_email: boolean;
+  custom_message: string | null;
+  user_group: string | null;
+  api_enabled: boolean;
 };
 
 type AuthCtx = {
