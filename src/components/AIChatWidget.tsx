@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Send, X, Sparkles, MessageCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useLocation } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useAuth } from "@/hooks/useAuth";
 
 type Msg = { role: "user" | "assistant"; content: string };
+type Channel = "wa" | "tg";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
 const PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const STORAGE_KEY = "likki_ai_chat_v1";
 
 // Inline Telegram paper-plane glyph (brand blue)
 const TelegramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
@@ -20,51 +21,85 @@ const TelegramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 export default function AIChatWidget() {
   const { pathname } = useLocation();
   const { settings } = useSiteSettings();
+  const { user, profile } = useAuth();
   if (pathname.startsWith("/admin")) return null;
   const brand = settings.brand_name || "LIKKI UNLOCKING";
   const logoUrl = settings.logo_url;
   const tgRaw = settings.telegram_url?.trim();
   const waRaw = settings.whatsapp_number?.trim();
+
+  const initialGreeting: Msg = {
+    role: "assistant",
+    content: `👋 Hi! I'm the **${brand}** assistant. Ask me anything about IMEI checks, unlocks, pricing, or how it works.`,
+  };
+
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>(() => {
-    try {
-      const raw = sessionStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch { /* ignore */ }
-    return [
-      {
-        role: "assistant",
-        content: `👋 Hi! I'm the **${brand}** assistant. Ask me anything about IMEI checks, unlocks, pricing, or how it works.`,
-      },
-    ];
-  });
+  // Fresh chat on every page load — no persistence.
+  const [messages, setMessages] = useState<Msg[]>([initialGreeting]);
+
+  // Guest contact details (asked once when user is not logged in and tries to hand off)
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [pendingChannel, setPendingChannel] = useState<Channel | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Build deep links to Telegram/WhatsApp pre-filled with the chat transcript
   const userMsgCount = messages.filter((m) => m.role === "user").length;
   const showHandoff = userMsgCount >= 2;
-  const handoff = useMemo(() => {
-    const transcript = messages
-      .slice(-8)
-      .map((m) => `${m.role === "user" ? "Me" : brand}: ${m.content}`)
-      .join("\n");
-    const intro = `Hello ${brand} Team 👋, I was chatting with your AI assistant and need a human. Here's what we discussed:\n\n`;
-    const text = intro + transcript;
-    const enc = encodeURIComponent(text);
-    const wa = waRaw ? `https://wa.me/${waRaw.replace(/[^\d]/g, "")}?text=${enc}` : null;
-    const tgUser = tgRaw ? (tgRaw.startsWith("http") ? tgRaw.replace(/^https?:\/\/t\.me\//, "").replace(/^@/, "") : tgRaw.replace(/^@/, "")) : "";
-    const tg = tgRaw ? `https://t.me/${tgUser}?text=${enc}` : null;
-    return { wa, tg };
-  }, [messages, brand, waRaw, tgRaw]);
 
+  const buildTranscript = (contact?: { name?: string; email?: string; phone?: string }) => {
+    const transcript = messages
+      .slice(-10)
+      .map((m) => `${m.role === "user" ? "Me" : brand + " AI"}: ${m.content}`)
+      .join("\n");
+    const name = contact?.name || profile?.display_name || "";
+    const email = contact?.email || profile?.email || user?.email || "";
+    const phone = contact?.phone || (profile as any)?.phone || "";
+    const contactBlock = [
+      name && `Name: ${name}`,
+      email && `Email: ${email}`,
+      phone && `Phone: ${phone}`,
+    ].filter(Boolean).join("\n");
+    return (
+      `Hello ${brand} Team 👋\n\nI was chatting with your AI assistant and need a human.\n\n` +
+      (contactBlock ? `— My details —\n${contactBlock}\n\n` : "") +
+      `— Conversation —\n${transcript}`
+    );
+  };
+
+  const openChannel = (channel: Channel, text: string) => {
+    const enc = encodeURIComponent(text);
+    let href: string | null = null;
+    if (channel === "wa" && waRaw) href = `https://wa.me/${waRaw.replace(/[^\d]/g, "")}?text=${enc}`;
+    if (channel === "tg" && tgRaw) {
+      const tgUser = tgRaw.startsWith("http") ? tgRaw.replace(/^https?:\/\/t\.me\//, "").replace(/^@/, "") : tgRaw.replace(/^@/, "");
+      href = `https://t.me/${tgUser}?text=${enc}`;
+    }
+    if (href) window.open(href, "_blank", "noopener,noreferrer");
+  };
+
+  const handleHandoff = (channel: Channel) => {
+    if (user) {
+      openChannel(channel, buildTranscript());
+    } else {
+      setPendingChannel(channel);
+    }
+  };
+
+  const submitGuestDetails = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingChannel) return;
+    if (!guestName.trim() || (!guestEmail.trim() && !guestPhone.trim())) return;
+    openChannel(pendingChannel, buildTranscript({ name: guestName, email: guestEmail, phone: guestPhone }));
+    setPendingChannel(null);
+  };
 
   useEffect(() => {
-    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages)); } catch { /* ignore */ }
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, open]);
+  }, [messages, open, pendingChannel]);
 
   const send = async () => {
     const text = input.trim();
@@ -218,34 +253,80 @@ export default function AIChatWidget() {
                 </div>
               </div>
             )}
-            {showHandoff && (handoff.tg || handoff.wa) && (
+            {showHandoff && (tgRaw || waRaw) && !pendingChannel && (
               <div className="rounded-xl border border-border/60 bg-muted/30 p-3 space-y-2">
                 <div className="text-xs text-muted-foreground">
-                  Need a human? Continue this chat with our team — your conversation will be sent automatically.
+                  Need a human? Continue this chat with our team — your conversation{user ? " and account info" : " (and your details)"} will be sent automatically.
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {handoff.wa && (
-                    <a
-                      href={handoff.wa}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {waRaw && (
+                    <button
+                      type="button"
+                      onClick={() => handleHandoff("wa")}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#25D366] text-white hover:opacity-90 transition"
                     >
                       <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-                    </a>
+                    </button>
                   )}
-                  {handoff.tg && (
-                    <a
-                      href={handoff.tg}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {tgRaw && (
+                    <button
+                      type="button"
+                      onClick={() => handleHandoff("tg")}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#229ED9] text-white hover:opacity-90 transition"
                     >
                       <TelegramIcon className="w-3.5 h-3.5" /> Telegram
-                    </a>
+                    </button>
                   )}
                 </div>
               </div>
+            )}
+            {pendingChannel && (
+              <form onSubmit={submitGuestDetails} className="rounded-xl border border-border/60 bg-muted/30 p-3 space-y-2">
+                <div className="text-xs font-semibold">
+                  Share your contact so our team can reach you on {pendingChannel === "wa" ? "WhatsApp" : "Telegram"}:
+                </div>
+                <input
+                  required
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="Your name *"
+                  maxLength={80}
+                  className="w-full bg-background border border-border/60 rounded-md px-3 py-1.5 text-xs"
+                />
+                <input
+                  type="email"
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  placeholder="Email"
+                  maxLength={120}
+                  className="w-full bg-background border border-border/60 rounded-md px-3 py-1.5 text-xs"
+                />
+                <input
+                  type="tel"
+                  value={guestPhone}
+                  onChange={(e) => setGuestPhone(e.target.value)}
+                  placeholder="Phone (with country code)"
+                  maxLength={30}
+                  className="w-full bg-background border border-border/60 rounded-md px-3 py-1.5 text-xs"
+                />
+                <p className="text-[10px] text-muted-foreground">Provide email or phone (or both).</p>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={!guestName.trim() || (!guestEmail.trim() && !guestPhone.trim())}
+                    className={`flex-1 px-3 py-1.5 rounded-md text-xs font-semibold text-white disabled:opacity-50 ${pendingChannel === "wa" ? "bg-[#25D366]" : "bg-[#229ED9]"}`}
+                  >
+                    Continue on {pendingChannel === "wa" ? "WhatsApp" : "Telegram"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingChannel(null)}
+                    className="px-3 py-1.5 rounded-md text-xs bg-muted hover:bg-muted/70"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             )}
           </div>
 
