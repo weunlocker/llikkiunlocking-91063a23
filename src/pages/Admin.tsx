@@ -1108,13 +1108,13 @@ function AdminSettings() {
         <div className="glass rounded-2xl p-6 space-y-3">
           <h3 className="font-bold">Social & Floating Buttons</h3>
           <p className="text-xs text-muted-foreground">Telegram + WhatsApp show as floating buttons on every page (right-bottom corner).</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>Telegram (link or @username)</Label><Input value={s.telegram_url} onChange={(e) => set("telegram_url", e.target.value)} placeholder="@likkiunlocking" /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-4 [&_label]:text-xs [&_label]:font-medium [&_label]:whitespace-nowrap [&_label]:overflow-hidden [&_label]:text-ellipsis [&_label]:block">
+            <div><Label>Telegram (@username or link)</Label><Input value={s.telegram_url} onChange={(e) => set("telegram_url", e.target.value)} placeholder="@likkiunlocking" /></div>
             <div><Label>WhatsApp Number</Label><Input value={s.whatsapp_number} onChange={(e) => set("whatsapp_number", e.target.value)} placeholder="+15551234567" /></div>
-            <div><Label>Facebook URL</Label><Input value={s.facebook_url} onChange={(e) => set("facebook_url", e.target.value)} /></div>
-            <div><Label>Instagram URL</Label><Input value={s.instagram_url} onChange={(e) => set("instagram_url", e.target.value)} /></div>
-            <div><Label>Twitter / X URL</Label><Input value={s.twitter_url} onChange={(e) => set("twitter_url", e.target.value)} /></div>
-            <div><Label>YouTube URL</Label><Input value={s.youtube_url} onChange={(e) => set("youtube_url", e.target.value)} /></div>
+            <div><Label>Facebook URL</Label><Input value={s.facebook_url} onChange={(e) => set("facebook_url", e.target.value)} placeholder="https://facebook.com/..." /></div>
+            <div><Label>Instagram URL</Label><Input value={s.instagram_url} onChange={(e) => set("instagram_url", e.target.value)} placeholder="https://instagram.com/..." /></div>
+            <div><Label>Twitter / X URL</Label><Input value={s.twitter_url} onChange={(e) => set("twitter_url", e.target.value)} placeholder="https://x.com/..." /></div>
+            <div><Label>YouTube URL</Label><Input value={s.youtube_url} onChange={(e) => set("youtube_url", e.target.value)} placeholder="https://youtube.com/@..." /></div>
           </div>
         </div>
 
