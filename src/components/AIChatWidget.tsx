@@ -3,12 +3,13 @@ import { Send, X, Sparkles, MessageCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useLocation } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useAuth } from "@/hooks/useAuth";
 
 type Msg = { role: "user" | "assistant"; content: string };
+type Channel = "wa" | "tg";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
 const PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const STORAGE_KEY = "likki_ai_chat_v1";
 
 // Inline Telegram paper-plane glyph (brand blue)
 const TelegramIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
