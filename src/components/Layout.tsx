@@ -157,7 +157,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       <footer className="border-t border-border/50 mt-12 sm:mt-20 pb-24 sm:pb-8">
         <div className="container py-6 sm:py-8 text-center text-sm text-muted-foreground space-y-2">
-          <p>© {new Date().getFullYear()} {settings.brand_name}{settings.tagline ? ` · ${settings.tagline}` : ""}</p>
+          <p>© 2018–{new Date().getFullYear()} {settings.brand_name}{settings.tagline ? ` · ${settings.tagline}` : ""}</p>
           {(settings.contact_email || settings.contact_phone) && (
             <p className="text-xs">
               {settings.contact_email && <a href={`mailto:${settings.contact_email}`} className="hover:text-primary">{settings.contact_email}</a>}
