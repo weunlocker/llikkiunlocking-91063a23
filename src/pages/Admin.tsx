@@ -1000,7 +1000,7 @@ function AdminSettings() {
       if (data) {
         const r = data as unknown as Record<string, string | null>;
         setS({
-          brand_name: r.brand_name ?? "", tagline: r.tagline ?? "", logo_url: r.logo_url ?? "",
+          brand_name: r.brand_name ?? "", tagline: r.tagline ?? "", logo_url: r.logo_url ?? "", favicon_url: r.favicon_url ?? "",
           seo_title: r.seo_title ?? "", seo_description: r.seo_description ?? "", seo_keywords: r.seo_keywords ?? "",
           facebook_url: r.facebook_url ?? "", twitter_url: r.twitter_url ?? "", instagram_url: r.instagram_url ?? "", youtube_url: r.youtube_url ?? "",
           telegram_url: r.telegram_url ?? "", whatsapp_number: r.whatsapp_number ?? "",
