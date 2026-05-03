@@ -26,6 +26,7 @@ export type ImeiCheckDialogProps = {
   balance: number;
   onClose: () => void;
   onAfterRun?: () => void;
+  onBulkStarted?: () => void;
 };
 
 const FONT_MAP: Record<string, string> = {
