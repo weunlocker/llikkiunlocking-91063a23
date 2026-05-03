@@ -32,7 +32,7 @@ function getByPath(obj: unknown, path: string): unknown {
 function applyTemplate(template: string, data: unknown): string {
   if (!template) return typeof data === "string" ? data : JSON.stringify(data, null, 2);
   return template.replace(/\{([\w\.\[\]]+)\}/g, (_, k) => {
-    if (k.toLowerCase() === "imei") return ""; // handled by caller usually
+    if (k.toLowerCase() === "imei") return "";
     const v = getByPath(data, k);
     if (v === null || v === undefined) return "";
     if (typeof v === "object") return JSON.stringify(v);
@@ -90,14 +90,23 @@ async function notifyUser(supabase: ReturnType<typeof makeServiceClient>, userId
   }
 }
 
-// -------- main --------
+// -------- placement (fast: validate, charge, create pending order) --------
 
-export async function executeCheck(opts: {
+type PlacementCtx = {
+  supabase: ReturnType<typeof makeServiceClient>;
+  service: any;
+  supplier: any | null;
+  order: any;
   userId: string;
-  serviceId: string;
   imei: string;
-  source: "web" | "api";
-}) {
+  price: number;
+  newBalance: number;
+  prevBalance: number;
+};
+
+async function placeOrder(opts: {
+  userId: string; serviceId: string; imei: string; source: "web" | "api";
+}): Promise<{ ok: false; status: number; body: any } | { ok: true; ctx: PlacementCtx }> {
   const supabase = makeServiceClient();
 
   const [{ data: service, error: sErr }, { data: profile, error: pErr }] = await Promise.all([
@@ -113,7 +122,6 @@ export async function executeCheck(opts: {
     return { ok: false, status: 403, body: { error: "API access disabled for this account" } };
   }
 
-  // Per-user override (custom price + enable/disable)
   const { data: override } = await supabase
     .from("user_service_overrides")
     .select("enabled, custom_price")
@@ -122,7 +130,6 @@ export async function executeCheck(opts: {
     return { ok: false, status: 403, body: { error: "Service not available for this account" } };
   }
 
-  // Pricing: custom price wins; otherwise group discount on base price
   const groupDiscount: Record<string, number> = { silver: 0.10, gold: 0.30, diamond: 0.50 };
   const discount = groupDiscount[String(profile.user_group ?? "").toLowerCase()] ?? 0;
   const basePrice = Number(service.price);
@@ -131,6 +138,15 @@ export async function executeCheck(opts: {
     : +(basePrice * (1 - discount)).toFixed(2);
   const balance = Number(profile.balance);
   if (balance < price) return { ok: false, status: 402, body: { error: "Insufficient balance", balance } };
+
+  let supplier: any | null = null;
+  if (service.supplier_id) {
+    const { data: sup } = await supabase.from("suppliers").select("*").eq("id", service.supplier_id).maybeSingle();
+    if (sup) {
+      if (!sup.active) return { ok: false, status: 503, body: { error: "Supplier disabled" } };
+      supplier = sup;
+    }
+  }
 
   const newBalance = +(balance - price).toFixed(2);
   const { error: balErr } = await supabase.from("profiles").update({ balance: newBalance }).eq("id", opts.userId);
@@ -151,28 +167,25 @@ export async function executeCheck(opts: {
     description: `Check: ${service.name}`, order_id: order.id,
   });
 
+  return {
+    ok: true,
+    ctx: { supabase, service, supplier, order, userId: opts.userId, imei: opts.imei, price, newBalance, prevBalance: balance },
+  };
+}
+
+// -------- upstream (slow: call provider, finalize order) --------
+
+async function runUpstream(ctx: PlacementCtx) {
+  const { supabase, service, supplier, order, userId, imei, price, newBalance, prevBalance } = ctx;
+
   let resultText = "";
   let success = false;
   let errorMsg: string | null = null;
   let rawData: unknown = null;
 
-  // Resolve supplier (if linked) — supplier overrides per-service api_url
-  let supplier: Record<string, unknown> | null = null;
-  if (service.supplier_id) {
-    const { data: sup } = await supabase.from("suppliers").select("*").eq("id", service.supplier_id).maybeSingle();
-    if (sup) {
-      if (!sup.active) {
-        await supabase.from("profiles").update({ balance }).eq("id", opts.userId);
-        await supabase.from("orders").update({ status: "failed", error_message: "Supplier disabled" }).eq("id", order.id);
-        return { ok: false, status: 503, body: { error: "Supplier disabled" } };
-      }
-      supplier = sup;
-    }
-  }
-
   const hasUpstream = !!supplier || !!service.api_url;
   if (!hasUpstream) {
-    resultText = `Demo mode — no upstream API configured for "${service.name}".\nIMEI: ${opts.imei}\nResult: simulated success.`;
+    resultText = `Demo mode — no upstream API configured for "${service.name}".\nIMEI: ${imei}\nResult: simulated success.`;
     success = true;
   } else {
     try {
@@ -181,10 +194,8 @@ export async function executeCheck(opts: {
       const init: RequestInit = { method: "GET", headers };
 
       if (supplier) {
-        // Build request from supplier
         url = String(supplier.endpoint_url);
         if (supplier.type === "dhru") {
-          // Dhru API: classic or Bulk v6.1+ (POST x-www-form-urlencoded)
           init.method = "POST";
           headers["Content-Type"] = "application/x-www-form-urlencoded";
           const action = (service.supplier_action || "").toString();
@@ -193,95 +204,81 @@ export async function executeCheck(opts: {
           const params = new URLSearchParams();
           if (supplier.api_format === "bulk") {
             params.set("data", JSON.stringify({
-              username, apikey: apiKey,
-              action: "placeimeiorder",
-              service: action,
-              imei: opts.imei,
+              username, apikey: apiKey, action: "placeimeiorder", service: action, imei,
             }));
           } else if (supplier.api_format === "v6") {
-            // Dhru Fusion v6.1 — auth via apiaccesskey, parameters as XML
             params.set("apiaccesskey", apiKey);
             params.set("action", "placeimeiorder");
             params.set("requestformat", "JSON");
             if (username) params.set("username", username);
-            const xml = `<PARAMETERS><ID>${action}</ID><IMEI>${opts.imei}</IMEI></PARAMETERS>`;
-            params.set("parameters", xml);
+            params.set("parameters", `<PARAMETERS><ID>${action}</ID><IMEI>${imei}</IMEI></PARAMETERS>`);
           } else {
-            // classic legacy
             params.set("username", username);
             params.set("apikey", apiKey);
             params.set("action", "placeimeiorder");
             params.set("service", action);
-            params.set("imei", opts.imei);
+            params.set("imei", imei);
           }
           init.body = params.toString();
         } else {
-          // generic supplier: substitute {IMEI} and {ACTION} in endpoint
           url = url
-            .replace(/\{IMEI\}/gi, encodeURIComponent(opts.imei))
+            .replace(/\{IMEI\}/gi, encodeURIComponent(imei))
             .replace(/\{ACTION\}/gi, encodeURIComponent(String(service.supplier_action ?? "")));
           init.method = service.api_method || "GET";
           const customHeaders = (service.api_headers ?? {}) as Record<string, string>;
           Object.assign(headers, customHeaders);
           if (init.method === "POST") {
             headers["Content-Type"] = headers["Content-Type"] ?? "application/json";
-            init.body = (service.api_request_body || JSON.stringify({ imei: opts.imei }))
-              .replace(/\{IMEI\}/gi, opts.imei)
+            init.body = (service.api_request_body || JSON.stringify({ imei }))
+              .replace(/\{IMEI\}/gi, imei)
               .replace(/\{ACTION\}/gi, String(service.supplier_action ?? ""));
           }
         }
       } else {
-        // Direct per-service API
         url = service.api_url
-          .replace(/\{IMEI\}/gi, encodeURIComponent(opts.imei))
-          .replace(/\{imei\}/g, encodeURIComponent(opts.imei));
+          .replace(/\{IMEI\}/gi, encodeURIComponent(imei))
+          .replace(/\{imei\}/g, encodeURIComponent(imei));
         const customHeaders = (service.api_headers ?? {}) as Record<string, string>;
         Object.assign(headers, customHeaders);
         init.method = service.api_method || "GET";
         if (init.method === "POST") {
           if (service.api_request_body && service.api_request_body.trim()) {
             const bodyTpl = service.api_request_body
-              .replace(/\{IMEI\}/gi, opts.imei)
-              .replace(/\{imei\}/g, opts.imei);
+              .replace(/\{IMEI\}/gi, imei)
+              .replace(/\{imei\}/g, imei);
             if (!headers["Content-Type"]) headers["Content-Type"] = "application/json";
             init.body = bodyTpl;
           } else {
             headers["Content-Type"] = "application/json";
-            init.body = JSON.stringify({ imei: opts.imei });
+            init.body = JSON.stringify({ imei });
           }
         }
       }
+
       const resp = await fetch(url, init);
       const ct = resp.headers.get("content-type") || "";
       const raw = ct.includes("json") ? await resp.json() : await resp.text();
       rawData = raw;
 
-      // Try to parse string responses as JSON for rules / templating
       let parsed: unknown = raw;
       if (typeof raw === "string") {
         const trimmed = raw.trim();
         if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
-          try { parsed = JSON.parse(trimmed); rawData = parsed; } catch { /* keep as string */ }
+          try { parsed = JSON.parse(trimmed); rawData = parsed; } catch { /* keep */ }
         }
       }
 
-      // ---- Dhru async branch: capture reference id, leave order pending for poller
       if (supplier && supplier.type === "dhru") {
         if (!resp.ok) {
           errorMsg = `Dhru returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
         } else {
-          // Dhru may reject inline (ERROR field) or accept (SUCCESS with reference id)
           const p = parsed as Record<string, unknown> | null;
           const errBlock = p?.ERROR ?? p?.error;
           if (errBlock) {
-            const errMsg = (() => {
-              const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
-              const e = eArr as Record<string, unknown> | undefined;
-              return (e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Rejected by supplier").toString();
-            })();
-            errorMsg = errMsg;
+            const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
+            const e = eArr as Record<string, unknown> | undefined;
+            errorMsg = (e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Rejected by supplier").toString();
           } else {
-            // Look for reference id in SUCCESS payload
             const findRef = (n: unknown): string | null => {
               if (!n || typeof n !== "object") return null;
               const o = n as Record<string, unknown>;
@@ -294,26 +291,21 @@ export async function executeCheck(opts: {
             if (!refId) {
               errorMsg = "Dhru did not return a reference id: " + (typeof raw === "string" ? raw.slice(0, 200) : JSON.stringify(raw).slice(0, 200));
             } else {
-              // Order placed; leave as pending — poller will pick it up
               await supabase.from("orders").update({
                 supplier_reference: refId,
                 result: `Order placed with supplier (ref ${refId}). Awaiting result…`,
               }).eq("id", order.id);
-              notifyUser(supabase, opts.userId,
+              notifyUser(supabase, userId,
                 `⏳ Check submitted — ${service.name}`,
-                `IMEI: ${opts.imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
+                `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
               );
-              return {
-                ok: true, status: 202,
-                body: { status: "pending", imei: opts.imei, service: service.name, reference: refId, balance_after: newBalance, order_id: order.id, message: "Order placed with supplier — awaiting result." },
-              };
+              return; // remain pending; poller takes over
             }
           }
         }
       } else if (!resp.ok) {
         errorMsg = `Provider returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
       } else {
-        // Synchronous (direct API or generic supplier): evaluate rules immediately
         const ruleResult = evaluateRules(service.success_rules as SuccessRule[] | null, parsed);
         if (!ruleResult.ok) {
           const r = ruleResult.failedRule!;
@@ -335,34 +327,81 @@ export async function executeCheck(opts: {
 
   if (!success) {
     const refundedBalance = +(newBalance + price).toFixed(2);
-    await supabase.from("profiles").update({ balance: refundedBalance }).eq("id", opts.userId);
-    await supabase.from("orders").update({ status: "failed", error_message: errorMsg, result: rawData ? (typeof rawData === "string" ? rawData : JSON.stringify(rawData)) : null }).eq("id", order.id);
+    await supabase.from("profiles").update({ balance: refundedBalance }).eq("id", userId);
+    await supabase.from("orders").update({
+      status: "failed", error_message: errorMsg,
+      result: rawData ? (typeof rawData === "string" ? rawData : JSON.stringify(rawData)) : null,
+    }).eq("id", order.id);
     await supabase.from("transactions").insert({
-      user_id: opts.userId, type: "refund", amount: price, balance_after: refundedBalance,
+      user_id: userId, type: "refund", amount: price, balance_after: refundedBalance,
       description: `Auto-refund: ${service.name}`, order_id: order.id,
     });
-    notifyUser(supabase, opts.userId,
+    notifyUser(supabase, userId,
       `❌ Check failed — ${service.name}`,
-      `IMEI: ${opts.imei}\nReason: ${errorMsg}\nRefunded: $${price.toFixed(2)}\nBalance: $${refundedBalance.toFixed(2)}`,
+      `IMEI: ${imei}\nReason: ${errorMsg}\nRefunded: $${price.toFixed(2)}\nBalance: $${refundedBalance.toFixed(2)}`,
     );
-    notifyUserEmail(supabase, opts.userId, "order_rejected", {
-      order_number: order.order_number, imei: opts.imei, service: service.name,
+    notifyUserEmail(supabase, userId, "order_rejected", {
+      order_number: order.order_number, imei, service: service.name,
       error: errorMsg, refund: price.toFixed(2), balance: refundedBalance.toFixed(2),
     });
-    return { ok: false, status: 502, body: { status: "failed", error: errorMsg, balance_after: refundedBalance, order_id: order.id } };
+    return;
   }
 
   await supabase.from("orders").update({ status: "completed", result: resultText }).eq("id", order.id);
-  notifyUser(supabase, opts.userId,
+  notifyUser(supabase, userId,
     `✅ Check completed — ${service.name}`,
-    `IMEI: ${opts.imei}\n\n${resultText}\n\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
+    `IMEI: ${imei}\n\n${resultText}\n\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
   );
-  notifyUserEmail(supabase, opts.userId, "order_success", {
-    order_number: order.order_number, imei: opts.imei, service: service.name,
+  notifyUserEmail(supabase, userId, "order_success", {
+    order_number: order.order_number, imei, service: service.name,
     result: resultText, charged: price.toFixed(2), balance: newBalance.toFixed(2),
   });
+}
+
+// -------- public entrypoints --------
+
+// Async entrypoint: charge + create order, run upstream in background, return pending immediately.
+// Caller is responsible for keeping the function alive (EdgeRuntime.waitUntil).
+export async function executeCheckAsync(opts: {
+  userId: string; serviceId: string; imei: string; source: "web" | "api";
+}): Promise<{ status: number; body: any; background?: Promise<void> }> {
+  const placed = await placeOrder(opts);
+  if (!placed.ok) return { status: placed.status, body: placed.body };
+  const ctx = placed.ctx;
+  const background = runUpstream(ctx).catch((e) => console.error("runUpstream failed", e));
   return {
-    ok: true, status: 200,
-    body: { status: "completed", imei: opts.imei, service: service.name, result: resultText, balance_after: newBalance, order_id: order.id },
+    status: 202,
+    body: {
+      status: "pending",
+      order_id: ctx.order.id,
+      imei: ctx.imei,
+      service: ctx.service.name,
+      balance_after: ctx.newBalance,
+      message: "Order placed — track progress in the Orders tab.",
+    },
+    background,
   };
+}
+
+// Synchronous entrypoint (kept for API): waits for upstream and returns final status.
+export async function executeCheck(opts: {
+  userId: string; serviceId: string; imei: string; source: "web" | "api";
+}) {
+  const placed = await placeOrder(opts);
+  if (!placed.ok) return { ok: false, status: placed.status, body: placed.body };
+  const ctx = placed.ctx;
+  await runUpstream(ctx);
+
+  const { data: finalOrder } = await ctx.supabase.from("orders").select("status, result, error_message, supplier_reference").eq("id", ctx.order.id).maybeSingle();
+  const status = finalOrder?.status ?? "pending";
+  const { data: prof } = await ctx.supabase.from("profiles").select("balance").eq("id", ctx.userId).maybeSingle();
+  const balance_after = Number(prof?.balance ?? ctx.newBalance);
+
+  if (status === "completed") {
+    return { ok: true, status: 200, body: { status: "completed", imei: ctx.imei, service: ctx.service.name, result: finalOrder?.result, balance_after, order_id: ctx.order.id } };
+  }
+  if (status === "failed") {
+    return { ok: false, status: 502, body: { status: "failed", error: finalOrder?.error_message ?? "Failed", balance_after, order_id: ctx.order.id } };
+  }
+  return { ok: true, status: 202, body: { status: "pending", imei: ctx.imei, service: ctx.service.name, reference: finalOrder?.supplier_reference, balance_after, order_id: ctx.order.id, message: "Order placed — awaiting result." } };
 }
