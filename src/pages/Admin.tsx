@@ -1487,6 +1487,57 @@ function AdminCategories() {
   );
 }
 
+/* ---------- Telegram Bot page ---------- */
+function AdminTelegramBot() {
+  const [testChatId, setTestChatId] = useState("");
+  const [testing, setTesting] = useState(false);
+  const sendTestTelegram = async () => {
+    if (!testChatId.trim()) return toast.error("Enter a chat ID");
+    setTesting(true);
+    const { data, error } = await supabase.functions.invoke("telegram-notify", {
+      body: { user_id: "00000000-0000-0000-0000-000000000000", chat_id: testChatId.trim(), subject: "Test", message: "✅ Telegram is wired up correctly." },
+    });
+    setTesting(false);
+    if (error) return toast.error(error.message);
+    if ((data as { ok?: boolean })?.ok) toast.success("Test sent — check Telegram");
+    else toast.error("Failed: " + JSON.stringify(data));
+  };
+  return (
+    <AdminLayout title="Telegram Bot" subtitle="Send broadcast notifications and test the bot connection">
+      <div className="glass rounded-2xl p-6 space-y-3 max-w-2xl">
+        <h3 className="font-bold">Telegram Bot</h3>
+        <p className="text-sm text-muted-foreground">Connected via Lovable Cloud. Clients link their account in Dashboard → Notifications.</p>
+        <div className="space-y-2 pt-2 border-t border-border/40">
+          <Label className="text-xs">Send test message to chat ID</Label>
+          <div className="flex gap-2">
+            <Input placeholder="123456789" value={testChatId} onChange={(e) => setTestChatId(e.target.value)} />
+            <Button size="sm" onClick={sendTestTelegram} disabled={testing}>
+              {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </AdminLayout>
+  );
+}
+
+/* ---------- API Providers page ---------- */
+function AdminApiProviders() {
+  const navigate = useNavigate();
+  return (
+    <AdminLayout title="API Providers" subtitle="Dhru / GSM / Custom upstream suppliers">
+      <div className="glass rounded-2xl p-6 space-y-3 max-w-2xl">
+        <h3 className="font-bold">API Providers (Dhru / GSM / Custom)</h3>
+        <p className="text-sm text-muted-foreground">Save each upstream supplier once in <b>Suppliers</b>, then pick it from any service.</p>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => navigate("/admin/suppliers")}>Manage Suppliers</Button>
+          <Button size="sm" variant="outline" onClick={() => navigate("/admin/services")}>Open Services</Button>
+        </div>
+      </div>
+    </AdminLayout>
+  );
+}
+
 /* ---------- Router ---------- */
 import AdminEmailSettings from "./AdminEmailSettings";
 export default function Admin() {
@@ -1500,6 +1551,8 @@ export default function Admin() {
       <Route path="orders" element={<AdminOrders />} />
       <Route path="transactions" element={<AdminTransactions />} />
       <Route path="notifications" element={<AdminNotifications />} />
+      <Route path="telegram-bot" element={<AdminTelegramBot />} />
+      <Route path="api-providers" element={<AdminApiProviders />} />
       <Route path="email-settings" element={<AdminEmailSettings />} />
       <Route path="settings" element={<AdminSettings />} />
     </Routes>
