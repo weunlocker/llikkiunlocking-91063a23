@@ -290,13 +290,13 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
               <div className="flex items-center gap-3 text-destructive"><XCircle className="w-6 h-6" /> Check failed</div>
             )}
             {ResultToolbar}
-            <ColoredResult text={result.result || result.error || "No response"} font={font} />
+            <ColoredResult text={extractResponse(result.result) || result.error || "No response"} font={font} />
             <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 variant="glass"
                 size="sm"
                 onClick={() => {
-                  navigator.clipboard.writeText(result.result || result.error || "");
+                  navigator.clipboard.writeText(extractResponse(result.result) || result.error || "");
                   toast.success("Copied");
                 }}
               >
