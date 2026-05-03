@@ -50,6 +50,13 @@ Deno.serve(async (req) => {
     if (!apiKey) return dhruError("Invalid API key", 401);
     if (!apiKey.active) return dhruError("API key disabled", 403);
 
+    // Block API entirely if admin disabled API for this user
+    const { data: gate } = await supabase
+      .from("profiles").select("api_enabled, user_group").eq("id", apiKey.user_id).maybeSingle();
+    if (gate && gate.api_enabled === false) return dhruError("API access disabled for this account", 403);
+    const groupDiscount: Record<string, number> = { silver: 0.10, gold: 0.30, diamond: 0.50 };
+    const discount = groupDiscount[String(gate?.user_group ?? "").toLowerCase()] ?? 0;
+
     // Optional username check (DHRU compatibility). If supplied, must match the user's email.
     const username = params.get("username");
     if (username) {
