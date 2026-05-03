@@ -160,10 +160,10 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
         </div>
 
         <Tabs defaultValue="simple">
-          <TabsList className="glass">
-            <TabsTrigger value="simple"><LinkIcon className="w-4 h-4 mr-2" />Simple Link</TabsTrigger>
-            <TabsTrigger value="dhru"><Code2 className="w-4 h-4 mr-2" />Dhru-compatible API</TabsTrigger>
-            <TabsTrigger value="ids">Service IDs</TabsTrigger>
+          <TabsList className="glass w-full justify-start overflow-x-auto flex-nowrap">
+            <TabsTrigger value="simple" className="shrink-0"><LinkIcon className="w-4 h-4 mr-2" />Simple Link</TabsTrigger>
+            <TabsTrigger value="dhru" className="shrink-0"><Code2 className="w-4 h-4 mr-2" />Dhru-compatible API</TabsTrigger>
+            <TabsTrigger value="ids" className="shrink-0">Service IDs</TabsTrigger>
           </TabsList>
 
           {/* ───── Simple Link ───── */}
