@@ -43,6 +43,9 @@ export default function Dashboard() {
   const [testingTg, setTestingTg] = useState(false);
   const [orderQuery, setOrderQuery] = useState("");
   const [orderStatus, setOrderStatus] = useState("all");
+  const [msgOpen, setMsgOpen] = useState(false);
+  const [msgDismissed, setMsgDismissed] = useState(false);
+  const customMessage = (profile as unknown as { custom_message?: string } | null)?.custom_message ?? "";
 
   useEffect(() => {
     if (profile) {
@@ -129,12 +132,25 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="container py-10">
-        {profile && (profile as unknown as { custom_message?: string }).custom_message && (
-          <div className="glass rounded-2xl p-4 mb-5 border-l-4 border-primary">
-            <div className="text-xs uppercase tracking-wider text-primary mb-1">Message from admin</div>
-            <div className="text-sm whitespace-pre-wrap">{(profile as unknown as { custom_message?: string }).custom_message}</div>
-          </div>
+        {customMessage && !msgDismissed && (
+          <button
+            type="button"
+            onClick={() => setMsgOpen(true)}
+            className="w-full glass rounded-2xl p-4 mb-5 border-l-4 border-primary text-left hover:bg-secondary/30 transition-colors"
+          >
+            <div className="text-xs uppercase tracking-wider text-primary">Message from admin</div>
+            <div className="text-xs text-muted-foreground mt-1">Click to read</div>
+          </button>
         )}
+        <Dialog open={msgOpen} onOpenChange={setMsgOpen}>
+          <DialogContent className="glass">
+            <DialogHeader><DialogTitle>Message from admin</DialogTitle></DialogHeader>
+            <div className="text-sm whitespace-pre-wrap py-2">{customMessage}</div>
+            <div className="flex justify-end">
+              <Button variant="hero" onClick={() => { setMsgOpen(false); setMsgDismissed(true); }}>Close</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         <div className="grid md:grid-cols-3 gap-5 mb-5">
           <div className="glass rounded-2xl p-6 md:col-span-2 flex items-center justify-between">
             <div>
