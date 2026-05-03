@@ -281,6 +281,7 @@ export type Database = {
           created_at: string
           credited: boolean
           currency: string
+          expires_at: string | null
           id: string
           merchant_trade_no: string
           prepay_id: string | null
@@ -296,6 +297,7 @@ export type Database = {
           created_at?: string
           credited?: boolean
           currency?: string
+          expires_at?: string | null
           id?: string
           merchant_trade_no: string
           prepay_id?: string | null
@@ -311,6 +313,7 @@ export type Database = {
           created_at?: string
           credited?: boolean
           currency?: string
+          expires_at?: string | null
           id?: string
           merchant_trade_no?: string
           prepay_id?: string | null
@@ -329,6 +332,7 @@ export type Database = {
           binance_enabled: boolean
           binance_secret_key: string | null
           id: number
+          order_expiry_minutes: number
           topup_amounts: Json
           updated_at: string
         }
@@ -338,6 +342,7 @@ export type Database = {
           binance_enabled?: boolean
           binance_secret_key?: string | null
           id?: number
+          order_expiry_minutes?: number
           topup_amounts?: Json
           updated_at?: string
         }
@@ -347,6 +352,7 @@ export type Database = {
           binance_enabled?: boolean
           binance_secret_key?: string | null
           id?: number
+          order_expiry_minutes?: number
           topup_amounts?: Json
           updated_at?: string
         }
