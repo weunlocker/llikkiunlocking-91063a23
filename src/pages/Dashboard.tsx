@@ -46,6 +46,8 @@ export default function Dashboard() {
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgDismissed, setMsgDismissed] = useState(false);
   const customMessage = (profile as unknown as { custom_message?: string } | null)?.custom_message ?? "";
+  const [serviceView, setServiceView] = useState<"grid" | "list">(() => (localStorage.getItem("serviceView") as "grid" | "list") || "grid");
+  useEffect(() => { localStorage.setItem("serviceView", serviceView); }, [serviceView]);
 
   useEffect(() => {
     if (profile) {
