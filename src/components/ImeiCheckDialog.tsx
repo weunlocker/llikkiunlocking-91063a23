@@ -151,7 +151,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
           setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "successful", result: data.result } : r));
         } else if (data?.status === "pending") {
           remainingBalance -= price;
-          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "running", result: "Order queued" } : r));
+          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "queued", result: "Order placed — track in Orders tab" } : r));
         } else {
           setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "rejected", error: data?.error ?? "Failed" } : r));
         }
