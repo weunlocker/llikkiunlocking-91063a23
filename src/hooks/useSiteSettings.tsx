@@ -5,6 +5,7 @@ export type SiteSettings = {
   brand_name: string;
   tagline: string | null;
   logo_url: string | null;
+  favicon_url: string | null;
   seo_title: string | null;
   seo_description: string | null;
   seo_keywords: string | null;
