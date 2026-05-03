@@ -80,8 +80,9 @@ export default function AdminEmailSettings() {
     });
     setTesting(false);
     if (error) return toast.error(error.message);
-    if ((data as { ok?: boolean })?.ok) toast.success("Test sent ✓");
-    else toast.error("Failed: " + JSON.stringify(data));
+    const result = data as { ok?: boolean; error?: string } | null;
+    if (result?.ok) toast.success("Test sent ✓");
+    else toast.error(result?.error ?? "Email test failed");
   };
 
   if (loading || !s) {
@@ -182,6 +183,7 @@ export default function AdminEmailSettings() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">Save settings first if you've changed them.</p>
+              <p className="text-xs text-muted-foreground">If login fails, reset the mailbox password in your hosting panel and paste the new password here.</p>
             </div>
           </TabsContent>
         </Tabs>
