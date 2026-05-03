@@ -1,6 +1,7 @@
 // Shared logic for charging a user, calling provider, and recording the order.
 // Used by both check-imei (web) and api-check (public API) edge functions.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { notifyUserEmail } from "./email.ts";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -344,6 +345,10 @@ export async function executeCheck(opts: {
       `❌ Check failed — ${service.name}`,
       `IMEI: ${opts.imei}\nReason: ${errorMsg}\nRefunded: $${price.toFixed(2)}\nBalance: $${refundedBalance.toFixed(2)}`,
     );
+    notifyUserEmail(supabase, opts.userId, "order_rejected", {
+      order_number: order.order_number, imei: opts.imei, service: service.name,
+      error: errorMsg, refund: price.toFixed(2), balance: refundedBalance.toFixed(2),
+    });
     return { ok: false, status: 502, body: { status: "failed", error: errorMsg, balance_after: refundedBalance, order_id: order.id } };
   }
 
@@ -352,6 +357,10 @@ export async function executeCheck(opts: {
     `✅ Check completed — ${service.name}`,
     `IMEI: ${opts.imei}\n\n${resultText}\n\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
   );
+  notifyUserEmail(supabase, opts.userId, "order_success", {
+    order_number: order.order_number, imei: opts.imei, service: service.name,
+    result: resultText, charged: price.toFixed(2), balance: newBalance.toFixed(2),
+  });
   return {
     ok: true, status: 200,
     body: { status: "completed", imei: opts.imei, service: service.name, result: resultText, balance_after: newBalance, order_id: order.id },

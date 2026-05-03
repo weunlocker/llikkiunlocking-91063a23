@@ -1,6 +1,7 @@
 // Polls all pending Dhru orders. Triggered every 30s by pg_cron.
 // Updates each order: pending -> completed/failed, refunds on failure, notifies user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { notifyUserEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -130,6 +131,10 @@ Deno.serve(async (req) => {
           subject: `✅ Check completed — ${svc.name}`,
           body: `IMEI: ${o.imei}\n\n${finalText}\n\nCharged: $${Number(o.price_charged).toFixed(2)}`,
         }}).catch(() => {});
+        notifyUserEmail(sb, o.user_id, "order_success", {
+          order_number: o.order_number, imei: o.imei, service: svc.name,
+          result: finalText, charged: Number(o.price_charged).toFixed(2),
+        });
         completed++;
       } else if (isFailed || newAttempts >= MAX_ATTEMPTS) {
         const reason: string =
@@ -157,6 +162,10 @@ Deno.serve(async (req) => {
           subject: `❌ Check failed — ${svc.name}`,
           body: `IMEI: ${o.imei}\nReason: ${reason}\nRefunded: $${Number(o.price_charged).toFixed(2)}\nBalance: $${newBalance.toFixed(2)}`,
         }}).catch(() => {});
+        notifyUserEmail(sb, o.user_id, "order_rejected", {
+          order_number: o.order_number, imei: o.imei, service: svc.name,
+          error: reason, refund: Number(o.price_charged).toFixed(2), balance: newBalance.toFixed(2),
+        });
         failed++;
       } else {
         await sb.from("orders").update({

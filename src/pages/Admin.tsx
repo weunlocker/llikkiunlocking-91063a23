@@ -1400,6 +1400,7 @@ function AdminCategories() {
 }
 
 /* ---------- Router ---------- */
+import AdminEmailSettings from "./AdminEmailSettings";
 export default function Admin() {
   return (
     <Routes>
@@ -1411,6 +1412,7 @@ export default function Admin() {
       <Route path="orders" element={<AdminOrders />} />
       <Route path="transactions" element={<AdminTransactions />} />
       <Route path="notifications" element={<AdminNotifications />} />
+      <Route path="email-settings" element={<AdminEmailSettings />} />
       <Route path="settings" element={<AdminSettings />} />
     </Routes>
   );

@@ -134,6 +134,60 @@ export type Database = {
         }
         Relationships: []
       }
+      email_settings: {
+        Row: {
+          enabled: boolean
+          from_email: string | null
+          from_name: string
+          id: number
+          reply_to: string | null
+          smtp_host: string | null
+          smtp_password: string | null
+          smtp_port: number
+          smtp_secure: boolean
+          smtp_user: string | null
+          tpl_balance_update: Json
+          tpl_order_rejected: Json
+          tpl_order_success: Json
+          tpl_welcome: Json
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          from_email?: string | null
+          from_name?: string
+          id?: number
+          reply_to?: string | null
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number
+          smtp_secure?: boolean
+          smtp_user?: string | null
+          tpl_balance_update?: Json
+          tpl_order_rejected?: Json
+          tpl_order_success?: Json
+          tpl_welcome?: Json
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          from_email?: string | null
+          from_name?: string
+          id?: number
+          reply_to?: string | null
+          smtp_host?: string | null
+          smtp_password?: string | null
+          smtp_port?: number
+          smtp_secure?: boolean
+          smtp_user?: string | null
+          tpl_balance_update?: Json
+          tpl_order_rejected?: Json
+          tpl_order_success?: Json
+          tpl_welcome?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_unsubscribe_tokens: {
         Row: {
           created_at: string

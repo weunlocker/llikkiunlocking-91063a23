@@ -65,6 +65,23 @@ Deno.serve(async (req) => {
         },
       });
     } catch (_) { /* ignore */ }
+    try {
+      const { data: prof } = await admin.from("profiles").select("email,display_name,notify_email").eq("id", user_id).maybeSingle();
+      if (prof?.email && prof.notify_email !== false) {
+        await admin.functions.invoke("send-email", {
+          body: {
+            event: "balance_update",
+            to: prof.email,
+            data: {
+              name: prof.display_name ?? prof.email,
+              amount: `${amount > 0 ? "+" : ""}$${amount.toFixed(2)}`,
+              balance: `$${newBalance.toFixed(2)}`,
+              note: description ?? "",
+            },
+          },
+        });
+      }
+    } catch (_) { /* ignore */ }
     return json(200, { ok: true, balance: newBalance });
   } catch (e) {
     return json(500, { error: e instanceof Error ? e.message : "Server error" });

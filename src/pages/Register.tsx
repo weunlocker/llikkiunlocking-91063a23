@@ -80,6 +80,15 @@ export default function Register() {
           pincode: form.pincode || null,
         })
         .eq("id", userId);
+
+      // Fire-and-forget welcome email
+      supabase.functions.invoke("send-email", {
+        body: {
+          event: "welcome",
+          to: parsed.data.email,
+          data: { name: parsed.data.displayName },
+        },
+      }).catch(() => {});
     }
 
     setLoading(false);
