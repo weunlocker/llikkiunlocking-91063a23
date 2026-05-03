@@ -16,7 +16,7 @@ type SingleResult = { status: string; result?: string; error?: string } | null;
 
 type BulkRow = {
   imei: string;
-  status: "pending" | "running" | "successful" | "rejected" | "failed";
+  status: "pending" | "running" | "successful" | "rejected" | "failed" | "queued";
   result?: string;
   error?: string;
 };
@@ -151,7 +151,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
           setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "successful", result: data.result } : r));
         } else if (data?.status === "pending") {
           remainingBalance -= price;
-          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "running", result: "Order queued" } : r));
+          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "queued", result: "Order placed — track in Orders tab" } : r));
         } else {
           setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "rejected", error: data?.error ?? "Failed" } : r));
         }
@@ -285,6 +285,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
                       <span className="font-mono text-xs break-all">{r.imei}</span>
                       {r.status === "pending" && <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1"><Clock className="w-3 h-3" />Pending{queuePos > 0 ? ` · #${queuePos + 1}` : ""}</span>}
                       {r.status === "running" && <span className="text-xs text-primary flex items-center gap-1 shrink-0"><Loader2 className="w-3 h-3 animate-spin" />In process</span>}
+                      {r.status === "queued" && <span className="text-xs text-warning flex items-center gap-1 shrink-0"><Clock className="w-3 h-3" />Queued</span>}
                       {r.status === "successful" && <span className="text-xs text-success flex items-center gap-1 shrink-0"><CheckCircle2 className="w-3 h-3" />Completed</span>}
                       {r.status === "rejected" && <span className="text-xs text-warning flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Rejected</span>}
                       {r.status === "failed" && <span className="text-xs text-destructive flex items-center gap-1 shrink-0"><XCircle className="w-3 h-3" />Failed</span>}
