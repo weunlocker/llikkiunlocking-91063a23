@@ -84,12 +84,21 @@ Deno.serve(async (req) => {
         const t = s.suppliers?.type;
         return !s.supplier_id || (t && t !== "dhru");
       });
+      // Per-user overrides for this user
+      const { data: overrides } = await supabase
+        .from("user_service_overrides").select("service_id, enabled, custom_price").eq("user_id", apiKey.user_id);
+      const ovMap = new Map((overrides ?? []).map((o: any) => [o.service_id, o]));
       const SERVICES: Record<string, unknown> = {};
       for (const s of list as any[]) {
+        const ov = ovMap.get(s.id);
+        if (ov && ov.enabled === false) continue;
+        const effective = ov?.custom_price != null
+          ? Number(ov.custom_price)
+          : +(Number(s.price) * (1 - discount)).toFixed(2);
         SERVICES[s.service_code ?? s.id] = {
           SERVICEID: s.service_code ?? s.id,
           SERVICENAME: s.name,
-          CREDIT: Number(s.price).toFixed(2),
+          CREDIT: effective.toFixed(2),
           TIME: s.delivery_time,
           GROUP: s.category ?? "general",
           QNT: 1,
