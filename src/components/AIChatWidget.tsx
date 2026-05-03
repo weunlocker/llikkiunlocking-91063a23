@@ -218,6 +218,35 @@ export default function AIChatWidget() {
                 </div>
               </div>
             )}
+            {showHandoff && (handoff.tg || handoff.wa) && (
+              <div className="rounded-xl border border-border/60 bg-muted/30 p-3 space-y-2">
+                <div className="text-xs text-muted-foreground">
+                  Need a human? Continue this chat with our team — your conversation will be sent automatically.
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {handoff.wa && (
+                    <a
+                      href={handoff.wa}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#25D366] text-white hover:opacity-90 transition"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                    </a>
+                  )}
+                  {handoff.tg && (
+                    <a
+                      href={handoff.tg}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#229ED9] text-white hover:opacity-90 transition"
+                    >
+                      <TelegramIcon className="w-3.5 h-3.5" /> Telegram
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <form
