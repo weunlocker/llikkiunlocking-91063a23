@@ -114,45 +114,48 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
     if (bulkValid.length === 0) { toast.error("Add at least one valid IMEI/Serial"); return; }
     if (balance < totalCost) { toast.error(`Need $${totalCost.toFixed(2)} — top up your wallet first.`); return; }
 
-    const serviceId = service.id;
-    const items = [...bulkValid];
-    const perPrice = price;
-    const startBalance = balance;
+    const initial: BulkRow[] = bulkValid.map((imei) => ({ imei, status: "pending" }));
+    setRows(initial);
+    setSubmitting(true);
 
-    // Fire-and-forget: runs independently of the dialog lifecycle.
-    void (async () => {
-      const PER_CHECK_TIMEOUT_MS = 60_000;
-      const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
-        new Promise((resolve, reject) => {
-          const t = setTimeout(() => reject(new Error("Request timed out — moved on")), ms);
-          p.then((v) => { clearTimeout(t); resolve(v); }).catch((e) => { clearTimeout(t); reject(e); });
-        });
+    const PER_CHECK_TIMEOUT_MS = 60_000;
+    const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
+      new Promise((resolve, reject) => {
+        const t = setTimeout(() => reject(new Error("Request timed out — moved on")), ms);
+        p.then((v) => { clearTimeout(t); resolve(v); }).catch((e) => { clearTimeout(t); reject(e); });
+      });
 
-      let remainingBalance = startBalance;
-      let okCount = 0;
-      for (let i = 0; i < items.length; i++) {
-        if (remainingBalance < perPrice) break;
-        try {
-          const { data, error } = await withTimeout(
-            supabase.functions.invoke("check-imei", { body: { service_id: serviceId, imei: items[i] } }),
-            PER_CHECK_TIMEOUT_MS,
-          );
-          if (!error && (data?.status === "completed" || data?.status === "pending")) {
-            remainingBalance -= perPrice;
-            if (data?.status === "completed") okCount++;
-          }
-        } catch {
-          // continue
-        }
-        onAfterRun?.();
+    let remainingBalance = balance;
+    let okCount = 0;
+    for (let i = 0; i < bulkValid.length; i++) {
+      if (remainingBalance < price) {
+        setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "failed", error: "Insufficient balance" } : r));
+        break;
       }
-      toast.success(`Bulk done — ${okCount}/${items.length} processed`);
+      setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "running" } : r));
+      try {
+        const { data, error } = await withTimeout(
+          supabase.functions.invoke("check-imei", { body: { service_id: service.id, imei: bulkValid[i] } }),
+          PER_CHECK_TIMEOUT_MS,
+        );
+        if (error) {
+          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "failed", error: error.message } : r));
+        } else if (data?.status === "completed") {
+          remainingBalance -= price; okCount++;
+          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "successful", result: data.result } : r));
+        } else if (data?.status === "pending") {
+          remainingBalance -= price;
+          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "running", result: "Order queued" } : r));
+        } else {
+          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "rejected", error: data?.error ?? "Failed" } : r));
+        }
+      } catch (e) {
+        setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "failed", error: (e as Error).message } : r));
+      }
       onAfterRun?.();
-    })();
-
-    toast.success(`Started ${items.length} checks in background — see Orders`);
-    onBulkStarted?.();
-    onClose();
+    }
+    setSubmitting(false);
+    toast.success(`Bulk done — ${okCount}/${bulkValid.length} successful`);
   };
 
   const reset = () => { setResult(null); setRows([]); setImei(""); setBulkText(""); };
