@@ -673,6 +673,7 @@ function AdminServices() {
                     setEditing({ ...editing, sample_result: value.slice(0, start) + sel + value.slice(end) });
                   }}>Clear color from selection</Button>
                   <Button type="button" size="sm" variant="ghost" onClick={() => setEditing({ ...editing, sample_result: (editing.sample_result ?? "").replace(/\[\[c:#?[0-9a-fA-F]{3,8}\]\]|\[\[\/c\]\]/g, "") })}>Clear all colors</Button>
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setEditing({ ...editing, sample_result: (editing.sample_result ?? "").replace(/\[\[f:[a-zA-Z]+\]\]|\[\[\/f\]\]/g, "") })}>Clear all fonts</Button>
                 </div>
               </div>
               <div className="rounded-lg border border-border/60 p-3 space-y-3">
