@@ -78,6 +78,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null); setSession(null); setProfile(null); setIsAdmin(false);
   };
 
+  // Auto sign-out after 10 minutes of inactivity
+  useEffect(() => {
+    if (!user) return;
+    const IDLE_MS = 10 * 60 * 1000;
+    let timer: ReturnType<typeof setTimeout>;
+    const reset = () => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        await signOut();
+        try { (await import("sonner")).toast.info("Signed out due to inactivity"); } catch {}
+      }, IDLE_MS);
+    };
+    const events = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "visibilitychange"];
+    events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    reset();
+    return () => {
+      clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, reset));
+    };
+  }, [user]);
+
   return (
     <AuthContext.Provider value={{ user, session, profile, isAdmin, loading, signOut, refreshProfile }}>
       {children}
