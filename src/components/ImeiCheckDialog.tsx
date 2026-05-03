@@ -16,7 +16,7 @@ type SingleResult = { status: string; result?: string; error?: string } | null;
 
 type BulkRow = {
   imei: string;
-  status: "pending" | "running" | "successful" | "rejected" | "failed";
+  status: "pending" | "running" | "successful" | "rejected" | "failed" | "queued";
   result?: string;
   error?: string;
 };
