@@ -213,7 +213,7 @@ function AdminUsers() {
       silver: "bg-muted-foreground/20 text-muted-foreground",
       standard: "bg-secondary text-foreground",
     };
-    const label = k === "diamond" ? "💎 Diamond" : k === "gold" ? "🥇 Gold" : k === "silver" ? "🥈 Silver" : "Standard";
+    const label = k === "diamond" ? "Diamond" : k === "gold" ? "Gold" : k === "silver" ? "Silver" : "Standard";
     return <span className={`text-xs px-2 py-0.5 rounded ${map[k]}`}>{label}</span>;
   };
 

@@ -151,10 +151,10 @@ export default function AdminUserEditDialog({ user, onClose, onSaved }: { user: 
                 <Select value={form.user_group ?? "standard"} onValueChange={(v) => setField("user_group", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="standard">Standard — no discount</SelectItem>
-                    <SelectItem value="silver">🥈 Silver — 10% off</SelectItem>
-                    <SelectItem value="gold">🥇 Gold — 30% off</SelectItem>
-                    <SelectItem value="diamond">💎 Diamond — 50% off</SelectItem>
+                    <SelectItem value="standard">Standard</SelectItem>
+                    <SelectItem value="silver">Silver</SelectItem>
+                    <SelectItem value="gold">Gold</SelectItem>
+                    <SelectItem value="diamond">Diamond</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">Discount auto-applied to base service prices (custom prices below override this).</p>
