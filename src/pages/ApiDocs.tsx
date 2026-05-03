@@ -277,8 +277,8 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
   );
+  return embedded ? content : <Layout>{content}</Layout>;
 }
 
 function Field({ label, value, onCopy, mono }: { label: string; value: string; onCopy: (v: string) => void; mono?: boolean }) {
