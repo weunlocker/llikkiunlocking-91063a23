@@ -1117,31 +1117,6 @@ function AdminSettings() {
             <div><Label>YouTube URL</Label><Input value={s.youtube_url} onChange={(e) => set("youtube_url", e.target.value)} placeholder="https://youtube.com/@..." /></div>
           </div>
         </div>
-
-        {/* Telegram bot */}
-        <div className="glass rounded-2xl p-6 space-y-3">
-          <h3 className="font-bold">Telegram Bot</h3>
-          <p className="text-sm text-muted-foreground">Connected via Lovable Cloud. Clients link their account in Dashboard → Notifications.</p>
-          <div className="space-y-2 pt-2 border-t border-border/40">
-            <Label className="text-xs">Send test message to chat ID</Label>
-            <div className="flex gap-2">
-              <Input placeholder="123456789" value={testChatId} onChange={(e) => setTestChatId(e.target.value)} />
-              <Button size="sm" onClick={sendTestTelegram} disabled={testing}>
-                {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send"}
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* API providers */}
-        <div className="glass rounded-2xl p-6 space-y-3">
-          <h3 className="font-bold">API Providers (Dhru / GSM / Custom)</h3>
-          <p className="text-sm text-muted-foreground">Save each upstream supplier once in <b>Suppliers</b>, then pick it from any service.</p>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={() => navigate("/admin/suppliers")}>Manage Suppliers</Button>
-            <Button size="sm" variant="outline" onClick={() => navigate("/admin/services")}>Open Services</Button>
-          </div>
-        </div>
       </div>
 
       <div className="mt-6 flex justify-end max-w-6xl">
