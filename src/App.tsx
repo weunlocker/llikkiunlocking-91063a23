@@ -29,7 +29,6 @@ const App = () => (
         <AuthProvider>
           <SiteSettingsProvider>
           <ConfirmProvider>
-          <FloatingContact />
           <AIChatWidget />
           <Routes>
             <Route path="/" element={<Home />} />
