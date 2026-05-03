@@ -253,34 +253,80 @@ export default function AIChatWidget() {
                 </div>
               </div>
             )}
-            {showHandoff && (handoff.tg || handoff.wa) && (
+            {showHandoff && (tgRaw || waRaw) && !pendingChannel && (
               <div className="rounded-xl border border-border/60 bg-muted/30 p-3 space-y-2">
                 <div className="text-xs text-muted-foreground">
-                  Need a human? Continue this chat with our team — your conversation will be sent automatically.
+                  Need a human? Continue this chat with our team — your conversation{user ? " and account info" : " (and your details)"} will be sent automatically.
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {handoff.wa && (
-                    <a
-                      href={handoff.wa}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {waRaw && (
+                    <button
+                      type="button"
+                      onClick={() => handleHandoff("wa")}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#25D366] text-white hover:opacity-90 transition"
                     >
                       <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-                    </a>
+                    </button>
                   )}
-                  {handoff.tg && (
-                    <a
-                      href={handoff.tg}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {tgRaw && (
+                    <button
+                      type="button"
+                      onClick={() => handleHandoff("tg")}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#229ED9] text-white hover:opacity-90 transition"
                     >
                       <TelegramIcon className="w-3.5 h-3.5" /> Telegram
-                    </a>
+                    </button>
                   )}
                 </div>
               </div>
+            )}
+            {pendingChannel && (
+              <form onSubmit={submitGuestDetails} className="rounded-xl border border-border/60 bg-muted/30 p-3 space-y-2">
+                <div className="text-xs font-semibold">
+                  Share your contact so our team can reach you on {pendingChannel === "wa" ? "WhatsApp" : "Telegram"}:
+                </div>
+                <input
+                  required
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="Your name *"
+                  maxLength={80}
+                  className="w-full bg-background border border-border/60 rounded-md px-3 py-1.5 text-xs"
+                />
+                <input
+                  type="email"
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  placeholder="Email"
+                  maxLength={120}
+                  className="w-full bg-background border border-border/60 rounded-md px-3 py-1.5 text-xs"
+                />
+                <input
+                  type="tel"
+                  value={guestPhone}
+                  onChange={(e) => setGuestPhone(e.target.value)}
+                  placeholder="Phone (with country code)"
+                  maxLength={30}
+                  className="w-full bg-background border border-border/60 rounded-md px-3 py-1.5 text-xs"
+                />
+                <p className="text-[10px] text-muted-foreground">Provide email or phone (or both).</p>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={!guestName.trim() || (!guestEmail.trim() && !guestPhone.trim())}
+                    className={`flex-1 px-3 py-1.5 rounded-md text-xs font-semibold text-white disabled:opacity-50 ${pendingChannel === "wa" ? "bg-[#25D366]" : "bg-[#229ED9]"}`}
+                  >
+                    Continue on {pendingChannel === "wa" ? "WhatsApp" : "Telegram"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPendingChannel(null)}
+                    className="px-3 py-1.5 rounded-md text-xs bg-muted hover:bg-muted/70"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             )}
           </div>
 
