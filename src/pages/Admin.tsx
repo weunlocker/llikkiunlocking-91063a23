@@ -80,7 +80,7 @@ function AdminDashboard() {
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("services").select("id", { count: "exact", head: true }),
         supabase.from("orders").select("status,price_charged"),
-        supabase.from("transactions").select("amount,type").eq("type", "topup"),
+        supabase.from("transactions").select("amount,type").in("type", ["topup","admin_credit"]),
         supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(8),
         supabase.from("profiles").select("id,email"),
         supabase.from("services").select("id,name"),
