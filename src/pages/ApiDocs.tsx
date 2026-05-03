@@ -212,7 +212,7 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
               </p>
               <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
                 <li>Open your Dhru tool → <b>Add server</b> / <b>API settings</b>.</li>
-                <li>Set <b>API URL</b> to <span className="font-mono">{base}</span></li>
+                <li>Set <b>API URL</b> to <span className="font-mono break-all">{base}</span></li>
                 <li>Set <b>Username</b> to your account email and <b>API Key</b> to your <span className="font-mono">imei_…</span> key.</li>
                 <li>Run <b>imeiservicelist</b> to import all available services.</li>
               </ol>
