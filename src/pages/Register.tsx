@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, Loader2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Shield, Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { registerSchema } from "@/lib/validation";
 import { Country, State } from "country-state-city";
@@ -125,25 +127,69 @@ export default function Register() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <Label>Country</Label>
-                <Select value={form.countryCode} onValueChange={(v) => setForm((f) => ({ ...f, countryCode: v, stateCode: "" }))}>
-                  <SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {countries.map((c) => (
-                      <SelectItem key={c.isoCode} value={c.isoCode}>{c.flag} {c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" role="combobox" className="w-full justify-between font-normal">
+                      {form.countryCode
+                        ? (() => { const c = countries.find((x) => x.isoCode === form.countryCode); return c ? `${c.flag} ${c.name}` : "Select country"; })()
+                        : "Select country"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search country..." />
+                      <CommandList>
+                        <CommandEmpty>No country found.</CommandEmpty>
+                        <CommandGroup>
+                          {countries.map((c) => (
+                            <CommandItem
+                              key={c.isoCode}
+                              value={`${c.name} ${c.isoCode}`}
+                              onSelect={() => setForm((f) => ({ ...f, countryCode: c.isoCode, stateCode: "" }))}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", form.countryCode === c.isoCode ? "opacity-100" : "opacity-0")} />
+                              <span className="mr-2">{c.flag}</span>{c.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label>State</Label>
-                <Select value={form.stateCode} onValueChange={(v) => setField("stateCode", v)} disabled={!states.length}>
-                  <SelectTrigger><SelectValue placeholder={states.length ? "Select state" : "Select country first"} /></SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {states.map((s) => (
-                      <SelectItem key={s.isoCode} value={s.isoCode}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button type="button" variant="outline" role="combobox" disabled={!states.length} className="w-full justify-between font-normal">
+                      {form.stateCode
+                        ? states.find((s) => s.isoCode === form.stateCode)?.name ?? "Select state"
+                        : (states.length ? "Select state" : "Select country first")}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search state..." />
+                      <CommandList>
+                        <CommandEmpty>No state found.</CommandEmpty>
+                        <CommandGroup>
+                          {states.map((s) => (
+                            <CommandItem
+                              key={s.isoCode}
+                              value={`${s.name} ${s.isoCode}`}
+                              onSelect={() => setField("stateCode", s.isoCode)}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", form.stateCode === s.isoCode ? "opacity-100" : "opacity-0")} />
+                              {s.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label htmlFor="city">City</Label>
