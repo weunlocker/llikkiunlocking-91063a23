@@ -43,7 +43,7 @@ function ColoredResult({ text, font }: { text: string; font: string }) {
   const lines = (text || "").split("\n");
   // Tokenize a line into runs with color/font attributes (supports nesting).
   const renderLine = (line: string, li: number) => {
-    const re = /\[\[(c:#?[0-9a-fA-F]{3,8}|f:[a-zA-Z]+|\/c|\/f)\]\]/g;
+    const re = /\[\[(c:#?[0-9a-zA-Z]+|f:[a-zA-Z]+|\/c|\/f)\]\]/g;
     type Run = { text: string; color?: string; font?: string };
     const runs: Run[] = [];
     const colorStack: string[] = [];
