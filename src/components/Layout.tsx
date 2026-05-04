@@ -16,6 +16,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const navLinks = [
     { to: "/", label: "Home" },
     { to: "/services", label: "Services" },
+    { to: "/free-check", label: "Free Check" },
     { to: "/pricing", label: "Pricing" },
   ];
 
