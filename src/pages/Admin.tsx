@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 import { useConfirm } from "@/components/ConfirmDialog";
 import AdminUserEditDialog, { type EditableUser } from "@/components/AdminUserEditDialog";
+import { ColoredResult } from "@/components/ColoredResult";
+import { extractResponse } from "@/lib/extractResponse";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
 type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null };
@@ -879,6 +881,11 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRo
             </div>
             <div>
               <Label>Result text</Label>
+              {result && (
+                <div className="mb-2">
+                  <ColoredResult text={extractResponse(result)} />
+                </div>
+              )}
               <Textarea rows={8} value={result} onChange={(e) => setResult(e.target.value)} className="font-mono text-xs" placeholder="Result shown to the customer" />
             </div>
             <div>
