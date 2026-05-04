@@ -62,6 +62,27 @@ function evaluateRules(rules: SuccessRule[] | undefined | null, data: unknown): 
 }
 
 function normalizeHtml(s: string): string {
+  if (!s) return s;
+  // If the upstream returned a JSON envelope, pull the inner response field first.
+  const trimmed = s.trim();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const obj = JSON.parse(trimmed) as Record<string, unknown>;
+      const inner = obj?.response ?? obj?.result ?? obj?.message ?? obj?.data;
+      if (typeof inner === "string" && inner.trim()) s = inner;
+    } catch { /* ignore */ }
+  }
+  // Preserve color markup so the client can render it.
+  // <span style="color:red">X</span> -> [[c:red]]X[[/c]]
+  s = s.replace(
+    /<span\b[^>]*\bstyle\s*=\s*["'][^"']*\bcolor\s*:\s*([^;"']+)[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi,
+    (_m, color: string, inner: string) => `[[c:${color.trim()}]]${inner}[[/c]]`,
+  );
+  // <font color="red">X</font> -> [[c:red]]X[[/c]]
+  s = s.replace(
+    /<font\b[^>]*\bcolor\s*=\s*["']?([^"'\s>]+)["']?[^>]*>([\s\S]*?)<\/font>/gi,
+    (_m, color: string, inner: string) => `[[c:${color.trim()}]]${inner}[[/c]]`,
+  );
   return s
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n")
