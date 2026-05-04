@@ -56,7 +56,10 @@ function ColoredResult({ text, font }: { text: string; font: string }) {
     while ((m = re.exec(line)) !== null) {
       if (m.index > last) push(line.slice(last, m.index));
       const tag = m[1];
-      if (tag.startsWith("c:")) colorStack.push(tag.slice(2).startsWith("#") ? tag.slice(2) : `#${tag.slice(2)}`);
+      if (tag.startsWith("c:")) {
+        const c = tag.slice(2);
+        colorStack.push(/^[0-9a-fA-F]{3,8}$/.test(c) ? `#${c}` : c);
+      }
       else if (tag === "/c") colorStack.pop();
       else if (tag.startsWith("f:")) fontStack.push(tag.slice(2));
       else if (tag === "/f") fontStack.pop();
