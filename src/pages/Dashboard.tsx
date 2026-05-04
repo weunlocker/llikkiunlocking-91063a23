@@ -492,7 +492,7 @@ export default function Dashboard() {
             <div className="text-sm"><span className="text-muted-foreground">Charged:</span> <span className="font-mono">${Number(orderDetail?.price_charged ?? 0).toFixed(2)}</span></div>
             <div>
               <div className="text-sm text-muted-foreground mb-1">Result</div>
-              <pre className="glass rounded p-3 text-xs font-mono whitespace-pre-wrap break-all max-h-80 overflow-auto">{orderDetail?.result || orderDetail?.error_message || "No data"}</pre>
+              <pre className="glass rounded p-3 text-xs font-mono whitespace-pre-wrap break-all max-h-80 overflow-auto">{extractResponse(orderDetail?.result) || orderDetail?.error_message || "No data"}</pre>
             </div>
           </div>
         </DialogContent>
