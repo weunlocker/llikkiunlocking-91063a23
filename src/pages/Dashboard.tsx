@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { telegramChatIdSchema } from "@/lib/validation";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
+import { extractResponse } from "@/lib/extractResponse";
 import ApiDocs from "@/pages/ApiDocs";
 
 type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null };
@@ -492,7 +493,7 @@ export default function Dashboard() {
             <div className="text-sm"><span className="text-muted-foreground">Charged:</span> <span className="font-mono">${Number(orderDetail?.price_charged ?? 0).toFixed(2)}</span></div>
             <div>
               <div className="text-sm text-muted-foreground mb-1">Result</div>
-              <pre className="glass rounded p-3 text-xs font-mono whitespace-pre-wrap break-all max-h-80 overflow-auto">{orderDetail?.result || orderDetail?.error_message || "No data"}</pre>
+              <pre className="glass rounded p-3 text-xs font-mono whitespace-pre-wrap break-all max-h-80 overflow-auto">{extractResponse(orderDetail?.result) || orderDetail?.error_message || "No data"}</pre>
             </div>
           </div>
         </DialogContent>

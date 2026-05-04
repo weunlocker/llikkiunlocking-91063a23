@@ -9,6 +9,7 @@ import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone, Copy }
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { imeiSchema } from "@/lib/validation";
+import { extractResponse } from "@/lib/extractResponse";
 
 type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null; result_font?: string | null; result_color?: string | null };
 
@@ -36,76 +37,6 @@ const FONT_MAP: Record<string, string> = {
 };
 const fontCss = (key?: string | null) => FONT_MAP[key ?? "mono"] ?? FONT_MAP.mono;
 
-// Extract just the human-readable response from a result that may be a JSON
-// envelope (possibly nested) or a plain string. Tries common field names used
-// by Dhru / IMEI-check APIs and falls back to the original text.
-function extractResponse(text?: string | null): string {
-  if (!text) return "";
-  const raw = text.trim();
-  if (!raw.startsWith("{") && !raw.startsWith("[")) return text;
-
-  let parsed: unknown;
-  try { parsed = JSON.parse(raw); } catch { return text; }
-
-  // Field names to look for, in priority order.
-  const KEYS = [
-    "response", "result", "message", "data", "reply", "output",
-    "description", "details", "info", "text", "content", "body",
-  ];
-  // Containers that often wrap the real payload.
-  const WRAPPERS = ["RESPONSE", "Response", "response", "data", "result", "DATA", "RESULT", "payload", "0"];
-
-  const seen = new WeakSet<object>();
-  const stringify = (v: unknown): string =>
-    typeof v === "string" ? v : JSON.stringify(v, null, 2);
-
-  const walk = (node: unknown, depth: number): string | null => {
-    if (node == null || depth > 6) return null;
-    if (typeof node === "string") return node;
-    if (typeof node !== "object") return String(node);
-    if (seen.has(node as object)) return null;
-    seen.add(node as object);
-
-    // Arrays: try first element, then join string items.
-    if (Array.isArray(node)) {
-      for (const item of node) {
-        const r = walk(item, depth + 1);
-        if (r) return r;
-      }
-      return null;
-    }
-
-    const obj = node as Record<string, unknown>;
-
-    // 1. Direct hit on a known key with a string value.
-    for (const k of KEYS) {
-      const v = obj[k];
-      if (typeof v === "string" && v.trim()) return v;
-    }
-    // 2. Known key with a non-string value -> stringify.
-    for (const k of KEYS) {
-      if (k in obj && obj[k] != null) return stringify(obj[k]);
-    }
-    // 3. Recurse into common wrapper containers.
-    for (const w of WRAPPERS) {
-      if (w in obj) {
-        const r = walk(obj[w], depth + 1);
-        if (r) return r;
-      }
-    }
-    // 4. Last resort: recurse into every object/array child.
-    for (const v of Object.values(obj)) {
-      if (v && typeof v === "object") {
-        const r = walk(v, depth + 1);
-        if (r) return r;
-      }
-    }
-    return null;
-  };
-
-  const found = walk(parsed, 0);
-  return found ?? text;
-}
 
 // Renders a result string. Segments wrapped in [[c:#hex]]...[[/c]] get colored; [[f:name]]...[[/f]] change font.
 function ColoredResult({ text, font }: { text: string; font: string }) {
