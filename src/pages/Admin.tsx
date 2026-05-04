@@ -701,7 +701,10 @@ function AdminServices() {
                   </div>
                 ))}
               </div>
-              <div className="flex items-center gap-3"><Switch checked={editing.active ?? true} onCheckedChange={(v) => setEditing({ ...editing, active: v })} /><Label>Active</Label></div>
+              <div className="flex items-center gap-6 flex-wrap">
+                <div className="flex items-center gap-3"><Switch checked={editing.active ?? true} onCheckedChange={(v) => setEditing({ ...editing, active: v })} /><Label>Active</Label></div>
+                <div className="flex items-center gap-3"><Switch checked={!!editing.is_free} onCheckedChange={(v) => setEditing({ ...editing, is_free: v })} /><Label>Free Check (show on Free Check page)</Label></div>
+              </div>
               <div className="flex justify-end gap-2 pt-3">
                 <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
                 <Button variant="hero" onClick={saveService}>Save</Button>
