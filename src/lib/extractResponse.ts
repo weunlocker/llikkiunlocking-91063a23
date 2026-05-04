@@ -58,5 +58,38 @@ export function extractResponse(text?: string | null): string {
   };
 
   const found = walk(parsed, 0);
-  return found ?? text;
+  return normalizeHtml(found ?? text);
 }
+
+// Convert HTML response into plain text + [[c:#hex]]...[[/c]] color markers
+// understood by the ColoredResult renderer.
+function normalizeHtml(s: string): string {
+  if (!s) return s;
+  // <span style="color:red">X</span> -> [[c:red]]X[[/c]]
+  let out = s.replace(
+    /<span\b[^>]*\bstyle\s*=\s*["'][^"']*\bcolor\s*:\s*([^;"']+)[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi,
+    (_, color: string, inner: string) => `[[c:${color.trim()}]]${inner}[[/c]]`,
+  );
+  // <font color="red">X</font> -> [[c:red]]X[[/c]]
+  out = out.replace(
+    /<font\b[^>]*\bcolor\s*=\s*["']?([^"'\s>]+)["']?[^>]*>([\s\S]*?)<\/font>/gi,
+    (_, color: string, inner: string) => `[[c:${color.trim()}]]${inner}[[/c]]`,
+  );
+  return out
+    .replace(/<br\s*\/?>(\n)?/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/div>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
