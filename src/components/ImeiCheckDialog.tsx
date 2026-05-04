@@ -9,6 +9,7 @@ import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone, Copy }
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { imeiSchema } from "@/lib/validation";
+import { extractResponse } from "@/lib/extractResponse";
 
 type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null; result_font?: string | null; result_color?: string | null };
 
