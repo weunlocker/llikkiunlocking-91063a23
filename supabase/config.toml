@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.binance-webhook]
 verify_jwt = false
+
+[functions.free-check]
+verify_jwt = false
