@@ -25,6 +25,7 @@ export const serviceSchema = z.object({
   api_method: z.enum(["GET", "POST"]),
   category: z.string().trim().max(50).optional(),
   active: z.boolean(),
+  is_free: z.boolean().optional(),
 });
 
 export const successRuleSchema = z.object({

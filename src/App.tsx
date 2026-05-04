@@ -11,6 +11,7 @@ import AIChatWidget from "@/components/AIChatWidget";
 import Home from "./pages/Home";
 import Services from "./pages/Services";
 import Pricing from "./pages/Pricing";
+import FreeCheck from "./pages/FreeCheck";
 import ApiDocs from "./pages/ApiDocs";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/" element={<Home />} />
             <Route path="/services" element={<Services />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/free-check" element={<FreeCheck />} />
             <Route path="/api-docs" element={<ApiDocs />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />

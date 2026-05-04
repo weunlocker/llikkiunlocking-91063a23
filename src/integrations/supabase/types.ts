@@ -436,6 +436,7 @@ export type Database = {
           delivery_time: string
           description: string | null
           id: string
+          is_free: boolean
           name: string
           price: number
           response_template: string | null
@@ -459,6 +460,7 @@ export type Database = {
           delivery_time?: string
           description?: string | null
           id?: string
+          is_free?: boolean
           name: string
           price?: number
           response_template?: string | null
@@ -482,6 +484,7 @@ export type Database = {
           delivery_time?: string
           description?: string | null
           id?: string
+          is_free?: boolean
           name?: string
           price?: number
           response_template?: string | null
