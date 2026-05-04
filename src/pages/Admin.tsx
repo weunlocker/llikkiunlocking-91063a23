@@ -357,7 +357,7 @@ function AdminServices() {
       api_url: usingSupplier ? null : (parsed.data.api_url || null),
       api_method: parsed.data.api_method,
       api_request_body: editing.api_request_body ?? null, category: parsed.data.category ?? "general",
-      active: parsed.data.active, response_template: editing.response_template ?? null,
+      active: parsed.data.active, is_free: !!editing.is_free, response_template: editing.response_template ?? null,
       sample_result: editing.sample_result?.trim() ? editing.sample_result : null,
       result_font: editing.result_font ?? "mono",
       result_color: editing.result_color ?? "#e2e8f0",
