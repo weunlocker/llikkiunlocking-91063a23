@@ -132,11 +132,33 @@ export default function Dashboard() {
     if (!amt || amt < 1 || amt > 10000) { toast.error("Invalid amount"); return; }
     if (!paySettings?.binance_enabled) { toast.error("Payments not available — please contact admin"); return; }
     const { data, error } = await supabase.functions.invoke("binance-create-order", { body: { amount: amt } });
-    if (error || !data?.checkoutUrl) { toast.error(error?.message || "Failed to create payment"); return; }
-    window.open(data.checkoutUrl, "_blank", "noopener,noreferrer");
-    toast.success("Complete payment in the new tab — wallet credits automatically.");
+    if (error || !(data as any)?.ok) { toast.error(error?.message || (data as any)?.error || "Failed to create payment"); return; }
+    setPay(data as any);
     setTopupOpen(false);
   };
+
+  // Poll the pending payment_orders row every 5s while the dialog is open
+  useEffect(() => {
+    if (!pay) return;
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    const poll = setInterval(async () => {
+      const { data } = await supabase.from("payment_orders").select("status,amount").eq("id", pay.order_id).maybeSingle();
+      if (data?.status === "paid") {
+        clearInterval(poll);
+        const credited = Number(data.amount ?? pay.amount);
+        await refreshProfile();
+        const { data: prof } = await supabase.from("profiles").select("balance").eq("id", user!.id).maybeSingle();
+        setPay(null);
+        setTopupSuccess({ amount: credited, newBalance: Number(prof?.balance ?? 0) });
+        load();
+      } else if (new Date(pay.expires_at).getTime() < Date.now()) {
+        clearInterval(poll);
+        setPay(null);
+        toast.error("Payment window expired. Please start a new top-up.");
+      }
+    }, 5000);
+    return () => { clearInterval(poll); clearInterval(tick); };
+  }, [pay, user]);
 
   const askAdmin = () => {
     const wa = settings.whatsapp_number?.replace(/\D/g, "");
