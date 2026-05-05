@@ -121,6 +121,25 @@ export default function FreeCheck() {
             {result && <ColoredResult text={result} />}
           </Card>
         )}
+
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-success" />
+                {selected?.name} — Result
+              </DialogTitle>
+              <DialogDescription>
+                IMEI / Serial: <span className="font-mono">{imei}</span>
+              </DialogDescription>
+            </DialogHeader>
+            {result && <ColoredResult text={result} font={selected?.result_font ?? undefined} />}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => navigator.clipboard.writeText(result)}>Copy</Button>
+              <Button variant="hero" onClick={() => setOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </section>
     </Layout>
   );
