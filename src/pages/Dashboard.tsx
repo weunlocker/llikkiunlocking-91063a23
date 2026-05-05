@@ -35,6 +35,8 @@ export default function Dashboard() {
   const [topupOpen, setTopupOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState("10");
   const [topupSuccess, setTopupSuccess] = useState<{ amount: number; newBalance: number } | null>(null);
+  const [pay, setPay] = useState<{ order_id: string; pay_id: string; qr_url: string | null; coin: string; amount: number; memo: string; expires_at: string } | null>(null);
+  const [now, setNow] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -130,11 +132,33 @@ export default function Dashboard() {
     if (!amt || amt < 1 || amt > 10000) { toast.error("Invalid amount"); return; }
     if (!paySettings?.binance_enabled) { toast.error("Payments not available — please contact admin"); return; }
     const { data, error } = await supabase.functions.invoke("binance-create-order", { body: { amount: amt } });
-    if (error || !data?.checkoutUrl) { toast.error(error?.message || "Failed to create payment"); return; }
-    window.open(data.checkoutUrl, "_blank", "noopener,noreferrer");
-    toast.success("Complete payment in the new tab — wallet credits automatically.");
+    if (error || !(data as any)?.ok) { toast.error(error?.message || (data as any)?.error || "Failed to create payment"); return; }
+    setPay(data as any);
     setTopupOpen(false);
   };
+
+  // Poll the pending payment_orders row every 5s while the dialog is open
+  useEffect(() => {
+    if (!pay) return;
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    const poll = setInterval(async () => {
+      const { data } = await supabase.from("payment_orders").select("status,amount").eq("id", pay.order_id).maybeSingle();
+      if (data?.status === "paid") {
+        clearInterval(poll);
+        const credited = Number(data.amount ?? pay.amount);
+        await refreshProfile();
+        const { data: prof } = await supabase.from("profiles").select("balance").eq("id", user!.id).maybeSingle();
+        setPay(null);
+        setTopupSuccess({ amount: credited, newBalance: Number(prof?.balance ?? 0) });
+        load();
+      } else if (new Date(pay.expires_at).getTime() < Date.now()) {
+        clearInterval(poll);
+        setPay(null);
+        toast.error("Payment window expired. Please start a new top-up.");
+      }
+    }, 5000);
+    return () => { clearInterval(poll); clearInterval(tick); };
+  }, [pay, user]);
 
   const askAdmin = () => {
     const wa = settings.whatsapp_number?.replace(/\D/g, "");
@@ -458,6 +482,48 @@ export default function Dashboard() {
               </Button>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pay} onOpenChange={(o) => !o && setPay(null)}>
+        <DialogContent className="glass max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pay with Binance</DialogTitle>
+            <DialogDescription>
+              Send <b className="text-foreground">{pay?.amount} {pay?.coin}</b> from your Binance app. Your wallet credits automatically within ~1 minute.
+            </DialogDescription>
+          </DialogHeader>
+          {pay && (
+            <div className="space-y-4">
+              {pay.qr_url && (
+                <div className="flex justify-center">
+                  <img src={pay.qr_url} alt="Binance Pay QR" className="w-56 h-56 rounded-lg bg-white p-2 border border-border/40" />
+                </div>
+              )}
+              <div className="space-y-2">
+                <div className="rounded-md bg-secondary/40 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Binance Pay ID</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-sm break-all">{pay.pay_id}</span>
+                    <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(pay.pay_id); toast.success("Copied"); }}>Copy</Button>
+                  </div>
+                </div>
+                <div className="rounded-md bg-warning/10 border border-warning/40 px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-wider text-warning">Required Memo / Remarks</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-base font-bold">{pay.memo}</span>
+                    <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard.writeText(pay.memo); toast.success("Copied"); }}>Copy</Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">⚠ Paste this memo in the "Remarks" field when sending — without it we can't match your payment.</p>
+                </div>
+                <div className="text-xs text-muted-foreground text-center">
+                  Expires in {Math.max(0, Math.floor((new Date(pay.expires_at).getTime() - now) / 1000))}s · waiting for deposit…
+                  <Loader2 className="inline w-3 h-3 ml-1 animate-spin" />
+                </div>
+              </div>
+              <Button variant="ghost" className="w-full" onClick={() => setPay(null)}>Close</Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

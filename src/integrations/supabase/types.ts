@@ -278,48 +278,60 @@ export type Database = {
         Row: {
           amount: number
           checkout_url: string | null
+          coin: string | null
           created_at: string
           credited: boolean
           currency: string
           expires_at: string | null
           id: string
+          matched_at: string | null
+          memo: string | null
           merchant_trade_no: string
           prepay_id: string | null
           provider: string
           raw: Json | null
           status: string
+          tx_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           amount: number
           checkout_url?: string | null
+          coin?: string | null
           created_at?: string
           credited?: boolean
           currency?: string
           expires_at?: string | null
           id?: string
+          matched_at?: string | null
+          memo?: string | null
           merchant_trade_no: string
           prepay_id?: string | null
           provider?: string
           raw?: Json | null
           status?: string
+          tx_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           amount?: number
           checkout_url?: string | null
+          coin?: string | null
           created_at?: string
           credited?: boolean
           currency?: string
           expires_at?: string | null
           id?: string
+          matched_at?: string | null
+          memo?: string | null
           merchant_trade_no?: string
           prepay_id?: string | null
           provider?: string
           raw?: Json | null
           status?: string
+          tx_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -329,7 +341,13 @@ export type Database = {
         Row: {
           ask_admin_enabled: boolean
           binance_api_key: string | null
+          binance_coins: Json
           binance_enabled: boolean
+          binance_last_polled_at: string | null
+          binance_min_amount: number
+          binance_pay_id: string | null
+          binance_poll_enabled: boolean
+          binance_qr_url: string | null
           binance_secret_key: string | null
           id: number
           order_expiry_minutes: number
@@ -339,7 +357,13 @@ export type Database = {
         Insert: {
           ask_admin_enabled?: boolean
           binance_api_key?: string | null
+          binance_coins?: Json
           binance_enabled?: boolean
+          binance_last_polled_at?: string | null
+          binance_min_amount?: number
+          binance_pay_id?: string | null
+          binance_poll_enabled?: boolean
+          binance_qr_url?: string | null
           binance_secret_key?: string | null
           id?: number
           order_expiry_minutes?: number
@@ -349,7 +373,13 @@ export type Database = {
         Update: {
           ask_admin_enabled?: boolean
           binance_api_key?: string | null
+          binance_coins?: Json
           binance_enabled?: boolean
+          binance_last_polled_at?: string | null
+          binance_min_amount?: number
+          binance_pay_id?: string | null
+          binance_poll_enabled?: boolean
+          binance_qr_url?: string | null
           binance_secret_key?: string | null
           id?: number
           order_expiry_minutes?: number
