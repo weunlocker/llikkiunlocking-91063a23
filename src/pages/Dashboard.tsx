@@ -35,6 +35,8 @@ export default function Dashboard() {
   const [topupOpen, setTopupOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState("10");
   const [topupSuccess, setTopupSuccess] = useState<{ amount: number; newBalance: number } | null>(null);
+  const [pay, setPay] = useState<{ order_id: string; pay_id: string; qr_url: string | null; coin: string; amount: number; memo: string; expires_at: string } | null>(null);
+  const [now, setNow] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
