@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.free-check]
 verify_jwt = false
+
+[functions.binance-poll-deposits]
+verify_jwt = false
