@@ -53,6 +53,7 @@ export default function FreeCheck() {
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       setResult((data as any).result || "(empty)");
+      setOpen(true);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Check failed");
     } finally {
