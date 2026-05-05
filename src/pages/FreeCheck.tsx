@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, Gift, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { imeiSchema } from "@/lib/validation";
@@ -24,6 +25,7 @@ export default function FreeCheck() {
   const [imei, setImei] = useState("");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<string>("");
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     document.title = "Free IMEI Check — Model, FMI & Sim Lock";
@@ -51,6 +53,7 @@ export default function FreeCheck() {
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       setResult((data as any).result || "(empty)");
+      setOpen(true);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Check failed");
     } finally {
@@ -118,6 +121,25 @@ export default function FreeCheck() {
             {result && <ColoredResult text={result} />}
           </Card>
         )}
+
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-success" />
+                {selected?.name} — Result
+              </DialogTitle>
+              <DialogDescription>
+                IMEI / Serial: <span className="font-mono">{imei}</span>
+              </DialogDescription>
+            </DialogHeader>
+            {result && <ColoredResult text={result} font={selected?.result_font ?? undefined} />}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => navigator.clipboard.writeText(result)}>Copy</Button>
+              <Button variant="hero" onClick={() => setOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </section>
     </Layout>
   );
