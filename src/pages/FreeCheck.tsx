@@ -9,6 +9,7 @@ import { Loader2, Gift, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { imeiSchema } from "@/lib/validation";
 import { ColoredResult } from "@/components/ColoredResult";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 type FreeService = {
   id: string;
