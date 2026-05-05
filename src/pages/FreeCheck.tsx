@@ -67,13 +67,6 @@ export default function FreeCheck() {
     <Layout>
       <section className="container py-10 md:py-16">
         <header className="text-center mb-8 md:mb-12">
-          {settings.logo_url && (
-            <img
-              src={settings.logo_url}
-              alt={`${settings.brand_name} logo`}
-              className="mx-auto mb-5 h-16 md:h-20 w-auto object-contain"
-            />
-          )}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4">
             <Gift className="w-3.5 h-3.5" /> Promotional · No login required
           </div>
@@ -132,8 +125,15 @@ export default function FreeCheck() {
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+            <DialogHeader className="items-center text-center">
+              {settings.logo_url && (
+                <img
+                  src={settings.logo_url}
+                  alt={`${settings.brand_name} logo`}
+                  className="mx-auto mb-2 h-12 md:h-14 w-auto object-contain"
+                />
+              )}
+              <DialogTitle className="flex items-center justify-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-success" />
                 {selected?.name} — Result
               </DialogTitle>
