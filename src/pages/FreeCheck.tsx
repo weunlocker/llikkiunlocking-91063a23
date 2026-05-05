@@ -67,6 +67,13 @@ export default function FreeCheck() {
     <Layout>
       <section className="container py-10 md:py-16">
         <header className="text-center mb-8 md:mb-12">
+          {settings.logo_url && (
+            <img
+              src={settings.logo_url}
+              alt={`${settings.brand_name} logo`}
+              className="mx-auto mb-5 h-16 md:h-20 w-auto object-contain"
+            />
+          )}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4">
             <Gift className="w-3.5 h-3.5" /> Promotional · No login required
           </div>
