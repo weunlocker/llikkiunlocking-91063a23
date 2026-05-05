@@ -25,6 +25,7 @@ export default function FreeCheck() {
   const [imei, setImei] = useState("");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<string>("");
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     document.title = "Free IMEI Check — Model, FMI & Sim Lock";
