@@ -37,6 +37,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
   const [bulkText, setBulkText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SingleResult>(null);
+  const [submittedAsync, setSubmittedAsync] = useState<{ imei: string } | null>(null);
   const [rows, setRows] = useState<BulkRow[]>([]);
   const [showSample, setShowSample] = useState(false);
 
@@ -45,7 +46,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
 
   useEffect(() => {
     if (service) {
-      setTab("single"); setImei(""); setBulkText(""); setResult(null); setRows([]); setShowSample(false);
+      setTab("single"); setImei(""); setBulkText(""); setResult(null); setRows([]); setShowSample(false); setSubmittedAsync(null);
     }
   }, [service?.id]);
 
