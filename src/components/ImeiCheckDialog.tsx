@@ -153,7 +153,26 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
           </DialogDescription>
         </DialogHeader>
 
-        {!result && rows.length === 0 ? (
+        {submittedAsync ? (
+          <div className="space-y-4 py-4 text-center">
+            <CheckCircle2 className="w-14 h-14 text-success mx-auto" />
+            <div>
+              <h3 className="text-lg font-bold">Order Submitted</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                IMEI <span className="font-mono">{submittedAsync.imei}</span> sent to supplier.
+                <br />We'll notify you when it's ready.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <Button variant="glass" className="flex-1" onClick={() => { navigate("/dashboard?tab=orders"); onClose(); }}>
+                <History className="w-4 h-4" /> View Orders
+              </Button>
+              <Button variant="hero" className="flex-1" onClick={() => { setSubmittedAsync(null); setImei(""); }}>
+                Place Another Order
+              </Button>
+            </div>
+          </div>
+        ) : !result && rows.length === 0 ? (
           <Tabs value={tab} onValueChange={(v) => setTab(v as "single" | "bulk")}>
             <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="single"><Smartphone className="w-4 h-4 mr-2" />Single</TabsTrigger>
