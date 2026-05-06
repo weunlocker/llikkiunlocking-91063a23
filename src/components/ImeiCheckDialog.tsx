@@ -65,10 +65,8 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
     if (error) { toast.error(error.message); return; }
     onAfterRun?.();
     if (data?.status === "pending") {
-      // Non-instant service — don't hang the popup. Order goes to "pending"
-      // and the cron poller will update it to success/rejected.
-      toast.info("Order placed — pending. Check the Orders tab for updates.");
-      onClose();
+      // Non-instant (supplier) order — show submitted screen with action buttons.
+      setSubmittedAsync({ imei: parsed.data });
       return;
     }
     setResult(data);
