@@ -165,7 +165,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
             </div>
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
               <Button variant="glass" className="flex-1" onClick={() => { navigate("/dashboard?tab=orders"); onClose(); }}>
-                <History className="w-4 h-4" /> View Orders
+                <HistoryIcon className="w-4 h-4" /> View Orders
               </Button>
               <Button variant="hero" className="flex-1" onClick={() => { setSubmittedAsync(null); setImei(""); }}>
                 Place Another Order
