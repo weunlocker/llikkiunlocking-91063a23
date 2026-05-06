@@ -155,36 +155,19 @@ Deno.serve(async (req) => {
           result: finalText, charged: Number(o.price_charged).toFixed(2),
         });
         completed++;
-      } else if (isFailed || newAttempts >= MAX_ATTEMPTS) {
+      } else if (isFailed) {
+        // Supplier returned an error — keep order PENDING (admin can reprocess
+        // or switch supplier API). Just record the error message; do NOT refund.
         const reason: string =
-          (isFailed ? (resultBlob?.MESSAGE ?? resultBlob?.message ?? resultBlob?.REPLY ?? resultBlob?.reply ?? "Rejected by supplier") : "Timed out waiting for supplier")
+          (resultBlob?.MESSAGE ?? resultBlob?.message ?? resultBlob?.REPLY ?? resultBlob?.reply ?? "Rejected by supplier")
             .toString();
-
-        // Refund
-        const { data: prof } = await sb.from("profiles").select("balance").eq("id", o.user_id).single();
-        const newBalance = +(Number(prof?.balance ?? 0) + Number(o.price_charged)).toFixed(2);
-        await sb.from("profiles").update({ balance: newBalance }).eq("id", o.user_id);
-        await sb.from("transactions").insert({
-          user_id: o.user_id, type: "refund", amount: Number(o.price_charged),
-          balance_after: newBalance, description: `Auto-refund: ${svc.name}`, order_id: o.id,
-        });
         await sb.from("orders").update({
-          status: "failed",
+          // status stays "pending" — admin must intervene
           error_message: reason,
           result: typeof parsed === "string" ? parsed.slice(0, 2000) : JSON.stringify(parsed).slice(0, 2000),
           last_polled_at: new Date().toISOString(),
           poll_attempts: newAttempts,
         }).eq("id", o.id);
-
-        sb.functions.invoke("telegram-notify", { body: {
-          user_id: o.user_id,
-          subject: `❌ Check failed — ${svc.name}`,
-          body: `IMEI: ${o.imei}\nReason: ${reason}\nRefunded: $${Number(o.price_charged).toFixed(2)}\nBalance: $${newBalance.toFixed(2)}`,
-        }}).catch(() => {});
-        notifyUserEmail(sb, o.user_id, "order_rejected", {
-          order_number: o.order_number, imei: o.imei, service: svc.name,
-          error: reason, refund: Number(o.price_charged).toFixed(2), balance: newBalance.toFixed(2),
-        });
         failed++;
       } else {
         await sb.from("orders").update({
