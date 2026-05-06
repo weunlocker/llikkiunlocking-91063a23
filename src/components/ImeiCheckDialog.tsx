@@ -33,6 +33,7 @@ export type ImeiCheckDialogProps = {
 };
 
 export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun, onBulkStarted }: ImeiCheckDialogProps) {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"single" | "bulk">("single");
   const [imei, setImei] = useState("");
   const [bulkText, setBulkText] = useState("");
