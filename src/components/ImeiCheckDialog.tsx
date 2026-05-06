@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone, Copy } from "lucide-react";
+import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone, Copy, History as HistoryIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { imeiSchema } from "@/lib/validation";
@@ -32,11 +33,13 @@ export type ImeiCheckDialogProps = {
 };
 
 export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun, onBulkStarted }: ImeiCheckDialogProps) {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"single" | "bulk">("single");
   const [imei, setImei] = useState("");
   const [bulkText, setBulkText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SingleResult>(null);
+  const [submittedAsync, setSubmittedAsync] = useState<{ imei: string } | null>(null);
   const [rows, setRows] = useState<BulkRow[]>([]);
   const [showSample, setShowSample] = useState(false);
 
@@ -45,7 +48,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
 
   useEffect(() => {
     if (service) {
-      setTab("single"); setImei(""); setBulkText(""); setResult(null); setRows([]); setShowSample(false);
+      setTab("single"); setImei(""); setBulkText(""); setResult(null); setRows([]); setShowSample(false); setSubmittedAsync(null);
     }
   }, [service?.id]);
 
@@ -64,10 +67,8 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
     if (error) { toast.error(error.message); return; }
     onAfterRun?.();
     if (data?.status === "pending") {
-      // Non-instant service — don't hang the popup. Order goes to "pending"
-      // and the cron poller will update it to success/rejected.
-      toast.info("Order placed — pending. Check the Orders tab for updates.");
-      onClose();
+      // Non-instant (supplier) order — show submitted screen with action buttons.
+      setSubmittedAsync({ imei: parsed.data });
       return;
     }
     setResult(data);
@@ -152,7 +153,26 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
           </DialogDescription>
         </DialogHeader>
 
-        {!result && rows.length === 0 ? (
+        {submittedAsync ? (
+          <div className="space-y-4 py-4 text-center">
+            <CheckCircle2 className="w-14 h-14 text-success mx-auto" />
+            <div>
+              <h3 className="text-lg font-bold">Order Submitted</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                IMEI <span className="font-mono">{submittedAsync.imei}</span> sent to supplier.
+                <br />We'll notify you when it's ready.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <Button variant="glass" className="flex-1" onClick={() => { navigate("/dashboard?tab=orders"); onClose(); }}>
+                <HistoryIcon className="w-4 h-4" /> View Orders
+              </Button>
+              <Button variant="hero" className="flex-1" onClick={() => { setSubmittedAsync(null); setImei(""); }}>
+                Place Another Order
+              </Button>
+            </div>
+          </div>
+        ) : !result && rows.length === 0 ? (
           <Tabs value={tab} onValueChange={(v) => setTab(v as "single" | "bulk")}>
             <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="single"><Smartphone className="w-4 h-4 mr-2" />Single</TabsTrigger>

@@ -836,12 +836,21 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRo
   const [result, setResult] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [saving, setSaving] = useState(false);
+  const [supplierRef, setSupplierRef] = useState<string | null>(null);
+  const [services, setServices] = useState<{ id: string; name: string; supplier_id: string | null }[]>([]);
+  const [switchServiceId, setSwitchServiceId] = useState<string>("");
+  const [reprocessing, setReprocessing] = useState(false);
 
   useEffect(() => {
     if (order) {
       setStatus(order.status);
       setResult(order.result ?? "");
       setErrorMsg(order.error_message ?? "");
+      setSwitchServiceId("");
+      supabase.from("orders").select("supplier_reference,service_id").eq("id", order.id).maybeSingle()
+        .then(({ data }) => { setSupplierRef((data as { supplier_reference: string | null } | null)?.supplier_reference ?? null); setSwitchServiceId((data as { service_id: string } | null)?.service_id ?? ""); });
+      supabase.from("services").select("id,name,supplier_id").not("supplier_id", "is", null).order("name")
+        .then(({ data }) => setServices((data ?? []) as { id: string; name: string; supplier_id: string | null }[]));
     }
   }, [order]);
 
@@ -860,6 +869,18 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRo
     onClose();
   };
 
+  const reprocess = async (overrideSvc?: string) => {
+    if (!order) return;
+    setReprocessing(true);
+    const { data, error } = await supabase.functions.invoke("admin-reprocess-order", {
+      body: { order_id: order.id, ...(overrideSvc ? { service_id: overrideSvc } : {}) },
+    });
+    setReprocessing(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Re-submitted to supplier (ref ${(data as { supplier_reference?: string } | null)?.supplier_reference ?? "—"})`);
+    onSaved(); onClose();
+  };
+
   return (
     <Dialog open={!!order} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="glass max-w-2xl max-h-[85vh] overflow-auto">
@@ -872,7 +893,30 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRo
               <div><Label className="text-xs">IMEI</Label><div className="font-mono">{order.imei}</div></div>
               <div><Label className="text-xs">Charged</Label><div className="font-mono">${Number(order.price_charged).toFixed(2)}</div></div>
               <div><Label className="text-xs">Date</Label><div>{new Date(order.created_at).toLocaleString()}</div></div>
+              <div><Label className="text-xs">Supplier Ref (admin only)</Label><div className="font-mono text-xs">{supplierRef ?? "—"}</div></div>
             </div>
+            {order.status === "pending" && (
+              <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-3">
+                <div className="text-xs font-semibold text-warning">Pending — supplier action</div>
+                {errorMsg && <div className="text-xs text-destructive">Last error: {errorMsg}</div>}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button size="sm" variant="glass" onClick={() => reprocess()} disabled={reprocessing}>
+                    {reprocessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Reprocess (same API)
+                  </Button>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2 items-stretch">
+                  <Select value={switchServiceId} onValueChange={setSwitchServiceId}>
+                    <SelectTrigger className="flex-1"><SelectValue placeholder="Switch supplier API…" /></SelectTrigger>
+                    <SelectContent>
+                      {services.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" variant="hero" onClick={() => reprocess(switchServiceId)} disabled={reprocessing || !switchServiceId}>
+                    Switch & Reprocess
+                  </Button>
+                </div>
+              </div>
+            )}
             <div>
               <Label>Status</Label>
               <Select value={status} onValueChange={setStatus}>
