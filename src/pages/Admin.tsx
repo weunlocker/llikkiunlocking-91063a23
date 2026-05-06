@@ -911,7 +911,7 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRo
                       {services.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Button size="sm" variant="hero" onClick={() => reprocess(switchServiceId)} disabled={reprocessing || !switchServiceId || switchServiceId === order && (order as unknown as { service_id: string }).service_id}>
+                  <Button size="sm" variant="hero" onClick={() => reprocess(switchServiceId)} disabled={reprocessing || !switchServiceId}>
                     Switch & Reprocess
                   </Button>
                 </div>
