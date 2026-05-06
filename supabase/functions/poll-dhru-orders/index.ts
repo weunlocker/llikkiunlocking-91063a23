@@ -36,8 +36,9 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
-// Maximum attempts before we give up (30s interval × 240 = 2 hours)
-const MAX_ATTEMPTS = 240;
+// Per admin policy: never auto-fail or auto-refund. Keep polling forever
+// until supplier returns a final success. On supplier error/reject, store the
+// error message but keep status=pending so an admin can Reprocess or Switch API.
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
