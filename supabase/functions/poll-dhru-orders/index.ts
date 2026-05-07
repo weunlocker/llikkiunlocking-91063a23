@@ -58,7 +58,47 @@ Deno.serve(async (req) => {
   let placedNow = 0;
   for (const o of (unplaced ?? []) as any[]) {
     const svc = o.services; const sup = svc?.suppliers;
-    if (!sup || sup.type !== "dhru" || !svc.supplier_action) continue;
+    if (!sup || !svc?.supplier_action) continue;
+
+    // ---- Dhru v2 placement retry ----
+    if (sup.type === "dhru_v2") {
+      try {
+        const feedbackBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1/dhru-feedback`;
+        const placed = await v2PlaceOrder({
+          endpoint: String(sup.endpoint_url),
+          token: String(sup.dhru_api_key ?? ""),
+          productUuid: String(svc.supplier_action),
+          imei: String(o.imei),
+          referenceId: String(o.id),
+          feedbackUrl: `${feedbackBase}?order_id=${o.id}`,
+        });
+        if (placed.ok) {
+          await sb.from("orders").update({
+            supplier_reference: placed.order_uuid,
+            error_message: null,
+            result: `Order placed with supplier (uuid ${placed.order_uuid}). Awaiting result…`,
+            last_polled_at: new Date().toISOString(),
+            poll_attempts: (o.poll_attempts ?? 0) + 1,
+          }).eq("id", o.id);
+          placedNow++;
+        } else {
+          await sb.from("orders").update({
+            error_message: placed.error,
+            last_polled_at: new Date().toISOString(),
+            poll_attempts: (o.poll_attempts ?? 0) + 1,
+          }).eq("id", o.id);
+        }
+      } catch (e) {
+        await sb.from("orders").update({
+          error_message: e instanceof Error ? e.message : "Placement retry failed",
+          last_polled_at: new Date().toISOString(),
+          poll_attempts: (o.poll_attempts ?? 0) + 1,
+        }).eq("id", o.id);
+      }
+      continue;
+    }
+
+    if (sup.type !== "dhru") continue;
     try {
       const params = new URLSearchParams();
       const username = String(sup.dhru_username ?? "");
