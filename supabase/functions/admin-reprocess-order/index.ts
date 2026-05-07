@@ -4,6 +4,7 @@
 // the cron poller marks it complete.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
+import { v2PlaceOrder } from "../_shared/dhru_v2.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,6 +44,33 @@ Deno.serve(async (req) => {
     if (!service.supplier_id) return json(400, { error: "Selected service has no supplier (instant only)" });
     const { data: sup } = await sb.from("suppliers").select("*").eq("id", service.supplier_id).maybeSingle();
     if (!sup) return json(400, { error: "Supplier not found" });
+
+    // ---- Dhru v2 path ----
+    if (sup.type === "dhru_v2") {
+      const feedbackBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1/dhru-feedback`;
+      const placed = await v2PlaceOrder({
+        endpoint: String(sup.endpoint_url),
+        token: String(sup.dhru_api_key ?? ""),
+        productUuid: String(service.supplier_action ?? ""),
+        imei: String(order.imei),
+        referenceId: String(order.id),
+        feedbackUrl: `${feedbackBase}?order_id=${order.id}`,
+      });
+      if (!placed.ok) {
+        await sb.from("orders").update({ error_message: `Reprocess failed: ${placed.error}` }).eq("id", order.id);
+        return json(200, { ok: false, error: placed.error });
+      }
+      await sb.from("orders").update({
+        service_id: serviceId,
+        supplier_reference: placed.order_uuid,
+        status: "pending",
+        error_message: null,
+        result: `Reprocessed — new uuid ${placed.order_uuid}. Awaiting supplier…`,
+        poll_attempts: 0,
+        last_polled_at: null,
+      }).eq("id", order.id);
+      return json(200, { ok: true, supplier_reference: placed.order_uuid });
+    }
 
     // Re-place the order with the supplier
     const params = new URLSearchParams();

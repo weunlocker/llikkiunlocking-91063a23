@@ -2,6 +2,7 @@
 // Used by both check-imei (web) and api-check (public API) edge functions.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { notifyUserEmail } from "./email.ts";
+import { v2PlaceOrder } from "./dhru_v2.ts";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -216,6 +217,47 @@ async function runUpstream(ctx: PlacementCtx) {
 
       if (supplier) {
         url = String(supplier.endpoint_url);
+
+        // ---- Dhru Fusion v2 (Bearer token JSON API) ----
+        if (supplier.type === "dhru_v2") {
+          const productUuid = String(service.supplier_action || "").trim();
+          if (!productUuid) {
+            await supabase.from("orders").update({
+              error_message: "Service has no product_uuid (supplier_action)",
+            }).eq("id", order.id);
+            notifyUser(supabase, userId, `⏳ Check pending — ${service.name}`,
+              `IMEI: ${imei}\nYour order is pending review.`);
+            return;
+          }
+          const feedbackBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1/dhru-feedback`;
+          const feedbackUrl = `${feedbackBase}?order_id=${order.id}`;
+          const placed = await v2PlaceOrder({
+            endpoint: String(supplier.endpoint_url),
+            token: String(supplier.dhru_api_key ?? ""),
+            productUuid, imei, referenceId: String(order.id),
+            feedbackUrl,
+          });
+          if (placed.ok) {
+            await supabase.from("orders").update({
+              supplier_reference: placed.order_uuid,
+              error_message: null,
+              result: `Order placed with supplier (uuid ${placed.order_uuid}). Awaiting result…`,
+            }).eq("id", order.id);
+            notifyUser(supabase, userId,
+              `⏳ Check submitted — ${service.name}`,
+              `IMEI: ${imei}\nReference: ${placed.order_uuid}\nWaiting for supplier — you will be notified when ready.\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
+            );
+          } else {
+            await supabase.from("orders").update({
+              error_message: placed.error,
+              result: typeof placed.raw === "string" ? placed.raw.slice(0, 2000) : JSON.stringify(placed.raw).slice(0, 2000),
+            }).eq("id", order.id);
+            notifyUser(supabase, userId, `⏳ Check pending — ${service.name}`,
+              `IMEI: ${imei}\nYour order is pending review. We'll notify you once it's processed.`);
+          }
+          return;
+        }
+
         if (supplier.type === "dhru") {
           init.method = "POST";
           headers["Content-Type"] = "application/x-www-form-urlencoded";
