@@ -266,5 +266,5 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json(200, { polled: pending.length, completed, failed, stillPending });
+  return json(200, { polled: pending.length, completed, failed, stillPending, placedNow });
 });
