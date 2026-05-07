@@ -182,7 +182,55 @@ Deno.serve(async (req) => {
   for (const o of pending as any[]) {
     const svc = o.services;
     const sup = svc?.suppliers;
-    if (!sup || sup.type !== "dhru") continue;
+    if (!sup) continue;
+
+    // ---- Dhru v2 status poll ----
+    if (sup.type === "dhru_v2") {
+      try {
+        const { data } = await v2GetOrder(String(sup.endpoint_url), String(sup.dhru_api_key ?? ""), String(o.supplier_reference));
+        const { state, reply } = v2InterpretOrder(data);
+        const newAttempts = (o.poll_attempts ?? 0) + 1;
+        if (state === "completed") {
+          const finalText = normalizeHtml(reply || JSON.stringify(data, null, 2)) || "(empty response)";
+          await sb.from("orders").update({
+            status: "completed", result: finalText, error_message: null,
+            last_polled_at: new Date().toISOString(), poll_attempts: newAttempts,
+          }).eq("id", o.id);
+          sb.functions.invoke("telegram-notify", { body: {
+            user_id: o.user_id,
+            subject: `✅ Check completed — ${svc.name}`,
+            body: `IMEI: ${o.imei}\n\n${finalText}\n\nCharged: $${Number(o.price_charged).toFixed(2)}`,
+          }}).catch(() => {});
+          notifyUserEmail(sb, o.user_id, "order_success", {
+            order_number: o.order_number, imei: o.imei, service: svc.name,
+            result: finalText, charged: Number(o.price_charged).toFixed(2),
+          });
+          completed++;
+        } else if (state === "failed") {
+          await sb.from("orders").update({
+            error_message: reply || "Rejected by supplier",
+            result: typeof data === "string" ? data.slice(0, 2000) : JSON.stringify(data).slice(0, 2000),
+            last_polled_at: new Date().toISOString(), poll_attempts: newAttempts,
+          }).eq("id", o.id);
+          failed++;
+        } else {
+          await sb.from("orders").update({
+            last_polled_at: new Date().toISOString(), poll_attempts: newAttempts,
+          }).eq("id", o.id);
+          stillPending++;
+        }
+      } catch (e) {
+        await sb.from("orders").update({
+          last_polled_at: new Date().toISOString(),
+          poll_attempts: (o.poll_attempts ?? 0) + 1,
+        }).eq("id", o.id);
+        stillPending++;
+        console.error("v2 poll error", o.id, e);
+      }
+      continue;
+    }
+
+    if (sup.type !== "dhru") continue;
 
     try {
       const params = new URLSearchParams();
