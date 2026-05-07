@@ -4,6 +4,7 @@
 // the cron poller marks it complete.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
+import { v2PlaceOrder } from "../_shared/dhru_v2.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
