@@ -1283,7 +1283,7 @@ function AdminSuppliers() {
   };
 
   const syncSupplier = async (s: Supplier) => {
-    if (s.type !== "dhru") { toast.error("Sync only works for Dhru suppliers"); return; }
+    if (s.type !== "dhru" && s.type !== "dhru_v2") { toast.error("Sync only works for Dhru suppliers"); return; }
     setSyncing(s.id);
     try {
       const { data, error } = await supabase.functions.invoke("supplier-sync", { body: { supplier_id: s.id } });
