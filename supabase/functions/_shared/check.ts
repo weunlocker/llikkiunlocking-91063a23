@@ -2,6 +2,7 @@
 // Used by both check-imei (web) and api-check (public API) edge functions.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { notifyUserEmail } from "./email.ts";
+import { v2PlaceOrder } from "./dhru_v2.ts";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
