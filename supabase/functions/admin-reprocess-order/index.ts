@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
       const e = Array.isArray(errBlock) ? errBlock[0] : errBlock;
       const msg = (e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Rejected by supplier").toString();
       await sb.from("orders").update({ error_message: `Reprocess failed: ${msg}` }).eq("id", order.id);
-      return json(502, { error: msg });
+      return json(200, { ok: false, error: msg });
     }
     const findRef = (n: any): string | null => {
       if (!n || typeof n !== "object") return null;
@@ -84,7 +84,10 @@ Deno.serve(async (req) => {
       return null;
     };
     const refId = findRef(parsedResp?.SUCCESS ?? parsedResp?.success ?? parsedResp);
-    if (!refId) return json(502, { error: "Supplier did not return a reference id", raw: text.slice(0, 500) });
+    if (!refId) {
+      await sb.from("orders").update({ error_message: "Supplier did not return a reference id" }).eq("id", order.id);
+      return json(200, { ok: false, error: "Supplier did not return a reference id", raw: text.slice(0, 500) });
+    }
 
     await sb.from("orders").update({
       service_id: serviceId,

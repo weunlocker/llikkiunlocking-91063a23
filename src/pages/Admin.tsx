@@ -877,7 +877,9 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRo
     });
     setReprocessing(false);
     if (error) { toast.error(error.message); return; }
-    toast.success(`Re-submitted to supplier (ref ${(data as { supplier_reference?: string } | null)?.supplier_reference ?? "—"})`);
+    const d = data as { ok?: boolean; error?: string; supplier_reference?: string } | null;
+    if (d?.ok === false) { toast.error(d.error ?? "Reprocess failed"); return; }
+    toast.success(`Re-submitted to supplier (ref ${d?.supplier_reference ?? "—"})`);
     onSaved(); onClose();
   };
 
