@@ -1330,7 +1330,7 @@ function AdminSuppliers() {
                   <td className="px-5 py-3 text-xs text-muted-foreground truncate max-w-[400px]">{s.endpoint_url}</td>
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
-                    {s.type === "dhru" && (
+                    {(s.type === "dhru" || s.type === "dhru_v2") && (
                       <>
                         {counts[s.id] != null && <span className="text-xs text-muted-foreground mr-2">{counts[s.id]} synced</span>}
                         <Button size="sm" variant="outline" className="mr-1" onClick={() => syncSupplier(s)} disabled={syncing === s.id}>
