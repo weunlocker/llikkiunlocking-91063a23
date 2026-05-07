@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { v2Account, v2Products, v2FlattenProducts } from "../_shared/dhru_v2.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
