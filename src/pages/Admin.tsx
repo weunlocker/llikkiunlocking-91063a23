@@ -1354,10 +1354,11 @@ function AdminSuppliers() {
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Name</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="e.g. DHRU Main" maxLength={100} /></div>
                 <div><Label>Type</Label>
-                  <Select value={editing.type ?? "dhru"} onValueChange={(v) => setEditing({ ...editing, type: v as "dhru" | "generic" })}>
+                  <Select value={editing.type ?? "dhru"} onValueChange={(v) => setEditing({ ...editing, type: v as "dhru" | "dhru_v2" | "generic" })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="dhru">Dhru Fusion (action API)</SelectItem>
+                      <SelectItem value="dhru">Dhru Fusion (classic action API)</SelectItem>
+                      <SelectItem value="dhru_v2">Dhru Fusion v2 (Bearer / Reseller)</SelectItem>
                       <SelectItem value="generic">Generic HTTP API</SelectItem>
                     </SelectContent>
                   </Select>
@@ -1366,10 +1367,12 @@ function AdminSuppliers() {
               <div>
                 <Label>Endpoint URL</Label>
                 <Input value={editing.endpoint_url ?? ""} onChange={(e) => setEditing({ ...editing, endpoint_url: e.target.value })}
-                  placeholder={editing.type === "dhru" ? "https://yoursupplier.com/api/index.php" : "https://api.provider.com/check?imei={IMEI}&action={ACTION}"} />
+                  placeholder={editing.type === "dhru" ? "https://yoursupplier.com/api/index.php" : editing.type === "dhru_v2" ? "https://panel.example.com" : "https://api.provider.com/check?imei={IMEI}&action={ACTION}"} />
                 <p className="text-xs text-muted-foreground mt-1">
                   {editing.type === "dhru"
                     ? "Dhru API base URL (POST endpoint). Service code per service is set in the Service editor."
+                    : editing.type === "dhru_v2"
+                    ? "Panel base URL (no path). Calls go to /api/reseller/v1/order, /products, /account. Per-service product_uuid is set in Service editor."
                     : "Generic URL — supports {IMEI} and {ACTION} placeholders."}
                 </p>
               </div>
@@ -1377,6 +1380,13 @@ function AdminSuppliers() {
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label>Username</Label><Input value={editing.dhru_username ?? ""} onChange={(e) => setEditing({ ...editing, dhru_username: e.target.value })} /></div>
                   <div><Label>API Key</Label><Input type="password" value={editing.dhru_api_key ?? ""} onChange={(e) => setEditing({ ...editing, dhru_api_key: e.target.value })} /></div>
+                </div>
+              )}
+              {editing.type === "dhru_v2" && (
+                <div>
+                  <Label>Bearer Token</Label>
+                  <Input type="password" value={editing.dhru_api_key ?? ""} onChange={(e) => setEditing({ ...editing, dhru_api_key: e.target.value })} placeholder="Reseller API bearer token" />
+                  <p className="text-xs text-muted-foreground mt-1">Username is not used in v2.</p>
                 </div>
               )}
               <div><Label>Notes</Label><Textarea rows={2} value={editing.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} placeholder="Internal notes (rate limits, contact, etc.)" /></div>
