@@ -1218,6 +1218,9 @@ function AdminSuppliers() {
     if (editing.type === "dhru" && (!editing.dhru_username || !editing.dhru_api_key)) {
       toast.error("Dhru suppliers need username + API key"); return;
     }
+    if (editing.type === "dhru_v2" && !editing.dhru_api_key) {
+      toast.error("Dhru v2 suppliers need a Bearer token"); return;
+    }
     const payload = {
       name: editing.name.trim(),
       type: editing.type ?? "dhru",
