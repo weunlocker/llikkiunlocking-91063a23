@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
-import { corsHeaders, executeCheck } from "../_shared/check.ts";
+import { corsHeaders, executeCheckAsync } from "../_shared/check.ts";
 
 const Body = z.object({
   service_id: z.string().uuid(),
@@ -26,12 +26,13 @@ Deno.serve(async (req) => {
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return json(400, { error: parsed.error.flatten().fieldErrors });
 
-    const result = await executeCheck({
+    const result = await executeCheckAsync({
       userId: user.id,
       serviceId: parsed.data.service_id,
       imei: parsed.data.imei,
       source: "web",
     });
+    if (result.background) EdgeRuntime.waitUntil(result.background);
     return json(result.status, result.body);
   } catch (e) {
     console.error("check-imei error:", e);
