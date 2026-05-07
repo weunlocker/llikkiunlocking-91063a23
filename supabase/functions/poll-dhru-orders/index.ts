@@ -2,6 +2,7 @@
 // Updates each order: pending -> completed/failed, refunds on failure, notifies user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { notifyUserEmail } from "../_shared/email.ts";
+import { v2GetOrder, v2PlaceOrder, v2InterpretOrder } from "../_shared/dhru_v2.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
