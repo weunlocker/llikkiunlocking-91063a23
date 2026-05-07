@@ -290,15 +290,16 @@ async function runUpstream(ctx: PlacementCtx) {
       }
 
       if (supplier && supplier.type === "dhru") {
+        let placeErr: string | null = null;
         if (!resp.ok) {
-          errorMsg = `Dhru returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
+          placeErr = `Dhru returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
         } else {
           const p = parsed as Record<string, unknown> | null;
           const errBlock = p?.ERROR ?? p?.error;
           if (errBlock) {
             const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
             const e = eArr as Record<string, unknown> | undefined;
-            errorMsg = (e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Rejected by supplier").toString();
+            placeErr = (e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Rejected by supplier").toString();
           } else {
             const findRef = (n: unknown): string | null => {
               if (!n || typeof n !== "object") return null;
@@ -308,9 +309,9 @@ async function runUpstream(ctx: PlacementCtx) {
               for (const v of Object.values(o)) { const r2 = findRef(v); if (r2) return r2; }
               return null;
             };
-            const refId = findRef(p?.SUCCESS ?? p?.success ?? p);
+            const refId = findRef((parsed as any)?.SUCCESS ?? (parsed as any)?.success ?? parsed);
             if (!refId) {
-              errorMsg = "Dhru did not return a reference id: " + (typeof raw === "string" ? raw.slice(0, 200) : JSON.stringify(raw).slice(0, 200));
+              placeErr = "Dhru did not return a reference id: " + (typeof raw === "string" ? raw.slice(0, 200) : JSON.stringify(raw).slice(0, 200));
             } else {
               await supabase.from("orders").update({
                 supplier_reference: refId,
@@ -324,6 +325,17 @@ async function runUpstream(ctx: PlacementCtx) {
             }
           }
         }
+        // Async/supplier order failed at placement — DO NOT auto-fail/refund.
+        // Keep order pending with error_message so admin can Reprocess or Switch API.
+        await supabase.from("orders").update({
+          error_message: placeErr,
+          result: typeof rawData === "string" ? rawData.slice(0, 2000) : (rawData ? JSON.stringify(rawData).slice(0, 2000) : null),
+        }).eq("id", order.id);
+        notifyUser(supabase, userId,
+          `⏳ Check pending — ${service.name}`,
+          `IMEI: ${imei}\nYour order is pending review. We'll notify you once it's processed.`,
+        );
+        return;
       } else if (!resp.ok) {
         errorMsg = `Provider returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
       } else {
