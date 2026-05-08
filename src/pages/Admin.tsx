@@ -19,7 +19,7 @@ import { extractResponse } from "@/lib/extractResponse";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
 type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null };
-type Supplier = { id: string; name: string; type: "dhru" | "dhru_v2" | "generic"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
+type Supplier = { id: string; name: string; type: "dhru" | "generic"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
 type ProfileRow = { id: string; email: string | null; display_name: string | null; balance: number; banned: boolean; created_at: string };
 type OrderRow = { id: string; order_number: number; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null; profiles: { email: string | null } | null };
 type TxRow = { id: string; user_id: string; amount: number; type: string; balance_after: number; description: string | null; created_at: string; profiles?: { email: string | null } | null };
@@ -877,9 +877,7 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRo
     });
     setReprocessing(false);
     if (error) { toast.error(error.message); return; }
-    const d = data as { ok?: boolean; error?: string; supplier_reference?: string } | null;
-    if (d?.ok === false) { toast.error(d.error ?? "Reprocess failed"); return; }
-    toast.success(`Re-submitted to supplier (ref ${d?.supplier_reference ?? "—"})`);
+    toast.success(`Re-submitted to supplier (ref ${(data as { supplier_reference?: string } | null)?.supplier_reference ?? "—"})`);
     onSaved(); onClose();
   };
 
@@ -1218,9 +1216,6 @@ function AdminSuppliers() {
     if (editing.type === "dhru" && (!editing.dhru_username || !editing.dhru_api_key)) {
       toast.error("Dhru suppliers need username + API key"); return;
     }
-    if (editing.type === "dhru_v2" && !editing.dhru_api_key) {
-      toast.error("Dhru v2 suppliers need a Bearer token"); return;
-    }
     const payload = {
       name: editing.name.trim(),
       type: editing.type ?? "dhru",
@@ -1286,7 +1281,7 @@ function AdminSuppliers() {
   };
 
   const syncSupplier = async (s: Supplier) => {
-    if (s.type !== "dhru" && s.type !== "dhru_v2") { toast.error("Sync only works for Dhru suppliers"); return; }
+    if (s.type !== "dhru") { toast.error("Sync only works for Dhru suppliers"); return; }
     setSyncing(s.id);
     try {
       const { data, error } = await supabase.functions.invoke("supplier-sync", { body: { supplier_id: s.id } });
@@ -1330,7 +1325,7 @@ function AdminSuppliers() {
                   <td className="px-5 py-3 text-xs text-muted-foreground truncate max-w-[400px]">{s.endpoint_url}</td>
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
-                    {(s.type === "dhru" || s.type === "dhru_v2") && (
+                    {s.type === "dhru" && (
                       <>
                         {counts[s.id] != null && <span className="text-xs text-muted-foreground mr-2">{counts[s.id]} synced</span>}
                         <Button size="sm" variant="outline" className="mr-1" onClick={() => syncSupplier(s)} disabled={syncing === s.id}>
@@ -1357,11 +1352,10 @@ function AdminSuppliers() {
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Name</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="e.g. DHRU Main" maxLength={100} /></div>
                 <div><Label>Type</Label>
-                  <Select value={editing.type ?? "dhru"} onValueChange={(v) => setEditing({ ...editing, type: v as "dhru" | "dhru_v2" | "generic" })}>
+                  <Select value={editing.type ?? "dhru"} onValueChange={(v) => setEditing({ ...editing, type: v as "dhru" | "generic" })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="dhru">Dhru Fusion (classic action API)</SelectItem>
-                      <SelectItem value="dhru_v2">Dhru Fusion v2 (Bearer / Reseller)</SelectItem>
+                      <SelectItem value="dhru">Dhru Fusion (action API)</SelectItem>
                       <SelectItem value="generic">Generic HTTP API</SelectItem>
                     </SelectContent>
                   </Select>
@@ -1370,12 +1364,10 @@ function AdminSuppliers() {
               <div>
                 <Label>Endpoint URL</Label>
                 <Input value={editing.endpoint_url ?? ""} onChange={(e) => setEditing({ ...editing, endpoint_url: e.target.value })}
-                  placeholder={editing.type === "dhru" ? "https://yoursupplier.com/api/index.php" : editing.type === "dhru_v2" ? "https://panel.example.com" : "https://api.provider.com/check?imei={IMEI}&action={ACTION}"} />
+                  placeholder={editing.type === "dhru" ? "https://yoursupplier.com/api/index.php" : "https://api.provider.com/check?imei={IMEI}&action={ACTION}"} />
                 <p className="text-xs text-muted-foreground mt-1">
                   {editing.type === "dhru"
                     ? "Dhru API base URL (POST endpoint). Service code per service is set in the Service editor."
-                    : editing.type === "dhru_v2"
-                    ? "Panel base URL (no path). Calls go to /api/reseller/v1/order, /products, /account. Per-service product_uuid is set in Service editor."
                     : "Generic URL — supports {IMEI} and {ACTION} placeholders."}
                 </p>
               </div>
@@ -1383,13 +1375,6 @@ function AdminSuppliers() {
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label>Username</Label><Input value={editing.dhru_username ?? ""} onChange={(e) => setEditing({ ...editing, dhru_username: e.target.value })} /></div>
                   <div><Label>API Key</Label><Input type="password" value={editing.dhru_api_key ?? ""} onChange={(e) => setEditing({ ...editing, dhru_api_key: e.target.value })} /></div>
-                </div>
-              )}
-              {editing.type === "dhru_v2" && (
-                <div>
-                  <Label>Bearer Token</Label>
-                  <Input type="password" value={editing.dhru_api_key ?? ""} onChange={(e) => setEditing({ ...editing, dhru_api_key: e.target.value })} placeholder="Reseller API bearer token" />
-                  <p className="text-xs text-muted-foreground mt-1">Username is not used in v2.</p>
                 </div>
               )}
               <div><Label>Notes</Label><Textarea rows={2} value={editing.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} placeholder="Internal notes (rate limits, contact, etc.)" /></div>

@@ -2,7 +2,6 @@
 // Updates each order: pending -> completed/failed, refunds on failure, notifies user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { notifyUserEmail } from "../_shared/email.ts";
-import { v2GetOrder, v2PlaceOrder, v2InterpretOrder } from "../_shared/dhru_v2.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,127 +44,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
-  // ---- PASS 1: retry placement for pending orders with NO supplier reference yet
-  // (initial placement failed with a transient error like "Try later.")
-  const { data: unplaced } = await sb
-    .from("orders")
-    .select("id, imei, poll_attempts, service_id, services(supplier_action, supplier_id, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))")
-    .eq("status", "pending")
-    .is("supplier_reference", null)
-    .order("last_polled_at", { ascending: true, nullsFirst: true })
-    .limit(25);
-
-  let placedNow = 0;
-  for (const o of (unplaced ?? []) as any[]) {
-    const svc = o.services; const sup = svc?.suppliers;
-    if (!sup || !svc?.supplier_action) continue;
-
-    // ---- Dhru v2 placement retry ----
-    if (sup.type === "dhru_v2") {
-      try {
-        const feedbackBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1/dhru-feedback`;
-        const placed = await v2PlaceOrder({
-          endpoint: String(sup.endpoint_url),
-          token: String(sup.dhru_api_key ?? ""),
-          productUuid: String(svc.supplier_action),
-          imei: String(o.imei),
-          referenceId: String(o.id),
-          feedbackUrl: `${feedbackBase}?order_id=${o.id}`,
-        });
-        if (placed.ok) {
-          await sb.from("orders").update({
-            supplier_reference: placed.order_uuid,
-            error_message: null,
-            result: `Order placed with supplier (uuid ${placed.order_uuid}). Awaiting result…`,
-            last_polled_at: new Date().toISOString(),
-            poll_attempts: (o.poll_attempts ?? 0) + 1,
-          }).eq("id", o.id);
-          placedNow++;
-        } else {
-          await sb.from("orders").update({
-            error_message: placed.error,
-            last_polled_at: new Date().toISOString(),
-            poll_attempts: (o.poll_attempts ?? 0) + 1,
-          }).eq("id", o.id);
-        }
-      } catch (e) {
-        await sb.from("orders").update({
-          error_message: e instanceof Error ? e.message : "Placement retry failed",
-          last_polled_at: new Date().toISOString(),
-          poll_attempts: (o.poll_attempts ?? 0) + 1,
-        }).eq("id", o.id);
-      }
-      continue;
-    }
-
-    if (sup.type !== "dhru") continue;
-    try {
-      const params = new URLSearchParams();
-      const username = String(sup.dhru_username ?? "");
-      const apiKey = String(sup.dhru_api_key ?? "");
-      const action = String(svc.supplier_action);
-      const imei = String(o.imei);
-      if (sup.api_format === "bulk") {
-        params.set("data", JSON.stringify({ username, apikey: apiKey, action: "placeimeiorder", service: action, imei }));
-      } else if (sup.api_format === "v6") {
-        params.set("apiaccesskey", apiKey);
-        params.set("action", "placeimeiorder");
-        params.set("requestformat", "JSON");
-        if (username) params.set("username", username);
-        params.set("parameters", `<PARAMETERS><ID>${action}</ID><IMEI>${imei}</IMEI></PARAMETERS>`);
-      } else {
-        params.set("username", username); params.set("apikey", apiKey);
-        params.set("action", "placeimeiorder"); params.set("service", action); params.set("imei", imei);
-      }
-      const r = await fetch(String(sup.endpoint_url), { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
-      const text = await r.text();
-      let parsed: any = text; try { parsed = JSON.parse(text); } catch { /* keep */ }
-      const errBlock = parsed?.ERROR ?? parsed?.error;
-      if (errBlock) {
-        const e = Array.isArray(errBlock) ? errBlock[0] : errBlock;
-        const msg = (e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Rejected by supplier").toString();
-        await sb.from("orders").update({
-          error_message: msg,
-          result: typeof parsed === "string" ? parsed.slice(0, 2000) : JSON.stringify(parsed).slice(0, 2000),
-          last_polled_at: new Date().toISOString(),
-          poll_attempts: (o.poll_attempts ?? 0) + 1,
-        }).eq("id", o.id);
-        continue;
-      }
-      const findRef = (n: any): string | null => {
-        if (!n || typeof n !== "object") return null;
-        const ref = n.REFERENCEID ?? n.referenceid ?? n.REFERENCE ?? n.reference ?? n.ID ?? n.id;
-        if (ref != null) return String(ref);
-        for (const v of Object.values(n)) { const r2 = findRef(v); if (r2) return r2; }
-        return null;
-      };
-      const refId = findRef(parsed?.SUCCESS ?? parsed?.success ?? parsed);
-      if (refId) {
-        await sb.from("orders").update({
-          supplier_reference: refId,
-          error_message: null,
-          result: `Order placed with supplier (ref ${refId}). Awaiting result…`,
-          last_polled_at: new Date().toISOString(),
-          poll_attempts: (o.poll_attempts ?? 0) + 1,
-        }).eq("id", o.id);
-        placedNow++;
-      } else {
-        await sb.from("orders").update({
-          error_message: "No reference id from supplier",
-          last_polled_at: new Date().toISOString(),
-          poll_attempts: (o.poll_attempts ?? 0) + 1,
-        }).eq("id", o.id);
-      }
-    } catch (e) {
-      await sb.from("orders").update({
-        error_message: e instanceof Error ? e.message : "Placement retry failed",
-        last_polled_at: new Date().toISOString(),
-        poll_attempts: (o.poll_attempts ?? 0) + 1,
-      }).eq("id", o.id);
-    }
-  }
-
-  // ---- PASS 2: poll status for pending orders that DO have a supplier reference
+  // Pull pending orders that have a supplier reference (i.e. async)
   const { data: pending, error } = await sb
     .from("orders")
     .select("id, order_number, user_id, imei, price_charged, supplier_reference, poll_attempts, service_id, services(name, response_template, success_rules, supplier_id, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))")
@@ -175,62 +54,14 @@ Deno.serve(async (req) => {
     .limit(50);
 
   if (error) return json(500, { error: error.message });
-  if (!pending || pending.length === 0) return json(200, { polled: 0, placedNow });
+  if (!pending || pending.length === 0) return json(200, { polled: 0 });
 
   let completed = 0, failed = 0, stillPending = 0;
 
   for (const o of pending as any[]) {
     const svc = o.services;
     const sup = svc?.suppliers;
-    if (!sup) continue;
-
-    // ---- Dhru v2 status poll ----
-    if (sup.type === "dhru_v2") {
-      try {
-        const { data } = await v2GetOrder(String(sup.endpoint_url), String(sup.dhru_api_key ?? ""), String(o.supplier_reference));
-        const { state, reply } = v2InterpretOrder(data);
-        const newAttempts = (o.poll_attempts ?? 0) + 1;
-        if (state === "completed") {
-          const finalText = normalizeHtml(reply || JSON.stringify(data, null, 2)) || "(empty response)";
-          await sb.from("orders").update({
-            status: "completed", result: finalText, error_message: null,
-            last_polled_at: new Date().toISOString(), poll_attempts: newAttempts,
-          }).eq("id", o.id);
-          sb.functions.invoke("telegram-notify", { body: {
-            user_id: o.user_id,
-            subject: `✅ Check completed — ${svc.name}`,
-            body: `IMEI: ${o.imei}\n\n${finalText}\n\nCharged: $${Number(o.price_charged).toFixed(2)}`,
-          }}).catch(() => {});
-          notifyUserEmail(sb, o.user_id, "order_success", {
-            order_number: o.order_number, imei: o.imei, service: svc.name,
-            result: finalText, charged: Number(o.price_charged).toFixed(2),
-          });
-          completed++;
-        } else if (state === "failed") {
-          await sb.from("orders").update({
-            error_message: reply || "Rejected by supplier",
-            result: typeof data === "string" ? data.slice(0, 2000) : JSON.stringify(data).slice(0, 2000),
-            last_polled_at: new Date().toISOString(), poll_attempts: newAttempts,
-          }).eq("id", o.id);
-          failed++;
-        } else {
-          await sb.from("orders").update({
-            last_polled_at: new Date().toISOString(), poll_attempts: newAttempts,
-          }).eq("id", o.id);
-          stillPending++;
-        }
-      } catch (e) {
-        await sb.from("orders").update({
-          last_polled_at: new Date().toISOString(),
-          poll_attempts: (o.poll_attempts ?? 0) + 1,
-        }).eq("id", o.id);
-        stillPending++;
-        console.error("v2 poll error", o.id, e);
-      }
-      continue;
-    }
-
-    if (sup.type !== "dhru") continue;
+    if (!sup || sup.type !== "dhru") continue;
 
     try {
       const params = new URLSearchParams();
@@ -355,5 +186,5 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json(200, { polled: pending.length, completed, failed, stillPending, placedNow });
+  return json(200, { polled: pending.length, completed, failed, stillPending });
 });

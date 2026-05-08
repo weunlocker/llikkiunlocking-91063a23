@@ -26,6 +26,3 @@ verify_jwt = false
 
 [functions.admin-reprocess-order]
 verify_jwt = false
-
-[functions.dhru-feedback]
-verify_jwt = false

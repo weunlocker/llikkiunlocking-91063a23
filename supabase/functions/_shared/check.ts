@@ -2,7 +2,6 @@
 // Used by both check-imei (web) and api-check (public API) edge functions.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { notifyUserEmail } from "./email.ts";
-import { v2PlaceOrder } from "./dhru_v2.ts";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -217,47 +216,6 @@ async function runUpstream(ctx: PlacementCtx) {
 
       if (supplier) {
         url = String(supplier.endpoint_url);
-
-        // ---- Dhru Fusion v2 (Bearer token JSON API) ----
-        if (supplier.type === "dhru_v2") {
-          const productUuid = String(service.supplier_action || "").trim();
-          if (!productUuid) {
-            await supabase.from("orders").update({
-              error_message: "Service has no product_uuid (supplier_action)",
-            }).eq("id", order.id);
-            notifyUser(supabase, userId, `⏳ Check pending — ${service.name}`,
-              `IMEI: ${imei}\nYour order is pending review.`);
-            return;
-          }
-          const feedbackBase = `${Deno.env.get("SUPABASE_URL")}/functions/v1/dhru-feedback`;
-          const feedbackUrl = `${feedbackBase}?order_id=${order.id}`;
-          const placed = await v2PlaceOrder({
-            endpoint: String(supplier.endpoint_url),
-            token: String(supplier.dhru_api_key ?? ""),
-            productUuid, imei, referenceId: String(order.id),
-            feedbackUrl,
-          });
-          if (placed.ok) {
-            await supabase.from("orders").update({
-              supplier_reference: placed.order_uuid,
-              error_message: null,
-              result: `Order placed with supplier (uuid ${placed.order_uuid}). Awaiting result…`,
-            }).eq("id", order.id);
-            notifyUser(supabase, userId,
-              `⏳ Check submitted — ${service.name}`,
-              `IMEI: ${imei}\nReference: ${placed.order_uuid}\nWaiting for supplier — you will be notified when ready.\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
-            );
-          } else {
-            await supabase.from("orders").update({
-              error_message: placed.error,
-              result: typeof placed.raw === "string" ? placed.raw.slice(0, 2000) : JSON.stringify(placed.raw).slice(0, 2000),
-            }).eq("id", order.id);
-            notifyUser(supabase, userId, `⏳ Check pending — ${service.name}`,
-              `IMEI: ${imei}\nYour order is pending review. We'll notify you once it's processed.`);
-          }
-          return;
-        }
-
         if (supplier.type === "dhru") {
           init.method = "POST";
           headers["Content-Type"] = "application/x-www-form-urlencoded";
@@ -332,16 +290,15 @@ async function runUpstream(ctx: PlacementCtx) {
       }
 
       if (supplier && supplier.type === "dhru") {
-        let placeErr: string | null = null;
         if (!resp.ok) {
-          placeErr = `Dhru returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
+          errorMsg = `Dhru returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
         } else {
           const p = parsed as Record<string, unknown> | null;
           const errBlock = p?.ERROR ?? p?.error;
           if (errBlock) {
             const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
             const e = eArr as Record<string, unknown> | undefined;
-            placeErr = (e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Rejected by supplier").toString();
+            errorMsg = (e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Rejected by supplier").toString();
           } else {
             const findRef = (n: unknown): string | null => {
               if (!n || typeof n !== "object") return null;
@@ -351,9 +308,9 @@ async function runUpstream(ctx: PlacementCtx) {
               for (const v of Object.values(o)) { const r2 = findRef(v); if (r2) return r2; }
               return null;
             };
-            const refId = findRef((parsed as any)?.SUCCESS ?? (parsed as any)?.success ?? parsed);
+            const refId = findRef(p?.SUCCESS ?? p?.success ?? p);
             if (!refId) {
-              placeErr = "Dhru did not return a reference id: " + (typeof raw === "string" ? raw.slice(0, 200) : JSON.stringify(raw).slice(0, 200));
+              errorMsg = "Dhru did not return a reference id: " + (typeof raw === "string" ? raw.slice(0, 200) : JSON.stringify(raw).slice(0, 200));
             } else {
               await supabase.from("orders").update({
                 supplier_reference: refId,
@@ -367,17 +324,6 @@ async function runUpstream(ctx: PlacementCtx) {
             }
           }
         }
-        // Async/supplier order failed at placement — DO NOT auto-fail/refund.
-        // Keep order pending with error_message so admin can Reprocess or Switch API.
-        await supabase.from("orders").update({
-          error_message: placeErr,
-          result: typeof rawData === "string" ? rawData.slice(0, 2000) : (rawData ? JSON.stringify(rawData).slice(0, 2000) : null),
-        }).eq("id", order.id);
-        notifyUser(supabase, userId,
-          `⏳ Check pending — ${service.name}`,
-          `IMEI: ${imei}\nYour order is pending review. We'll notify you once it's processed.`,
-        );
-        return;
       } else if (!resp.ok) {
         errorMsg = `Provider returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
       } else {
@@ -476,8 +422,7 @@ export async function executeCheck(opts: {
     return { ok: true, status: 200, body: { status: "completed", imei: ctx.imei, service: ctx.service.name, result: finalOrder?.result, balance_after, order_id: ctx.order.id } };
   }
   if (status === "failed") {
-    // Return 200 so the client SDK can read the JSON body instead of throwing FunctionsHttpError.
-    return { ok: true, status: 200, body: { status: "failed", error: finalOrder?.error_message ?? "Failed", balance_after, order_id: ctx.order.id } };
+    return { ok: false, status: 502, body: { status: "failed", error: finalOrder?.error_message ?? "Failed", balance_after, order_id: ctx.order.id } };
   }
   return { ok: true, status: 202, body: { status: "pending", imei: ctx.imei, service: ctx.service.name, reference: finalOrder?.supplier_reference, balance_after, order_id: ctx.order.id, message: "Order placed — awaiting result." } };
 }

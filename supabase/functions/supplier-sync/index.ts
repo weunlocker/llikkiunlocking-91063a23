@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { v2Account, v2Products, v2FlattenProducts } from "../_shared/dhru_v2.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -69,46 +68,7 @@ Deno.serve(async (req) => {
 
     const { data: sup } = await admin.from("suppliers").select("*").eq("id", supplier_id).single();
     if (!sup) return json(404, { error: "Supplier not found" });
-    if (sup.type !== "dhru" && sup.type !== "dhru_v2") return json(400, { error: "Sync only supported for Dhru-type suppliers" });
-
-    // ---- Dhru v2 (Bearer token) ----
-    if (sup.type === "dhru_v2") {
-      const acc = await v2Account(String(sup.endpoint_url), String(sup.dhru_api_key ?? ""));
-      if (acc.http >= 400) {
-        return json(acc.http === 401 ? 401 : 502, {
-          error: `Dhru v2 account check failed: ${acc.data?.message || acc.data?.error || `HTTP ${acc.http}`}`,
-          raw_sample: typeof acc.data === "string" ? acc.data.slice(0, 800) : JSON.stringify(acc.data).slice(0, 800),
-        });
-      }
-      const prod = await v2Products(String(sup.endpoint_url), String(sup.dhru_api_key ?? ""));
-      if (prod.http >= 400) {
-        return json(502, { error: `Dhru v2 products fetch failed: HTTP ${prod.http}`, raw_sample: prod.raw.slice(0, 800) });
-      }
-      const items = v2FlattenProducts(prod.data);
-      if (items.length === 0) return json(502, { error: "No products returned by supplier.", raw_sample: prod.raw.slice(0, 800) });
-
-      await admin.from("supplier_services").delete().eq("supplier_id", supplier_id);
-      const rows = items.map((s) => ({
-        supplier_id, action_code: s.id,
-        name: s.group ? `${s.group} — ${s.name}` : s.name,
-        credit: s.price, delivery_time: s.time, info: s.info, raw: s.raw,
-      }));
-      for (let i = 0; i < rows.length; i += 500) {
-        const slice = rows.slice(i, i + 500);
-        const { error } = await admin.from("supplier_services").insert(slice);
-        if (error) return json(500, { error: error.message });
-      }
-      // Mark supplier as v2 format for clarity
-      await admin.from("suppliers").update({ api_format: "v2" }).eq("id", supplier_id);
-      return json(200, {
-        ok: true,
-        count: items.length,
-        action_used: "GET /products (v2)",
-        format: "v2",
-        account: acc.data?.data ?? acc.data ?? null,
-        services: items.map((s) => ({ id: s.id, name: s.name, group: s.group, price: s.price, time: s.time })),
-      });
-    }
+    if (sup.type !== "dhru") return json(400, { error: "Sync only supported for Dhru-type suppliers" });
 
     // DHRU has TWO formats:
     //  - Classic API: flat form fields (username, apikey, action)
