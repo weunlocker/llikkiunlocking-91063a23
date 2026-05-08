@@ -749,18 +749,18 @@ function AdminOrders() {
   useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => {
-    const ql = q.toLowerCase().trim();
     return orders.filter((o) => {
       if (filter !== "all" && o.status !== filter) return false;
-      if (!ql) return true;
       const oid = String(o.order_number ?? "").padStart(4, "0");
-      return oid.includes(ql) ||
-        o.imei.toLowerCase().includes(ql) ||
-        (o.profiles?.email ?? "").toLowerCase().includes(ql) ||
-        (o.services?.name ?? "").toLowerCase().includes(ql) ||
-        o.status.toLowerCase().includes(ql);
+      if (fOrderId.trim() && !oid.includes(fOrderId.trim().replace(/^#/, ""))) return false;
+      if (fImei.trim() && !o.imei.toLowerCase().includes(fImei.trim().toLowerCase())) return false;
+      if (fUser.trim() && !(o.profiles?.email ?? "").toLowerCase().includes(fUser.trim().toLowerCase())) return false;
+      if (fService.trim() && !(o.services?.name ?? "").toLowerCase().includes(fService.trim().toLowerCase())) return false;
+      if (fDateFrom && new Date(o.created_at) < new Date(fDateFrom)) return false;
+      if (fDateTo && new Date(o.created_at) > new Date(fDateTo + "T23:59:59")) return false;
+      return true;
     });
-  }, [orders, q, filter]);
+  }, [orders, filter, fOrderId, fImei, fUser, fService, fDateFrom, fDateTo]);
 
   const refundOrder = async (o: OrderRow) => {
     const ok = await confirm({ title: "Refund order?", description: `Refund $${Number(o.price_charged).toFixed(2)} back to the customer's wallet.`, confirmText: "Refund", tone: "warning" });
