@@ -865,14 +865,25 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRo
   const save = async () => {
     if (!order) return;
     setSaving(true);
+    const newStatus = status as "pending" | "completed" | "failed" | "refunded" | "in_process";
     const { error } = await supabase.from("orders").update({
-      status: status as "pending" | "completed" | "failed" | "refunded" | "in_process",
+      status: newStatus,
       result: result || null,
       error_message: errorMsg || null,
     }).eq("id", order.id);
+    if (error) { setSaving(false); toast.error(error.message); return; }
+    // Auto-refund when admin marks as Rejected (failed) or Refunded
+    const shouldRefund = (newStatus === "failed" || newStatus === "refunded")
+      && order.status !== "refunded"
+      && Number(order.price_charged) > 0;
+    if (shouldRefund) {
+      const { error: rErr } = await supabase.functions.invoke("admin-refund-order", { body: { order_id: order.id } });
+      if (rErr) { setSaving(false); toast.error("Saved, but refund failed: " + rErr.message); return; }
+      toast.success("Order updated & refunded");
+    } else {
+      toast.success("Order updated");
+    }
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Order updated");
     onSaved();
     onClose();
   };
@@ -936,11 +947,6 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRo
             </div>
             <div>
               <Label>Result text</Label>
-              {result && (
-                <div className="mb-2">
-                  <ColoredResult text={extractResponse(result)} />
-                </div>
-              )}
               <Textarea rows={8} value={result} onChange={(e) => setResult(e.target.value)} className="font-mono text-xs" placeholder="Result shown to the customer" />
             </div>
             <div>
