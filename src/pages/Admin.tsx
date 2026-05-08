@@ -775,25 +775,28 @@ function AdminOrders() {
       title="Orders"
       subtitle={`${orders.length} total orders`}
       actions={
-        <>
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="in_process">In process</SelectItem>
-              <SelectItem value="completed">Success</SelectItem>
-              <SelectItem value="failed">Rejected</SelectItem>
-              <SelectItem value="refunded">Refunded</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="relative w-56">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Order ID, IMEI/SN, user, service…" value={q} onChange={(e) => setQ(e.target.value)} />
-          </div>
-        </>
+        <Select value={filter} onValueChange={setFilter}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All status</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="in_process">In process</SelectItem>
+            <SelectItem value="completed">Success</SelectItem>
+            <SelectItem value="failed">Rejected</SelectItem>
+            <SelectItem value="refunded">Refunded</SelectItem>
+          </SelectContent>
+        </Select>
       }
     >
+      <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+        <div><Label className="text-xs text-muted-foreground">Order ID</Label><Input value={fOrderId} onChange={(e) => setFOrderId(e.target.value)} placeholder="#0001" /></div>
+        <div><Label className="text-xs text-muted-foreground">IMEI/SN</Label><Input value={fImei} onChange={(e) => setFImei(e.target.value)} placeholder="IMEI" /></div>
+        <div><Label className="text-xs text-muted-foreground">User</Label><Input value={fUser} onChange={(e) => setFUser(e.target.value)} placeholder="email" /></div>
+        <div><Label className="text-xs text-muted-foreground">Service</Label><Input value={fService} onChange={(e) => setFService(e.target.value)} placeholder="name" /></div>
+        <div><Label className="text-xs text-muted-foreground">From</Label><Input type="date" value={fDateFrom} onChange={(e) => setFDateFrom(e.target.value)} /></div>
+        <div><Label className="text-xs text-muted-foreground">To</Label><Input type="date" value={fDateTo} onChange={(e) => setFDateTo(e.target.value)} /></div>
+      </div>
+
       {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
         <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
