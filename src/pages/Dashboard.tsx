@@ -556,13 +556,22 @@ export default function Dashboard() {
         <DialogContent className="glass max-w-2xl">
           <DialogHeader><DialogTitle>{orderDetail?.services?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="text-sm"><span className="text-muted-foreground">Order ID:</span> <span className="font-mono">#{String(orderDetail?.order_number ?? 0).padStart(4, "0")}</span></div>
-            <div className="text-sm"><span className="text-muted-foreground">IMEI:</span> <span className="font-mono">{orderDetail?.imei}</span></div>
-            <div className="text-sm"><span className="text-muted-foreground">Status:</span> <span className={`capitalize ${statusColor(orderDetail?.status ?? "")}`}>{orderDetail?.status}</span></div>
-            <div className="text-sm"><span className="text-muted-foreground">Charged:</span> <span className="font-mono">${Number(orderDetail?.price_charged ?? 0).toFixed(2)}</span></div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div><span className="text-muted-foreground">Order ID:</span> <span className="font-mono">#{String(orderDetail?.order_number ?? 0).padStart(4, "0")}</span></div>
+              <div><span className="text-muted-foreground">IMEI:</span> <span className="font-mono">{orderDetail?.imei}</span></div>
+              <div><span className="text-muted-foreground">Status:</span> <span className={`capitalize ${statusColor(orderDetail?.status ?? "")}`}>{orderDetail?.status}</span></div>
+              <div><span className="text-muted-foreground">Charged:</span> <span className="font-mono">${Number(orderDetail?.price_charged ?? 0).toFixed(2)}</span></div>
+              <div><span className="text-muted-foreground">Delivery Time:</span> <span>{orderDetail?.services?.delivery_time ?? "—"}</span></div>
+              <div><span className="text-muted-foreground">Took:</span> <span>{orderDetail ? formatDuration(orderDetail.created_at, orderDetail.updated_at, orderDetail.status) : "—"}</span></div>
+              <div className="col-span-2"><span className="text-muted-foreground">Submitted:</span> <span>{orderDetail ? new Date(orderDetail.created_at).toLocaleString() : ""}</span></div>
+            </div>
             <div>
               <div className="text-sm text-muted-foreground mb-1">Result</div>
-              <pre className="glass rounded p-3 text-xs font-mono whitespace-pre-wrap break-all max-h-80 overflow-auto">{extractResponse(orderDetail?.result) || orderDetail?.error_message || "No data"}</pre>
+              <div className="glass rounded p-3 text-sm max-h-80 overflow-auto">
+                {orderDetail?.result
+                  ? <ColoredResult text={extractResponse(orderDetail.result)} font={orderDetail.services?.result_font ?? undefined} />
+                  : <pre className="font-mono text-xs whitespace-pre-wrap break-all">{orderDetail?.error_message || "No data"}</pre>}
+              </div>
             </div>
           </div>
         </DialogContent>
