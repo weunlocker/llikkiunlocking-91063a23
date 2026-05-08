@@ -16,9 +16,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { telegramChatIdSchema } from "@/lib/validation";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
 import { extractResponse } from "@/lib/extractResponse";
+import { ColoredResult } from "@/components/ColoredResult";
 import ApiDocs from "@/pages/ApiDocs";
 
-type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null };
+function formatDuration(start: string, end: string, status: string): string {
+  const s = new Date(start).getTime();
+  const e = (status === "pending" || status === "processing") ? Date.now() : new Date(end).getTime();
+  const ms = Math.max(0, e - s);
+  const sec = Math.floor(ms / 1000);
+  if (sec < 60) return `${sec}s`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ${sec % 60}s`;
+  const hr = Math.floor(min / 60);
+  return `${hr}h ${min % 60}m`;
+}
+
+type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; updated_at: string; services: { name: string; delivery_time: string | null; result_font: string | null; result_color: string | null } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null };
 
@@ -103,7 +116,7 @@ export default function Dashboard() {
   const load = async () => {
     if (!user) return;
     const [{ data: o }, { data: t }, { data: svc }, { data: ovs }] = await Promise.all([
-      supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,services(name)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
+      supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,updated_at,services(name,delivery_time,result_font,result_color)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("services").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color").eq("active", true).order("category").order("price"),
       supabase.from("user_service_overrides").select("service_id,enabled,custom_price").eq("user_id", user.id),
@@ -556,13 +569,22 @@ export default function Dashboard() {
         <DialogContent className="glass max-w-2xl">
           <DialogHeader><DialogTitle>{orderDetail?.services?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="text-sm"><span className="text-muted-foreground">Order ID:</span> <span className="font-mono">#{String(orderDetail?.order_number ?? 0).padStart(4, "0")}</span></div>
-            <div className="text-sm"><span className="text-muted-foreground">IMEI:</span> <span className="font-mono">{orderDetail?.imei}</span></div>
-            <div className="text-sm"><span className="text-muted-foreground">Status:</span> <span className={`capitalize ${statusColor(orderDetail?.status ?? "")}`}>{orderDetail?.status}</span></div>
-            <div className="text-sm"><span className="text-muted-foreground">Charged:</span> <span className="font-mono">${Number(orderDetail?.price_charged ?? 0).toFixed(2)}</span></div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div><span className="text-muted-foreground">Order ID:</span> <span className="font-mono">#{String(orderDetail?.order_number ?? 0).padStart(4, "0")}</span></div>
+              <div><span className="text-muted-foreground">IMEI:</span> <span className="font-mono">{orderDetail?.imei}</span></div>
+              <div><span className="text-muted-foreground">Status:</span> <span className={`capitalize ${statusColor(orderDetail?.status ?? "")}`}>{orderDetail?.status}</span></div>
+              <div><span className="text-muted-foreground">Charged:</span> <span className="font-mono">${Number(orderDetail?.price_charged ?? 0).toFixed(2)}</span></div>
+              <div><span className="text-muted-foreground">Delivery Time:</span> <span>{orderDetail?.services?.delivery_time ?? "—"}</span></div>
+              <div><span className="text-muted-foreground">Took:</span> <span>{orderDetail ? formatDuration(orderDetail.created_at, orderDetail.updated_at, orderDetail.status) : "—"}</span></div>
+              <div className="col-span-2"><span className="text-muted-foreground">Submitted:</span> <span>{orderDetail ? new Date(orderDetail.created_at).toLocaleString() : ""}</span></div>
+            </div>
             <div>
               <div className="text-sm text-muted-foreground mb-1">Result</div>
-              <pre className="glass rounded p-3 text-xs font-mono whitespace-pre-wrap break-all max-h-80 overflow-auto">{extractResponse(orderDetail?.result) || orderDetail?.error_message || "No data"}</pre>
+              <div className="glass rounded p-3 text-sm max-h-80 overflow-auto">
+                {orderDetail?.result
+                  ? <ColoredResult text={extractResponse(orderDetail.result)} font={orderDetail.services?.result_font ?? undefined} />
+                  : <pre className="font-mono text-xs whitespace-pre-wrap break-all">{orderDetail?.error_message || "No data"}</pre>}
+              </div>
             </div>
           </div>
         </DialogContent>
