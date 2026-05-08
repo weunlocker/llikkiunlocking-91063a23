@@ -722,7 +722,12 @@ function AdminOrders() {
   const confirm = useConfirm();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
+  const [fOrderId, setFOrderId] = useState("");
+  const [fImei, setFImei] = useState("");
+  const [fUser, setFUser] = useState("");
+  const [fService, setFService] = useState("");
+  const [fDateFrom, setFDateFrom] = useState("");
+  const [fDateTo, setFDateTo] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [view, setView] = useState<OrderRow | null>(null);
 
@@ -744,18 +749,18 @@ function AdminOrders() {
   useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => {
-    const ql = q.toLowerCase().trim();
     return orders.filter((o) => {
       if (filter !== "all" && o.status !== filter) return false;
-      if (!ql) return true;
       const oid = String(o.order_number ?? "").padStart(4, "0");
-      return oid.includes(ql) ||
-        o.imei.toLowerCase().includes(ql) ||
-        (o.profiles?.email ?? "").toLowerCase().includes(ql) ||
-        (o.services?.name ?? "").toLowerCase().includes(ql) ||
-        o.status.toLowerCase().includes(ql);
+      if (fOrderId.trim() && !oid.includes(fOrderId.trim().replace(/^#/, ""))) return false;
+      if (fImei.trim() && !o.imei.toLowerCase().includes(fImei.trim().toLowerCase())) return false;
+      if (fUser.trim() && !(o.profiles?.email ?? "").toLowerCase().includes(fUser.trim().toLowerCase())) return false;
+      if (fService.trim() && !(o.services?.name ?? "").toLowerCase().includes(fService.trim().toLowerCase())) return false;
+      if (fDateFrom && new Date(o.created_at) < new Date(fDateFrom)) return false;
+      if (fDateTo && new Date(o.created_at) > new Date(fDateTo + "T23:59:59")) return false;
+      return true;
     });
-  }, [orders, q, filter]);
+  }, [orders, filter, fOrderId, fImei, fUser, fService, fDateFrom, fDateTo]);
 
   const refundOrder = async (o: OrderRow) => {
     const ok = await confirm({ title: "Refund order?", description: `Refund $${Number(o.price_charged).toFixed(2)} back to the customer's wallet.`, confirmText: "Refund", tone: "warning" });
@@ -770,25 +775,28 @@ function AdminOrders() {
       title="Orders"
       subtitle={`${orders.length} total orders`}
       actions={
-        <>
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="in_process">In process</SelectItem>
-              <SelectItem value="completed">Success</SelectItem>
-              <SelectItem value="failed">Rejected</SelectItem>
-              <SelectItem value="refunded">Refunded</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="relative w-56">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Order ID, IMEI/SN, user, service…" value={q} onChange={(e) => setQ(e.target.value)} />
-          </div>
-        </>
+        <Select value={filter} onValueChange={setFilter}>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All status</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="in_process">In process</SelectItem>
+            <SelectItem value="completed">Success</SelectItem>
+            <SelectItem value="failed">Rejected</SelectItem>
+            <SelectItem value="refunded">Refunded</SelectItem>
+          </SelectContent>
+        </Select>
       }
     >
+      <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+        <div><Label className="text-xs text-muted-foreground">Order ID</Label><Input value={fOrderId} onChange={(e) => setFOrderId(e.target.value)} placeholder="#0001" /></div>
+        <div><Label className="text-xs text-muted-foreground">IMEI/SN</Label><Input value={fImei} onChange={(e) => setFImei(e.target.value)} placeholder="IMEI" /></div>
+        <div><Label className="text-xs text-muted-foreground">User</Label><Input value={fUser} onChange={(e) => setFUser(e.target.value)} placeholder="email" /></div>
+        <div><Label className="text-xs text-muted-foreground">Service</Label><Input value={fService} onChange={(e) => setFService(e.target.value)} placeholder="name" /></div>
+        <div><Label className="text-xs text-muted-foreground">From</Label><Input type="date" value={fDateFrom} onChange={(e) => setFDateFrom(e.target.value)} /></div>
+        <div><Label className="text-xs text-muted-foreground">To</Label><Input type="date" value={fDateTo} onChange={(e) => setFDateTo(e.target.value)} /></div>
+      </div>
+
       {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
         <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">

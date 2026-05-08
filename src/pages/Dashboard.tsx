@@ -46,7 +46,11 @@ export default function Dashboard() {
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [testingTg, setTestingTg] = useState(false);
-  const [orderQuery, setOrderQuery] = useState("");
+  const [oqOrderId, setOqOrderId] = useState("");
+  const [oqImei, setOqImei] = useState("");
+  const [oqService, setOqService] = useState("");
+  const [oqFrom, setOqFrom] = useState("");
+  const [oqTo, setOqTo] = useState("");
   const [orderStatus, setOrderStatus] = useState("all");
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgDismissed, setMsgDismissed] = useState(false);
@@ -329,39 +333,38 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="orders" className="mt-5">
-            <div className="glass rounded-2xl p-4 mb-4 flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search by Order ID, IMEI/SN, service…"
-                  value={orderQuery}
-                  onChange={(e) => setOrderQuery(e.target.value)}
-                  className="pl-9"
-                />
+            <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 items-end">
+              <div><Label className="text-xs text-muted-foreground">Order ID</Label><Input value={oqOrderId} onChange={(e) => setOqOrderId(e.target.value)} placeholder="#0001" /></div>
+              <div><Label className="text-xs text-muted-foreground">IMEI/SN</Label><Input value={oqImei} onChange={(e) => setOqImei(e.target.value)} placeholder="IMEI" /></div>
+              <div><Label className="text-xs text-muted-foreground">Service</Label><Input value={oqService} onChange={(e) => setOqService(e.target.value)} placeholder="name" /></div>
+              <div><Label className="text-xs text-muted-foreground">From</Label><Input type="date" value={oqFrom} onChange={(e) => setOqFrom(e.target.value)} /></div>
+              <div><Label className="text-xs text-muted-foreground">To</Label><Input type="date" value={oqTo} onChange={(e) => setOqTo(e.target.value)} /></div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Status</Label>
+                <Select value={orderStatus} onValueChange={setOrderStatus}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All status</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="refunded">Refunded</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Select value={orderStatus} onValueChange={setOrderStatus}>
-                <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All status</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="refunded">Refunded</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             <div className="glass rounded-2xl overflow-hidden">
               {loading ? <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-primary" /></div> :
                 (() => {
-                  const q = orderQuery.toLowerCase().trim();
                   const filteredOrders = orders.filter((o) => {
                     if (orderStatus !== "all" && o.status !== orderStatus) return false;
-                    if (!q) return true;
                     const oid = String(o.order_number ?? "").padStart(4, "0");
-                    return oid.includes(q) ||
-                      o.imei.toLowerCase().includes(q) ||
-                      (o.services?.name ?? "").toLowerCase().includes(q) ||
-                      o.status.toLowerCase().includes(q);
+                    if (oqOrderId.trim() && !oid.includes(oqOrderId.trim().replace(/^#/, ""))) return false;
+                    if (oqImei.trim() && !o.imei.toLowerCase().includes(oqImei.trim().toLowerCase())) return false;
+                    if (oqService.trim() && !(o.services?.name ?? "").toLowerCase().includes(oqService.trim().toLowerCase())) return false;
+                    if (oqFrom && new Date(o.created_at) < new Date(oqFrom)) return false;
+                    if (oqTo && new Date(o.created_at) > new Date(oqTo + "T23:59:59")) return false;
+                    return true;
                   });
                   if (filteredOrders.length === 0) return <div className="p-12 text-center text-muted-foreground">No orders found.</div>;
                   return (
