@@ -584,7 +584,15 @@ export default function Dashboard() {
               <div className="col-span-2"><span className="text-muted-foreground">Submitted:</span> <span>{orderDetail ? new Date(orderDetail.created_at).toLocaleString() : ""}</span></div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground mb-1">Result</div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-sm text-muted-foreground">Result</div>
+                {(orderDetail?.result || orderDetail?.error_message) && (
+                  <Button variant="outline" size="sm" onClick={() => {
+                    const txt = orderDetail?.result ? extractResponse(orderDetail.result).replace(/\[\[\/?(c:[^\]]+|f:[^\]]+|c|f)\]\]/g, "") : (orderDetail?.error_message || "");
+                    navigator.clipboard.writeText(txt).then(() => toast.success("Copied to clipboard"));
+                  }}>Copy</Button>
+                )}
+              </div>
               <div className="glass rounded p-3 text-sm max-h-80 overflow-auto">
                 {orderDetail?.result
                   ? <ColoredResult text={extractResponse(orderDetail.result)} font={orderDetail.services?.result_font ?? undefined} />
