@@ -383,7 +383,7 @@ export default function Dashboard() {
                   return (
                 <table className="w-full text-sm">
                   <thead className="bg-secondary/40 text-left">
-                    <tr><th className="px-5 py-3">Order ID</th><th className="px-5 py-3">Service</th><th className="px-5 py-3">IMEI</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Price</th><th className="px-5 py-3">Date</th></tr>
+                     <tr><th className="px-5 py-3">Order ID</th><th className="px-5 py-3">Service</th><th className="px-5 py-3">IMEI</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Price</th><th className="px-5 py-3">Date</th><th className="px-5 py-3">Result</th></tr>
                   </thead>
                   <tbody>
                     {filteredOrders.map((o) => (
@@ -394,6 +394,11 @@ export default function Dashboard() {
                         <td className={`px-5 py-3 capitalize font-medium ${statusColor(o.status)}`}>{o.status}</td>
                         <td className="px-5 py-3 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
                         <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(o.created_at).toLocaleString()}</td>
+                        <td className="px-5 py-3 text-xs max-w-md" onClick={(e) => e.stopPropagation()}>
+                          {o.result
+                            ? <div className="max-h-32 overflow-auto"><ColoredResult text={extractResponse(o.result)} font={o.services?.result_font ?? undefined} /></div>
+                            : <span className="text-muted-foreground">{o.error_message || (o.status === "pending" ? "Waiting…" : "—")}</span>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
