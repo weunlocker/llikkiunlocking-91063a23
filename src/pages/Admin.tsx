@@ -947,11 +947,6 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRo
             </div>
             <div>
               <Label>Result text</Label>
-              {result && (
-                <div className="mb-2">
-                  <ColoredResult text={extractResponse(result)} />
-                </div>
-              )}
               <Textarea rows={8} value={result} onChange={(e) => setResult(e.target.value)} className="font-mono text-xs" placeholder="Result shown to the customer" />
             </div>
             <div>
