@@ -46,7 +46,11 @@ export default function Dashboard() {
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [testingTg, setTestingTg] = useState(false);
-  const [orderQuery, setOrderQuery] = useState("");
+  const [oqOrderId, setOqOrderId] = useState("");
+  const [oqImei, setOqImei] = useState("");
+  const [oqService, setOqService] = useState("");
+  const [oqFrom, setOqFrom] = useState("");
+  const [oqTo, setOqTo] = useState("");
   const [orderStatus, setOrderStatus] = useState("all");
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgDismissed, setMsgDismissed] = useState(false);
