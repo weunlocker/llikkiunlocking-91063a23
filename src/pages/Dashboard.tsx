@@ -587,9 +587,18 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-1">
                 <div className="text-sm text-muted-foreground">Result</div>
                 {(orderDetail?.result || orderDetail?.error_message) && (
-                  <Button variant="outline" size="sm" onClick={() => {
+                  <Button variant="outline" size="sm" onClick={async () => {
                     const txt = orderDetail?.result ? extractResponse(orderDetail.result).replace(/\[\[\/?(c:[^\]]+|f:[^\]]+|c|f)\]\]/g, "") : (orderDetail?.error_message || "");
-                    navigator.clipboard.writeText(txt).then(() => toast.success("Copied to clipboard"));
+                    try {
+                      await navigator.clipboard.writeText(txt);
+                      toast.success("Copied!", { description: "Result copied to clipboard" });
+                    } catch {
+                      const ta = document.createElement("textarea");
+                      ta.value = txt; document.body.appendChild(ta); ta.select();
+                      try { document.execCommand("copy"); toast.success("Copied!", { description: "Result copied to clipboard" }); }
+                      catch { toast.error("Copy failed"); }
+                      document.body.removeChild(ta);
+                    }
                   }}>Copy</Button>
                 )}
               </div>
