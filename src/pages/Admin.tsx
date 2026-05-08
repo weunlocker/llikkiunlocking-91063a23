@@ -722,7 +722,12 @@ function AdminOrders() {
   const confirm = useConfirm();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
+  const [fOrderId, setFOrderId] = useState("");
+  const [fImei, setFImei] = useState("");
+  const [fUser, setFUser] = useState("");
+  const [fService, setFService] = useState("");
+  const [fDateFrom, setFDateFrom] = useState("");
+  const [fDateTo, setFDateTo] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [view, setView] = useState<OrderRow | null>(null);
 
