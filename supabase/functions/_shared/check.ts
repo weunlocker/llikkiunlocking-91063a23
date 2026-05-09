@@ -432,7 +432,7 @@ export async function executeCheck(opts: {
     return { ok: true, status: 200, body: { status: "completed", imei: ctx.imei, service: ctx.service.name, result: finalOrder?.result, balance_after, order_id: ctx.order.id } };
   }
   if (status === "failed") {
-    return { ok: false, status: 502, body: { status: "failed", error: finalOrder?.error_message ?? "Failed", balance_after, order_id: ctx.order.id } };
+    return { ok: true, status: 200, body: { status: "failed", imei: ctx.imei, service: ctx.service.name, error: finalOrder?.error_message ?? "Failed", refunded: true, balance_after, order_id: ctx.order.id } };
   }
   return { ok: true, status: 202, body: { status: "pending", imei: ctx.imei, service: ctx.service.name, reference: finalOrder?.supplier_reference, balance_after, order_id: ctx.order.id, message: "Order placed — awaiting result." } };
 }
