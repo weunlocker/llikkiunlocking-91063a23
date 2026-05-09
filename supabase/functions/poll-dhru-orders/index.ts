@@ -31,6 +31,15 @@ function applyTemplate(template: string, data: unknown): string {
 }
 
 function normalizeHtml(s: string): string {
+  // Preserve color markup so the client can render it.
+  s = s.replace(
+    /<span\b[^>]*\bstyle\s*=\s*["'][^"']*\bcolor\s*:\s*([^;"']+)[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi,
+    (_m, color: string, inner: string) => `[[c:${color.trim()}]]${inner}[[/c]]`,
+  );
+  s = s.replace(
+    /<font\b[^>]*\bcolor\s*=\s*["']?([^"'\s>]+)["']?[^>]*>([\s\S]*?)<\/font>/gi,
+    (_m, color: string, inner: string) => `[[c:${color.trim()}]]${inner}[[/c]]`,
+  );
   return s
     .replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n").replace(/<\/div>/gi, "\n")
     .replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
