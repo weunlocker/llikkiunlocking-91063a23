@@ -230,6 +230,7 @@ async function runUpstream(ctx: PlacementCtx) {
   let success = false;
   let errorMsg: string | null = null;
   let rawData: unknown = null;
+  let instantRefId: string | null = null;
 
   const hasUpstream = !!supplier || !!service.api_url;
   if (!hasUpstream) {
