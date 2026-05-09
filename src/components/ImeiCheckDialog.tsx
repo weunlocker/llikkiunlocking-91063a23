@@ -147,9 +147,8 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
             <Smartphone className="w-5 h-5 text-primary shrink-0" />
             <span className="break-words">{service.name}</span>
           </DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">
-            Cost per check: <span className="font-mono text-primary font-bold">${price.toFixed(2)}</span>
-            {" · "}<Clock className="w-3 h-3 inline" /> {service.delivery_time}
+          <DialogDescription className="text-xs sm:text-sm flex items-center gap-2 flex-wrap">
+            <Clock className="w-3 h-3 inline" /> {service.delivery_time}
           </DialogDescription>
         </DialogHeader>
 
