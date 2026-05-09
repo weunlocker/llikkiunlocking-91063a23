@@ -1474,10 +1474,15 @@ function AdminSuppliers() {
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Name</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="e.g. DHRU Main" maxLength={100} /></div>
                 <div><Label>Type</Label>
-                  <Select value={editing.type ?? "dhru"} onValueChange={(v) => setEditing({ ...editing, type: v as "dhru" | "generic" })}>
+                  <Select value={editing.type ?? "dhru"} onValueChange={(v) => {
+                    const next = { ...editing, type: v as "dhru" | "generic" | "ifree" };
+                    if (v === "ifree" && !editing.endpoint_url) next.endpoint_url = "https://api.ifreeicloud.co.uk";
+                    setEditing(next);
+                  }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="dhru">Dhru Fusion (action API)</SelectItem>
+                      <SelectItem value="ifree">iFreeiCloud (instant API)</SelectItem>
                       <SelectItem value="generic">Generic HTTP API</SelectItem>
                     </SelectContent>
                   </Select>
@@ -1486,11 +1491,13 @@ function AdminSuppliers() {
               <div>
                 <Label>Endpoint URL</Label>
                 <Input value={editing.endpoint_url ?? ""} onChange={(e) => setEditing({ ...editing, endpoint_url: e.target.value })}
-                  placeholder={editing.type === "dhru" ? "https://yoursupplier.com/api/index.php" : "https://api.provider.com/check?imei={IMEI}&action={ACTION}"} />
+                  placeholder={editing.type === "dhru" ? "https://yoursupplier.com/api/index.php" : editing.type === "ifree" ? "https://api.ifreeicloud.co.uk" : "https://api.provider.com/check?imei={IMEI}&action={ACTION}"} />
                 <p className="text-xs text-muted-foreground mt-1">
                   {editing.type === "dhru"
                     ? "Dhru API base URL (POST endpoint). Service code per service is set in the Service editor."
-                    : "Generic URL — supports {IMEI} and {ACTION} placeholders."}
+                    : editing.type === "ifree"
+                      ? "iFreeiCloud endpoint. Per-service Service ID is set in the Service editor (Supplier action = numeric service ID)."
+                      : "Generic URL — supports {IMEI} and {ACTION} placeholders."}
                 </p>
               </div>
               {editing.type === "dhru" && (
@@ -1498,6 +1505,9 @@ function AdminSuppliers() {
                   <div><Label>Username</Label><Input value={editing.dhru_username ?? ""} onChange={(e) => setEditing({ ...editing, dhru_username: e.target.value })} /></div>
                   <div><Label>API Key</Label><Input type="password" value={editing.dhru_api_key ?? ""} onChange={(e) => setEditing({ ...editing, dhru_api_key: e.target.value })} /></div>
                 </div>
+              )}
+              {editing.type === "ifree" && (
+                <div><Label>API Key</Label><Input type="password" value={editing.dhru_api_key ?? ""} onChange={(e) => setEditing({ ...editing, dhru_api_key: e.target.value })} placeholder="Your iFreeiCloud key (e.g. 28A-MNX-...)" /></div>
               )}
               <div><Label>Notes</Label><Textarea rows={2} value={editing.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} placeholder="Internal notes (rate limits, contact, etc.)" /></div>
               <div className="flex items-center gap-3"><Switch checked={editing.active ?? true} onCheckedChange={(v) => setEditing({ ...editing, active: v })} /><Label>Active</Label></div>
