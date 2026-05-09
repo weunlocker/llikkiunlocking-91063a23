@@ -1,0 +1,2 @@
+ALTER TABLE public.suppliers DROP CONSTRAINT IF EXISTS suppliers_type_check;
+ALTER TABLE public.suppliers ADD CONSTRAINT suppliers_type_check CHECK (type IN ('dhru','generic','ifree'));
