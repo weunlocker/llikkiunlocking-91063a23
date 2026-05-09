@@ -38,6 +38,11 @@ export default function FreeCheck() {
   const [result, setResult] = useState<string>("");
   const [open, setOpen] = useState(false);
   const { settings } = useSiteSettings();
+  const [tsToken, setTsToken] = useState<string>("");
+  const tsRef = useRef<HTMLDivElement | null>(null);
+  const tsWidgetId = useRef<string | null>(null);
+
+  const turnstileEnabled = settings.turnstile_enabled && !!settings.turnstile_site_key;
 
   useEffect(() => {
     document.title = "Free IMEI Check — Model, FMI & Sim Lock";
@@ -53,14 +58,44 @@ export default function FreeCheck() {
     })();
   }, []);
 
+  // Load Turnstile script + render widget when a service is selected
+  useEffect(() => {
+    if (!turnstileEnabled || !selected) return;
+    const SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    const ensureScript = () =>
+      new Promise<void>((resolve) => {
+        if (window.turnstile) return resolve();
+        const existing = document.querySelector(`script[src="${SRC}"]`) as HTMLScriptElement | null;
+        if (existing) { existing.addEventListener("load", () => resolve()); return; }
+        const s = document.createElement("script");
+        s.src = SRC; s.async = true; s.defer = true;
+        s.onload = () => resolve();
+        document.head.appendChild(s);
+      });
+    let cancelled = false;
+    ensureScript().then(() => {
+      if (cancelled || !tsRef.current || !window.turnstile) return;
+      tsRef.current.innerHTML = "";
+      tsWidgetId.current = window.turnstile.render(tsRef.current, {
+        sitekey: settings.turnstile_site_key!,
+        theme: "auto",
+        callback: (token) => setTsToken(token),
+        "error-callback": () => setTsToken(""),
+        "expired-callback": () => setTsToken(""),
+      });
+    });
+    return () => { cancelled = true; };
+  }, [turnstileEnabled, selected, settings.turnstile_site_key]);
+
   const run = async () => {
     if (!selected) return;
     const v = imeiSchema.safeParse(imei.trim());
     if (!v.success) { toast.error("Enter a valid IMEI / serial (8–20 chars)"); return; }
+    if (turnstileEnabled && !tsToken) { toast.error("Please complete the CAPTCHA"); return; }
     setRunning(true); setResult("");
     try {
       const { data, error } = await supabase.functions.invoke("free-check", {
-        body: { service_id: selected.id, imei: imei.trim() },
+        body: { service_id: selected.id, imei: imei.trim(), turnstile_token: tsToken || undefined },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -70,6 +105,11 @@ export default function FreeCheck() {
       toast.error(e instanceof Error ? e.message : "Check failed");
     } finally {
       setRunning(false);
+      // Tokens are single-use — reset widget
+      if (turnstileEnabled && window.turnstile && tsWidgetId.current) {
+        try { window.turnstile.reset(tsWidgetId.current); } catch { /* ignore */ }
+      }
+      setTsToken("");
     }
   };
 
