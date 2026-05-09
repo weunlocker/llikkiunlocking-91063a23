@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Loader2, RotateCcw, Search, TrendingUp, Users as UsersIcon, Briefcase, ListOrdered, DollarSign, AlertCircle, RefreshCw, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, RotateCcw, Search, TrendingUp, Users as UsersIcon, Briefcase, ListOrdered, DollarSign, AlertCircle, RefreshCw, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -313,6 +313,8 @@ function AdminServices() {
   const [supSvcLoading, setSupSvcLoading] = useState(false);
   const [supSvcQ, setSupSvcQ] = useState("");
   const [supSvcOpen, setSupSvcOpen] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const load = async () => {
     const [{ data: svc }, { data: sup }, { data: cats }] = await Promise.all([
@@ -393,24 +395,34 @@ function AdminServices() {
     if (error) { toast.error(error.message); return; }
     toast.success("Deleted"); load();
   };
-  const moveService = async (s: Service, dir: -1 | 1) => {
-    // Reorder within the same category. Normalize sort_order across that category first.
+  const reorderServices = async (draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return;
+    const dragged = services.find((x) => x.id === draggedId);
+    const target = services.find((x) => x.id === targetId);
+    if (!dragged || !target) return;
+    // Operate within the target's category (allows moving across categories too).
+    const cat = target.category ?? "";
     const group = services
-      .filter((x) => (x.category ?? "") === (s.category ?? ""))
+      .filter((x) => (x.category ?? "") === cat && x.id !== draggedId)
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name));
-    const idx = group.findIndex((x) => x.id === s.id);
-    const swapIdx = idx + dir;
-    if (idx < 0 || swapIdx < 0 || swapIdx >= group.length) return;
-    const reordered = [...group];
-    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
-    // Persist new sort_order = position * 10 (gives room for future inserts)
-    const updates = reordered.map((x, i) =>
-      supabase.from("services").update({ sort_order: (i + 1) * 10 }).eq("id", x.id)
-    );
-    const results = await Promise.all(updates);
+    const targetIdx = group.findIndex((x) => x.id === targetId);
+    const insertAt = targetIdx < 0 ? group.length : targetIdx;
+    const reordered = [...group.slice(0, insertAt), { ...dragged, category: cat }, ...group.slice(insertAt)];
+    // Optimistic UI: update local state immediately
+    setServices((prev) => {
+      const others = prev.filter((x) => (x.category ?? "") !== cat);
+      const updated = reordered.map((x, i) => ({ ...x, sort_order: (i + 1) * 10 }));
+      return [...others, ...updated].sort((a, b) =>
+        (a.category ?? "").localeCompare(b.category ?? "") ||
+        ((a.sort_order ?? 0) - (b.sort_order ?? 0)) ||
+        a.name.localeCompare(b.name)
+      );
+    });
+    const results = await Promise.all(reordered.map((x, i) =>
+      supabase.from("services").update({ sort_order: (i + 1) * 10, category: cat }).eq("id", x.id)
+    ));
     const err = results.find((r) => r.error);
-    if (err?.error) { toast.error(err.error.message); return; }
-    load();
+    if (err?.error) { toast.error(err.error.message); load(); return; }
   };
   const updateRule = (idx: number, patch: Partial<SuccessRule>) => {
     if (!editing) return;
@@ -470,11 +482,21 @@ function AdminServices() {
         <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
-              <tr><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
+              <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
             </thead>
             <tbody>
               {filtered.map((s) => (
-                <tr key={s.id} className="border-t border-border/50 hover:bg-secondary/20">
+                <tr
+                  key={s.id}
+                  draggable
+                  onDragStart={(e) => { setDragId(s.id); e.dataTransfer.effectAllowed = "move"; }}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverId !== s.id) setDragOverId(s.id); }}
+                  onDragLeave={() => { if (dragOverId === s.id) setDragOverId(null); }}
+                  onDrop={(e) => { e.preventDefault(); if (dragId && dragId !== s.id) reorderServices(dragId, s.id); setDragId(null); setDragOverId(null); }}
+                  onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+                  className={`border-t border-border/50 hover:bg-secondary/20 ${dragId === s.id ? "opacity-40" : ""} ${dragOverId === s.id && dragId !== s.id ? "bg-primary/10 outline outline-1 outline-primary/40" : ""}`}
+                >
+                  <td className="px-3 py-3 text-muted-foreground cursor-grab active:cursor-grabbing" title="Drag to reorder"><GripVertical className="w-4 h-4" /></td>
                   <td className="px-5 py-3 font-mono font-semibold text-primary">{s.service_code ?? "—"}</td>
                   <td className="px-5 py-3 font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => setEditing(s)}>{s.name}</td>
                   <td className="px-5 py-3"><span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">{s.category}</span></td>
@@ -487,14 +509,12 @@ function AdminServices() {
                   </td>
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
-                    <Button size="icon" variant="ghost" title="Move up" onClick={() => moveService(s, -1)}><ArrowUp className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" title="Move down" onClick={() => moveService(s, 1)}><ArrowDown className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => setEditing(s)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => delService(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={8} className="px-5 py-10 text-center text-muted-foreground">No services.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={9} className="px-5 py-10 text-center text-muted-foreground">No services.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -1642,6 +1662,8 @@ function AdminCategories() {
   const [cats, setCats] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Category> | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -1690,6 +1712,22 @@ function AdminCategories() {
     load();
   };
 
+  const reorderCats = async (draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return;
+    const dragged = cats.find((x) => x.id === draggedId);
+    if (!dragged) return;
+    const without = cats.filter((x) => x.id !== draggedId)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name));
+    const targetIdx = without.findIndex((x) => x.id === targetId);
+    const insertAt = targetIdx < 0 ? without.length : targetIdx;
+    const reordered = [...without.slice(0, insertAt), dragged, ...without.slice(insertAt)];
+    setCats(reordered.map((x, i) => ({ ...x, sort_order: (i + 1) * 10 })));
+    const results = await Promise.all(reordered.map((x, i) =>
+      supabase.from("categories").update({ sort_order: (i + 1) * 10 }).eq("id", x.id)
+    ));
+    const err = results.find((r) => r.error);
+    if (err?.error) { toast.error(err.error.message); load(); }
+  };
   return (
     <AdminLayout
       title="Categories"
@@ -1704,23 +1742,31 @@ function AdminCategories() {
         <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
-              <tr><th className="px-5 py-3">Name</th><th className="px-5 py-3">Slug</th><th className="px-5 py-3">Sort</th><th></th></tr>
+              <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Slug</th><th className="px-5 py-3">Sort</th><th></th></tr>
             </thead>
             <tbody>
               {cats.map((c) => (
-                <tr key={c.id} className="border-t border-border/50 hover:bg-secondary/20">
+                <tr
+                  key={c.id}
+                  draggable
+                  onDragStart={(e) => { setDragId(c.id); e.dataTransfer.effectAllowed = "move"; }}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverId !== c.id) setDragOverId(c.id); }}
+                  onDragLeave={() => { if (dragOverId === c.id) setDragOverId(null); }}
+                  onDrop={(e) => { e.preventDefault(); if (dragId && dragId !== c.id) reorderCats(dragId, c.id); setDragId(null); setDragOverId(null); }}
+                  onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+                  className={`border-t border-border/50 hover:bg-secondary/20 ${dragId === c.id ? "opacity-40" : ""} ${dragOverId === c.id && dragId !== c.id ? "bg-primary/10 outline outline-1 outline-primary/40" : ""}`}
+                >
+                  <td className="px-3 py-3 text-muted-foreground cursor-grab active:cursor-grabbing" title="Drag to reorder"><GripVertical className="w-4 h-4" /></td>
                   <td className="px-5 py-3 font-medium">{c.name}</td>
                   <td className="px-5 py-3 font-mono text-xs text-primary">{c.slug}</td>
                   <td className="px-5 py-3 text-muted-foreground">{c.sort_order}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
-                    <Button size="icon" variant="ghost" title="Move up" onClick={() => moveCat(c, -1)}><ArrowUp className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" title="Move down" onClick={() => moveCat(c, 1)}><ArrowDown className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => setEditing(c)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => del(c)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </td>
                 </tr>
               ))}
-              {cats.length === 0 && <tr><td colSpan={4} className="px-5 py-10 text-center text-muted-foreground">No categories yet.</td></tr>}
+              {cats.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">No categories yet.</td></tr>}
             </tbody>
           </table>
         </div>
