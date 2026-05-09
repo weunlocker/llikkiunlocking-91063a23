@@ -276,6 +276,17 @@ async function runUpstream(ctx: PlacementCtx) {
           params.set("imei", imei);
           params.set("key", String(supplier.dhru_api_key ?? ""));
           init.body = params.toString();
+        } else if (supplier.type === "goimeicheck") {
+          // GoIMEICheck place-order endpoint (GET)
+          // https://api.goimeicheck.com/api/place-order/?api_key=KEY&service=ID&imei=IMEI
+          init.method = "GET";
+          const base = String(supplier.endpoint_url || "https://api.goimeicheck.com").replace(/\/+$/, "");
+          const qs = new URLSearchParams({
+            api_key: String(supplier.dhru_api_key ?? ""),
+            service: String(service.supplier_action ?? ""),
+            imei,
+          });
+          url = `${base}/api/place-order/?${qs.toString()}`;
         } else {
           url = url
             .replace(/\{IMEI\}/gi, encodeURIComponent(imei))
