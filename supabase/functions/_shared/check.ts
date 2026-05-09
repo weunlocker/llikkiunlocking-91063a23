@@ -18,6 +18,33 @@ export function makeServiceClient() {
 
 // -------- helpers --------
 
+// Mask a sensitive value: keep first 3 and last 2 chars, replace middle with X.
+function maskValue(v: string): string {
+  if (!v) return v;
+  if (v.length <= 4) return "X".repeat(v.length);
+  const head = v.slice(0, 3);
+  const tail = v.slice(-2);
+  const mid = "X".repeat(Math.max(3, v.length - 5));
+  return head + mid + tail;
+}
+
+// Mask IMEI/SN-like values inside a result string so it's safe to use as a
+// public sample_result preview.
+function maskSensitive(text: string, imei?: string): string {
+  if (!text) return text;
+  let s = text;
+  if (imei && imei.length >= 4) {
+    const re = new RegExp(imei.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
+    s = s.replace(re, maskValue(imei));
+  }
+  // 8+ digit runs (IMEI, MEID, etc.)
+  s = s.replace(/\b\d{8,}\b/g, (m) => maskValue(m));
+  // 8+ char alphanumeric serials that contain both letters and digits
+  s = s.replace(/\b(?=[A-Za-z0-9]*[A-Za-z])(?=[A-Za-z0-9]*\d)[A-Za-z0-9]{8,}\b/g, (m) => maskValue(m));
+  return s;
+}
+
+
 function getByPath(obj: unknown, path: string): unknown {
   if (obj == null) return undefined;
   const parts = path.split(/[.\[\]]+/).filter(Boolean);
