@@ -436,7 +436,7 @@ async function runUpstream(ctx: PlacementCtx) {
 // block the HTTP response, but still gets to finish in the background.
 function detach(p: Promise<unknown> | unknown) {
   if (!p || typeof (p as Promise<unknown>).then !== "function") return;
-  const promise = (p as Promise<unknown>).catch((e) => console.error("detached task failed", e));
+  const promise = Promise.resolve(p as Promise<unknown>).catch((e) => console.error("detached task failed", e));
   try {
     // @ts-ignore Deno Deploy / Supabase Edge runtime
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
