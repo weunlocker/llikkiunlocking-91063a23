@@ -419,6 +419,33 @@ function AdminServices() {
         </>
       }
     >
+      <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div>
+          <Label className="text-xs text-muted-foreground">Group</Label>
+          <Select value={fGroup} onValueChange={(v) => { setFGroup(v); setFSvcId("all"); }}>
+            <SelectTrigger><SelectValue placeholder="All groups" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All groups</SelectItem>
+              {groupOptions.map((g) => (
+                <SelectItem key={g} value={g}>{g}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Service</Label>
+          <Select value={fSvcId} onValueChange={setFSvcId}>
+            <SelectTrigger><SelectValue placeholder="All services" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All services</SelectItem>
+              {serviceOptionsForGroup.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.service_code ? `#${s.service_code} ` : ""}{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
         <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
