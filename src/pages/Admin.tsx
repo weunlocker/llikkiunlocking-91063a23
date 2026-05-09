@@ -393,6 +393,25 @@ function AdminServices() {
     if (error) { toast.error(error.message); return; }
     toast.success("Deleted"); load();
   };
+  const moveService = async (s: Service, dir: -1 | 1) => {
+    // Reorder within the same category. Normalize sort_order across that category first.
+    const group = services
+      .filter((x) => (x.category ?? "") === (s.category ?? ""))
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name));
+    const idx = group.findIndex((x) => x.id === s.id);
+    const swapIdx = idx + dir;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= group.length) return;
+    const reordered = [...group];
+    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+    // Persist new sort_order = position * 10 (gives room for future inserts)
+    const updates = reordered.map((x, i) =>
+      supabase.from("services").update({ sort_order: (i + 1) * 10 }).eq("id", x.id)
+    );
+    const results = await Promise.all(updates);
+    const err = results.find((r) => r.error);
+    if (err?.error) { toast.error(err.error.message); return; }
+    load();
+  };
   const updateRule = (idx: number, patch: Partial<SuccessRule>) => {
     if (!editing) return;
     const rules = [...(editing.success_rules ?? [])];
