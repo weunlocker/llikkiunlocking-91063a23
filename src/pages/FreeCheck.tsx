@@ -38,11 +38,19 @@ export default function FreeCheck() {
   const [result, setResult] = useState<string>("");
   const [open, setOpen] = useState(false);
   const { settings } = useSiteSettings();
+  const [turnstileConfig, setTurnstileConfig] = useState<{ loaded: boolean; enabled: boolean; siteKey: string | null }>({
+    loaded: false,
+    enabled: false,
+    siteKey: null,
+  });
   const [tsToken, setTsToken] = useState<string>("");
   const tsRef = useRef<HTMLDivElement | null>(null);
   const tsWidgetId = useRef<string | null>(null);
 
-  const turnstileEnabled = settings.turnstile_enabled && !!settings.turnstile_site_key;
+  const turnstileSiteKey = turnstileConfig.siteKey ?? settings.turnstile_site_key;
+  const turnstileEnabled = turnstileConfig.loaded
+    ? turnstileConfig.enabled && !!turnstileSiteKey
+    : settings.turnstile_enabled && !!turnstileSiteKey;
 
   useEffect(() => {
     document.title = "Free IMEI Check — Model, FMI & Sim Lock";
@@ -58,9 +66,29 @@ export default function FreeCheck() {
     })();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("site_settings")
+        .select("turnstile_site_key, turnstile_enabled")
+        .eq("id", 1)
+        .maybeSingle();
+      if (!cancelled) {
+        setTurnstileConfig({
+          loaded: true,
+          enabled: Boolean((data as any)?.turnstile_enabled),
+          siteKey: ((data as any)?.turnstile_site_key ?? null) as string | null,
+        });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Load Turnstile script + render widget when a service is selected
   useEffect(() => {
-    if (!turnstileEnabled || !selected) return;
+    setTsToken("");
+    if (!turnstileEnabled || !selected || !turnstileSiteKey) return;
     const SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
     const ensureScript = () =>
       new Promise<void>((resolve) => {
@@ -75,9 +103,12 @@ export default function FreeCheck() {
     let cancelled = false;
     ensureScript().then(() => {
       if (cancelled || !tsRef.current || !window.turnstile) return;
+      if (tsWidgetId.current) {
+        try { window.turnstile.remove(tsWidgetId.current); } catch { /* ignore */ }
+      }
       tsRef.current.innerHTML = "";
       tsWidgetId.current = window.turnstile.render(tsRef.current, {
-        sitekey: settings.turnstile_site_key!,
+        sitekey: turnstileSiteKey,
         theme: "auto",
         callback: (token) => setTsToken(token),
         "error-callback": () => setTsToken(""),
@@ -85,12 +116,13 @@ export default function FreeCheck() {
       });
     });
     return () => { cancelled = true; };
-  }, [turnstileEnabled, selected, settings.turnstile_site_key]);
+  }, [turnstileEnabled, selected, turnstileSiteKey]);
 
   const run = async () => {
     if (!selected) return;
     const v = imeiSchema.safeParse(imei.trim());
     if (!v.success) { toast.error("Enter a valid IMEI / serial (8–20 chars)"); return; }
+    if (!turnstileConfig.loaded) { toast.error("Security check is still loading. Please wait."); return; }
     if (turnstileEnabled && !tsToken) { toast.error("Please complete the CAPTCHA"); return; }
     setRunning(true); setResult("");
     try {
@@ -166,7 +198,7 @@ export default function FreeCheck() {
                 maxLength={20}
                 className="font-mono"
               />
-              <Button variant="hero" onClick={run} disabled={running || !imei.trim() || (turnstileEnabled && !tsToken)}>
+              <Button variant="hero" onClick={run} disabled={running || !imei.trim() || !turnstileConfig.loaded || (turnstileEnabled && !tsToken)}>
                 {running ? <Loader2 className="w-4 h-4 animate-spin" /> : "Check"}
               </Button>
             </div>
