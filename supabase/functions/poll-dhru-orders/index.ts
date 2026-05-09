@@ -276,7 +276,10 @@ Deno.serve(async (req) => {
           resultBlob?.CODE ?? resultBlob?.code ??
           resultBlob?.MESSAGE ?? resultBlob?.message ??
           (typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2));
-        const finalText = normalizeHtml(typeof replyText === "string" ? replyText : JSON.stringify(replyText, null, 2)) || "(empty response)";
+        const templated = svc.response_template
+          ? applyTemplate(svc.response_template, parsed)
+          : (typeof replyText === "string" ? replyText : JSON.stringify(replyText, null, 2));
+        const finalText = normalizeHtml(typeof templated === "string" ? templated : JSON.stringify(templated, null, 2)) || "(empty response)";
 
         await sb.from("orders").update({
           status: "completed",
