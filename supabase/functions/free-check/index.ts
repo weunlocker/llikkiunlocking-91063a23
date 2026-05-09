@@ -94,16 +94,17 @@ Deno.serve(async (req) => {
       .select("turnstile_enabled, turnstile_site_key")
       .eq("id", 1)
       .maybeSingle();
-    if (siteRow?.turnstile_enabled) {
-      const token = parsed.data.turnstile_token;
-      if (!token) return json(401, { error: "CAPTCHA required" });
+    if (siteRow?.turnstile_enabled && siteRow?.turnstile_site_key) {
       const { data: priv } = await supabase
         .from("private_settings")
         .select("turnstile_secret_key")
         .eq("id", 1)
         .maybeSingle();
       const secret = priv?.turnstile_secret_key;
-      if (!secret) return json(500, { error: "CAPTCHA not configured" });
+      // Only enforce when fully configured; otherwise silently skip
+      if (secret) {
+      const token = parsed.data.turnstile_token;
+      if (!token) return json(401, { error: "CAPTCHA required" });
       const form = new FormData();
       form.append("secret", secret);
       form.append("response", token);
@@ -115,6 +116,7 @@ Deno.serve(async (req) => {
       const verifyJson = await verifyRes.json().catch(() => ({}));
       if (!verifyJson?.success) {
         return json(401, { error: "CAPTCHA verification failed", codes: verifyJson?.["error-codes"] });
+      }
       }
     }
 
