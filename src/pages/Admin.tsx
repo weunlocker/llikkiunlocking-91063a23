@@ -843,8 +843,26 @@ function AdminOrders() {
       <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
         <div><Label className="text-xs text-muted-foreground">Order ID</Label><Input value={fOrderId} onChange={(e) => setFOrderId(e.target.value)} placeholder="#0001" /></div>
         <div><Label className="text-xs text-muted-foreground">IMEI/SN</Label><Input value={fImei} onChange={(e) => setFImei(e.target.value)} placeholder="IMEI" /></div>
-        <div><Label className="text-xs text-muted-foreground">User</Label><Input value={fUser} onChange={(e) => setFUser(e.target.value)} placeholder="email" /></div>
-        <div><Label className="text-xs text-muted-foreground">Service</Label><Input value={fService} onChange={(e) => setFService(e.target.value)} placeholder="name" /></div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Client</Label>
+          <Select value={fUser} onValueChange={setFUser}>
+            <SelectTrigger><SelectValue placeholder="All clients" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All clients</SelectItem>
+              {userOptions.map((e) => (<SelectItem key={e} value={e}>{e}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Service</Label>
+          <Select value={fService} onValueChange={setFService}>
+            <SelectTrigger><SelectValue placeholder="All services" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All services</SelectItem>
+              {serviceOptions.map((n) => (<SelectItem key={n} value={n}>{n}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
         <div><Label className="text-xs text-muted-foreground">From</Label><Input type="date" value={fDateFrom} onChange={(e) => setFDateFrom(e.target.value)} /></div>
         <div><Label className="text-xs text-muted-foreground">To</Label><Input type="date" value={fDateTo} onChange={(e) => setFDateTo(e.target.value)} /></div>
       </div>
