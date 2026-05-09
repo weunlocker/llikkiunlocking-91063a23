@@ -1679,6 +1679,7 @@ function AdminTelegramBot() {
 /* ---------- Router ---------- */
 import AdminEmailSettings from "./AdminEmailSettings";
 import AdminPayments from "./AdminPayments";
+import AdminTurnstile from "./AdminTurnstile";
 export default function Admin() {
   return (
     <Routes>
@@ -1694,6 +1695,7 @@ export default function Admin() {
       <Route path="telegram-bot" element={<AdminTelegramBot />} />
       <Route path="api-providers" element={<AdminSuppliers />} />
       <Route path="email-settings" element={<AdminEmailSettings />} />
+      <Route path="turnstile" element={<AdminTurnstile />} />
       <Route path="settings" element={<AdminSettings />} />
     </Routes>
   );
