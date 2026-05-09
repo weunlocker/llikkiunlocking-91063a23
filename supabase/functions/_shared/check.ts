@@ -18,6 +18,33 @@ export function makeServiceClient() {
 
 // -------- helpers --------
 
+// Mask a sensitive value: keep first 3 and last 2 chars, replace middle with X.
+function maskValue(v: string): string {
+  if (!v) return v;
+  if (v.length <= 4) return "X".repeat(v.length);
+  const head = v.slice(0, 3);
+  const tail = v.slice(-2);
+  const mid = "X".repeat(Math.max(3, v.length - 5));
+  return head + mid + tail;
+}
+
+// Mask IMEI/SN-like values inside a result string so it's safe to use as a
+// public sample_result preview.
+function maskSensitive(text: string, imei?: string): string {
+  if (!text) return text;
+  let s = text;
+  if (imei && imei.length >= 4) {
+    const re = new RegExp(imei.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
+    s = s.replace(re, maskValue(imei));
+  }
+  // 8+ digit runs (IMEI, MEID, etc.)
+  s = s.replace(/\b\d{8,}\b/g, (m) => maskValue(m));
+  // 8+ char alphanumeric serials that contain both letters and digits
+  s = s.replace(/\b(?=[A-Za-z0-9]*[A-Za-z])(?=[A-Za-z0-9]*\d)[A-Za-z0-9]{8,}\b/g, (m) => maskValue(m));
+  return s;
+}
+
+
 function getByPath(obj: unknown, path: string): unknown {
   if (obj == null) return undefined;
   const parts = path.split(/[.\[\]]+/).filter(Boolean);
@@ -387,6 +414,14 @@ async function runUpstream(ctx: PlacementCtx) {
   }
 
   await supabase.from("orders").update({ status: "completed", result: resultText }).eq("id", order.id);
+
+  // Auto-fill sample_result for newly added services so admins get a preview
+  // of what the response looks like, with IMEI/SN values masked for privacy.
+  if (!service.sample_result || !String(service.sample_result).trim()) {
+    const sample = maskSensitive(resultText, imei);
+    detach(supabase.from("services").update({ sample_result: sample }).eq("id", service.id));
+  }
+
   detach(notifyUser(supabase, userId,
     `✅ Check completed — ${service.name}`,
     `IMEI: ${imei}\n\n${resultText}\n\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
