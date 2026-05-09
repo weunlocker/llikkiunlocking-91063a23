@@ -146,14 +146,24 @@ Deno.serve(async (req) => {
         // Dhru placement is async — not suitable for free check sync flow.
         return json(400, { error: "Free check does not support Dhru suppliers (async). Use a direct API URL." });
       }
-      url = url.replace(/\{IMEI\}/gi, encodeURIComponent(imei))
-        .replace(/\{ACTION\}/gi, encodeURIComponent(String(service.supplier_action ?? "")));
-      init.method = service.api_method || "GET";
-      Object.assign(headers, (service.api_headers ?? {}) as Record<string, string>);
-      if (init.method === "POST") {
-        headers["Content-Type"] = headers["Content-Type"] ?? "application/json";
-        init.body = (service.api_request_body || JSON.stringify({ imei }))
-          .replace(/\{IMEI\}/gi, imei).replace(/\{ACTION\}/gi, String(service.supplier_action ?? ""));
+      if (supplier.type === "ifree") {
+        init.method = "POST";
+        headers["Content-Type"] = "application/x-www-form-urlencoded";
+        const params = new URLSearchParams();
+        params.set("service", String(service.supplier_action ?? ""));
+        params.set("imei", imei);
+        params.set("key", String(supplier.dhru_api_key ?? ""));
+        init.body = params.toString();
+      } else {
+        url = url.replace(/\{IMEI\}/gi, encodeURIComponent(imei))
+          .replace(/\{ACTION\}/gi, encodeURIComponent(String(service.supplier_action ?? "")));
+        init.method = service.api_method || "GET";
+        Object.assign(headers, (service.api_headers ?? {}) as Record<string, string>);
+        if (init.method === "POST") {
+          headers["Content-Type"] = headers["Content-Type"] ?? "application/json";
+          init.body = (service.api_request_body || JSON.stringify({ imei }))
+            .replace(/\{IMEI\}/gi, imei).replace(/\{ACTION\}/gi, String(service.supplier_action ?? ""));
+        }
       }
     } else {
       url = service.api_url

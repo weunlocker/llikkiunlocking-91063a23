@@ -241,6 +241,14 @@ async function runUpstream(ctx: PlacementCtx) {
             params.set("imei", imei);
           }
           init.body = params.toString();
+        } else if (supplier.type === "ifree") {
+          init.method = "POST";
+          headers["Content-Type"] = "application/x-www-form-urlencoded";
+          const params = new URLSearchParams();
+          params.set("service", String(service.supplier_action ?? ""));
+          params.set("imei", imei);
+          params.set("key", String(supplier.dhru_api_key ?? ""));
+          init.body = params.toString();
         } else {
           url = url
             .replace(/\{IMEI\}/gi, encodeURIComponent(imei))
@@ -336,7 +344,7 @@ async function runUpstream(ctx: PlacementCtx) {
           : evaluateRules(service.success_rules as SuccessRule[] | null, parsed);
         if (!ruleResult.ok && isExplicitFail) {
           const status = pObj?.status ? String(pObj.status) : "Rejected";
-          const respMsg = pObj?.response ? String(pObj.response) : "";
+          const respMsg = pObj?.response ? String(pObj.response) : (pObj?.error ? String(pObj.error) : "");
           errorMsg = respMsg ? `${status}: ${respMsg}` : status;
         } else if (!ruleResult.ok) {
           const r = ruleResult.failedRule!;
