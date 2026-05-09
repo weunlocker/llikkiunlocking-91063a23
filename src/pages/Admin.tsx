@@ -487,6 +487,8 @@ function AdminServices() {
                   </td>
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
+                    <Button size="icon" variant="ghost" title="Move up" onClick={() => moveService(s, -1)}><ArrowUp className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" title="Move down" onClick={() => moveService(s, 1)}><ArrowDown className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => setEditing(s)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => delService(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </td>
