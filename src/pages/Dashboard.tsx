@@ -61,7 +61,8 @@ export default function Dashboard() {
   const [testingTg, setTestingTg] = useState(false);
   const [oqOrderId, setOqOrderId] = useState("");
   const [oqImei, setOqImei] = useState("");
-  const [oqService, setOqService] = useState("");
+  const [oqService, setOqService] = useState("all");
+  const [oqGroup, setOqGroup] = useState("all");
   const [oqFrom, setOqFrom] = useState("");
   const [oqTo, setOqTo] = useState("");
   const [orderStatus, setOrderStatus] = useState("all");
