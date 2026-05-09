@@ -1713,6 +1713,8 @@ function AdminCategories() {
                   <td className="px-5 py-3 font-mono text-xs text-primary">{c.slug}</td>
                   <td className="px-5 py-3 text-muted-foreground">{c.sort_order}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
+                    <Button size="icon" variant="ghost" title="Move up" onClick={() => moveCat(c, -1)}><ArrowUp className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" title="Move down" onClick={() => moveCat(c, 1)}><ArrowDown className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => setEditing(c)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => del(c)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </td>
