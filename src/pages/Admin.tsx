@@ -395,24 +395,34 @@ function AdminServices() {
     if (error) { toast.error(error.message); return; }
     toast.success("Deleted"); load();
   };
-  const moveService = async (s: Service, dir: -1 | 1) => {
-    // Reorder within the same category. Normalize sort_order across that category first.
+  const reorderServices = async (draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return;
+    const dragged = services.find((x) => x.id === draggedId);
+    const target = services.find((x) => x.id === targetId);
+    if (!dragged || !target) return;
+    // Operate within the target's category (allows moving across categories too).
+    const cat = target.category ?? "";
     const group = services
-      .filter((x) => (x.category ?? "") === (s.category ?? ""))
+      .filter((x) => (x.category ?? "") === cat && x.id !== draggedId)
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name));
-    const idx = group.findIndex((x) => x.id === s.id);
-    const swapIdx = idx + dir;
-    if (idx < 0 || swapIdx < 0 || swapIdx >= group.length) return;
-    const reordered = [...group];
-    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
-    // Persist new sort_order = position * 10 (gives room for future inserts)
-    const updates = reordered.map((x, i) =>
-      supabase.from("services").update({ sort_order: (i + 1) * 10 }).eq("id", x.id)
-    );
-    const results = await Promise.all(updates);
+    const targetIdx = group.findIndex((x) => x.id === targetId);
+    const insertAt = targetIdx < 0 ? group.length : targetIdx;
+    const reordered = [...group.slice(0, insertAt), { ...dragged, category: cat }, ...group.slice(insertAt)];
+    // Optimistic UI: update local state immediately
+    setServices((prev) => {
+      const others = prev.filter((x) => (x.category ?? "") !== cat);
+      const updated = reordered.map((x, i) => ({ ...x, sort_order: (i + 1) * 10 }));
+      return [...others, ...updated].sort((a, b) =>
+        (a.category ?? "").localeCompare(b.category ?? "") ||
+        ((a.sort_order ?? 0) - (b.sort_order ?? 0)) ||
+        a.name.localeCompare(b.name)
+      );
+    });
+    const results = await Promise.all(reordered.map((x, i) =>
+      supabase.from("services").update({ sort_order: (i + 1) * 10, category: cat }).eq("id", x.id)
+    ));
     const err = results.find((r) => r.error);
-    if (err?.error) { toast.error(err.error.message); return; }
-    load();
+    if (err?.error) { toast.error(err.error.message); load(); return; }
   };
   const updateRule = (idx: number, patch: Partial<SuccessRule>) => {
     if (!editing) return;
