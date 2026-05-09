@@ -257,6 +257,9 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
               >
                 <Copy className="w-4 h-4" /> Copy
               </Button>
+              <Button variant="glass" className="flex-1" onClick={() => { navigate("/dashboard?tab=orders"); onClose(); }}>
+                <List className="w-4 h-4" /> Orders
+              </Button>
               <Button variant="glass" className="flex-1" onClick={reset}>Run another</Button>
               <Button variant="hero" className="flex-1" onClick={onClose}>Close</Button>
             </div>
