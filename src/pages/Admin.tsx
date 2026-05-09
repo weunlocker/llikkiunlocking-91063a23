@@ -305,6 +305,7 @@ function AdminServices() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Service> | null>(null);
+  const [aiDescLoading, setAiDescLoading] = useState(false);
   const [q, setQ] = useState("");
   const [fGroup, setFGroup] = useState<string>("all");
   const [fSvcId, setFSvcId] = useState<string>("all");
