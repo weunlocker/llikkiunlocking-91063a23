@@ -765,8 +765,8 @@ function AdminOrders() {
   const [loading, setLoading] = useState(true);
   const [fOrderId, setFOrderId] = useState("");
   const [fImei, setFImei] = useState("");
-  const [fUser, setFUser] = useState("");
-  const [fService, setFService] = useState("");
+  const [fUser, setFUser] = useState("all");
+  const [fService, setFService] = useState("all");
   const [fDateFrom, setFDateFrom] = useState("");
   const [fDateTo, setFDateTo] = useState("");
   const [filter, setFilter] = useState<string>("all");
