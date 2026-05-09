@@ -31,7 +31,7 @@ function formatDuration(start: string, end: string, status: string): string {
   return `${hr}h ${min % 60}m`;
 }
 
-type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; updated_at: string; services: { name: string; delivery_time: string | null; result_font: string | null; result_color: string | null } | null };
+type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; updated_at: string; services: { name: string; category: string | null; delivery_time: string | null; result_font: string | null; result_color: string | null } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null };
 
@@ -61,7 +61,8 @@ export default function Dashboard() {
   const [testingTg, setTestingTg] = useState(false);
   const [oqOrderId, setOqOrderId] = useState("");
   const [oqImei, setOqImei] = useState("");
-  const [oqService, setOqService] = useState("");
+  const [oqService, setOqService] = useState("all");
+  const [oqGroup, setOqGroup] = useState("all");
   const [oqFrom, setOqFrom] = useState("");
   const [oqTo, setOqTo] = useState("");
   const [orderStatus, setOrderStatus] = useState("all");
@@ -116,7 +117,7 @@ export default function Dashboard() {
   const load = async () => {
     if (!user) return;
     const [{ data: o }, { data: t }, { data: svc }, { data: ovs }] = await Promise.all([
-      supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,updated_at,services(name,delivery_time,result_font,result_color)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
+      supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,updated_at,services(name,category,delivery_time,result_font,result_color)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("services").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color").eq("active", true).order("category").order("price"),
       supabase.from("user_service_overrides").select("service_id,enabled,custom_price").eq("user_id", user.id),
@@ -346,10 +347,33 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="orders" className="mt-5">
-            <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 items-end">
+            <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2 items-end">
               <div><Label className="text-xs text-muted-foreground">Order ID</Label><Input value={oqOrderId} onChange={(e) => setOqOrderId(e.target.value)} placeholder="#0001" /></div>
               <div><Label className="text-xs text-muted-foreground">IMEI/SN</Label><Input value={oqImei} onChange={(e) => setOqImei(e.target.value)} placeholder="IMEI" /></div>
-              <div><Label className="text-xs text-muted-foreground">Service</Label><Input value={oqService} onChange={(e) => setOqService(e.target.value)} placeholder="name" /></div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Group</Label>
+                <Select value={oqGroup} onValueChange={(v) => { setOqGroup(v); setOqService("all"); }}>
+                  <SelectTrigger><SelectValue placeholder="All groups" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All groups</SelectItem>
+                    {Array.from(new Set(orders.map((o) => o.services?.category).filter(Boolean) as string[])).sort().map((g) => (
+                      <SelectItem key={g} value={g}>{g}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Service</Label>
+                <Select value={oqService} onValueChange={setOqService}>
+                  <SelectTrigger><SelectValue placeholder="All services" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All services</SelectItem>
+                    {Array.from(new Set(orders.filter((o) => oqGroup === "all" || o.services?.category === oqGroup).map((o) => o.services?.name).filter(Boolean) as string[])).sort().map((n) => (
+                      <SelectItem key={n} value={n}>{n}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div><Label className="text-xs text-muted-foreground">From</Label><Input type="date" value={oqFrom} onChange={(e) => setOqFrom(e.target.value)} /></div>
               <div><Label className="text-xs text-muted-foreground">To</Label><Input type="date" value={oqTo} onChange={(e) => setOqTo(e.target.value)} /></div>
               <div>
@@ -374,7 +398,8 @@ export default function Dashboard() {
                     const oid = String(o.order_number ?? "").padStart(4, "0");
                     if (oqOrderId.trim() && !oid.includes(oqOrderId.trim().replace(/^#/, ""))) return false;
                     if (oqImei.trim() && !o.imei.toLowerCase().includes(oqImei.trim().toLowerCase())) return false;
-                    if (oqService.trim() && !(o.services?.name ?? "").toLowerCase().includes(oqService.trim().toLowerCase())) return false;
+                    if (oqGroup !== "all" && (o.services?.category ?? "") !== oqGroup) return false;
+                    if (oqService !== "all" && (o.services?.name ?? "") !== oqService) return false;
                     if (oqFrom && new Date(o.created_at) < new Date(oqFrom)) return false;
                     if (oqTo && new Date(o.created_at) > new Date(oqTo + "T23:59:59")) return false;
                     return true;
