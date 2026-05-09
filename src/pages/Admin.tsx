@@ -1742,23 +1742,31 @@ function AdminCategories() {
         <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
-              <tr><th className="px-5 py-3">Name</th><th className="px-5 py-3">Slug</th><th className="px-5 py-3">Sort</th><th></th></tr>
+              <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Slug</th><th className="px-5 py-3">Sort</th><th></th></tr>
             </thead>
             <tbody>
               {cats.map((c) => (
-                <tr key={c.id} className="border-t border-border/50 hover:bg-secondary/20">
+                <tr
+                  key={c.id}
+                  draggable
+                  onDragStart={(e) => { setDragId(c.id); e.dataTransfer.effectAllowed = "move"; }}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverId !== c.id) setDragOverId(c.id); }}
+                  onDragLeave={() => { if (dragOverId === c.id) setDragOverId(null); }}
+                  onDrop={(e) => { e.preventDefault(); if (dragId && dragId !== c.id) reorderCats(dragId, c.id); setDragId(null); setDragOverId(null); }}
+                  onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+                  className={`border-t border-border/50 hover:bg-secondary/20 ${dragId === c.id ? "opacity-40" : ""} ${dragOverId === c.id && dragId !== c.id ? "bg-primary/10 outline outline-1 outline-primary/40" : ""}`}
+                >
+                  <td className="px-3 py-3 text-muted-foreground cursor-grab active:cursor-grabbing" title="Drag to reorder"><GripVertical className="w-4 h-4" /></td>
                   <td className="px-5 py-3 font-medium">{c.name}</td>
                   <td className="px-5 py-3 font-mono text-xs text-primary">{c.slug}</td>
                   <td className="px-5 py-3 text-muted-foreground">{c.sort_order}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
-                    <Button size="icon" variant="ghost" title="Move up" onClick={() => moveCat(c, -1)}><ArrowUp className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" title="Move down" onClick={() => moveCat(c, 1)}><ArrowDown className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => setEditing(c)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => del(c)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </td>
                 </tr>
               ))}
-              {cats.length === 0 && <tr><td colSpan={4} className="px-5 py-10 text-center text-muted-foreground">No categories yet.</td></tr>}
+              {cats.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">No categories yet.</td></tr>}
             </tbody>
           </table>
         </div>
