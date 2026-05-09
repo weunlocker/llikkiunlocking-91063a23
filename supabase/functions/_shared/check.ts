@@ -387,6 +387,14 @@ async function runUpstream(ctx: PlacementCtx) {
   }
 
   await supabase.from("orders").update({ status: "completed", result: resultText }).eq("id", order.id);
+
+  // Auto-fill sample_result for newly added services so admins get a preview
+  // of what the response looks like, with IMEI/SN values masked for privacy.
+  if (!service.sample_result || !String(service.sample_result).trim()) {
+    const sample = maskSensitive(resultText, imei);
+    detach(supabase.from("services").update({ sample_result: sample }).eq("id", service.id));
+  }
+
   detach(notifyUser(supabase, userId,
     `✅ Check completed — ${service.name}`,
     `IMEI: ${imei}\n\n${resultText}\n\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
