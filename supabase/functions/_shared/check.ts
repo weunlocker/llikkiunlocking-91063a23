@@ -390,6 +390,7 @@ async function runUpstream(ctx: PlacementCtx) {
               const replyText = String(respObj.result ?? respObj.message ?? "");
               resultText = service.response_template ? applyTemplate(service.response_template, parsed) : replyText;
               resultText = normalizeHtml(resultText) || "(empty response)";
+              if (refId) instantRefId = refId;
               success = true;
             } else if (refId) {
               await supabase.from("orders").update({
