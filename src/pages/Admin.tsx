@@ -305,6 +305,7 @@ function AdminServices() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Service> | null>(null);
+  const [aiDescLoading, setAiDescLoading] = useState(false);
   const [q, setQ] = useState("");
   const [fGroup, setFGroup] = useState<string>("all");
   const [fSvcId, setFSvcId] = useState<string>("all");
@@ -498,7 +499,38 @@ function AdminServices() {
                   </Select>
                 </div>
               </div>
-              <div><Label>Description</Label><Textarea value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} maxLength={500} /></div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <Label>Description</Label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!editing.name?.trim() || aiDescLoading}
+                    onClick={async () => {
+                      if (!editing.name?.trim()) { toast("Enter a service name first"); return; }
+                      setAiDescLoading(true);
+                      try {
+                        const { data, error } = await supabase.functions.invoke("ai-describe-service", {
+                          body: { name: editing.name, category: editing.category },
+                        });
+                        if (error) throw error;
+                        const desc = (data as { description?: string; error?: string })?.description?.trim();
+                        if (!desc) throw new Error((data as { error?: string })?.error || "No description returned");
+                        setEditing({ ...editing, description: desc });
+                        toast.success("Description generated");
+                      } catch (e) {
+                        toast.error(e instanceof Error ? e.message : "Failed to generate");
+                      } finally {
+                        setAiDescLoading(false);
+                      }
+                    }}
+                  >
+                    {aiDescLoading ? "Generating…" : "✨ Auto-fill from name"}
+                  </Button>
+                </div>
+                <Textarea value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} maxLength={500} />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Price (USD)</Label><Input type="number" step="0.01" value={editing.price ?? 0} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} /></div>
                 <div><Label>Delivery Time</Label><Input value={editing.delivery_time ?? ""} onChange={(e) => setEditing({ ...editing, delivery_time: e.target.value })} maxLength={50} /></div>
