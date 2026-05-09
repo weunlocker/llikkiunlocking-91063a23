@@ -78,10 +78,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null); setSession(null); setProfile(null); setIsAdmin(false);
   };
 
-  // Auto sign-out after 10 minutes of inactivity
+  // Auto sign-out after 5 minutes of inactivity
   useEffect(() => {
     if (!user) return;
-    const IDLE_MS = 10 * 60 * 1000;
+    const IDLE_MS = 5 * 60 * 1000;
     let timer: ReturnType<typeof setTimeout>;
     const reset = () => {
       clearTimeout(timer);
