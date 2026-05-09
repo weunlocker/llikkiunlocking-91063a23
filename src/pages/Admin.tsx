@@ -1712,6 +1712,22 @@ function AdminCategories() {
     load();
   };
 
+  const reorderCats = async (draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return;
+    const dragged = cats.find((x) => x.id === draggedId);
+    if (!dragged) return;
+    const without = cats.filter((x) => x.id !== draggedId)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name));
+    const targetIdx = without.findIndex((x) => x.id === targetId);
+    const insertAt = targetIdx < 0 ? without.length : targetIdx;
+    const reordered = [...without.slice(0, insertAt), dragged, ...without.slice(insertAt)];
+    setCats(reordered.map((x, i) => ({ ...x, sort_order: (i + 1) * 10 })));
+    const results = await Promise.all(reordered.map((x, i) =>
+      supabase.from("categories").update({ sort_order: (i + 1) * 10 }).eq("id", x.id)
+    ));
+    const err = results.find((r) => r.error);
+    if (err?.error) { toast.error(err.error.message); load(); }
+  };
   return (
     <AdminLayout
       title="Categories"
