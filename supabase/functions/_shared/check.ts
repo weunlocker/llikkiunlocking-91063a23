@@ -327,8 +327,18 @@ async function runUpstream(ctx: PlacementCtx) {
       } else if (!resp.ok) {
         errorMsg = `Provider returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
       } else {
-        const ruleResult = evaluateRules(service.success_rules as SuccessRule[] | null, parsed);
-        if (!ruleResult.ok) {
+        // Auto-detect generic { success: false, status, response } envelopes -> reject + refund
+        const pObj = (parsed && typeof parsed === "object" && !Array.isArray(parsed)) ? parsed as Record<string, unknown> : null;
+        const successField = pObj?.success;
+        const isExplicitFail = successField === false || successField === "false" || successField === 0 || successField === "0";
+        const ruleResult = isExplicitFail
+          ? { ok: false, failedRule: { path: "success", op: "eq", value: true } as SuccessRule }
+          : evaluateRules(service.success_rules as SuccessRule[] | null, parsed);
+        if (!ruleResult.ok && isExplicitFail) {
+          const status = pObj?.status ? String(pObj.status) : "Rejected";
+          const respMsg = pObj?.response ? String(pObj.response) : "";
+          errorMsg = respMsg ? `${status}: ${respMsg}` : status;
+        } else if (!ruleResult.ok) {
           const r = ruleResult.failedRule!;
           const actualVal = getByPath(parsed, r.path);
           errorMsg = `Rejected by rule: ${r.path} ${r.op}${r.value !== undefined ? ` ${JSON.stringify(r.value)}` : ""} (got ${JSON.stringify(actualVal)})`;
