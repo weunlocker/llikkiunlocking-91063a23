@@ -241,6 +241,14 @@ async function runUpstream(ctx: PlacementCtx) {
             params.set("imei", imei);
           }
           init.body = params.toString();
+        } else if (supplier.type === "ifree") {
+          init.method = "POST";
+          headers["Content-Type"] = "application/x-www-form-urlencoded";
+          const params = new URLSearchParams();
+          params.set("service", String(service.supplier_action ?? ""));
+          params.set("imei", imei);
+          params.set("key", String(supplier.dhru_api_key ?? ""));
+          init.body = params.toString();
         } else {
           url = url
             .replace(/\{IMEI\}/gi, encodeURIComponent(imei))
@@ -255,26 +263,6 @@ async function runUpstream(ctx: PlacementCtx) {
               .replace(/\{ACTION\}/gi, String(service.supplier_action ?? ""));
           }
         }
-      } else {
-        url = service.api_url
-          .replace(/\{IMEI\}/gi, encodeURIComponent(imei))
-          .replace(/\{imei\}/g, encodeURIComponent(imei));
-        const customHeaders = (service.api_headers ?? {}) as Record<string, string>;
-        Object.assign(headers, customHeaders);
-        init.method = service.api_method || "GET";
-        if (init.method === "POST") {
-          if (service.api_request_body && service.api_request_body.trim()) {
-            const bodyTpl = service.api_request_body
-              .replace(/\{IMEI\}/gi, imei)
-              .replace(/\{imei\}/g, imei);
-            if (!headers["Content-Type"]) headers["Content-Type"] = "application/json";
-            init.body = bodyTpl;
-          } else {
-            headers["Content-Type"] = "application/json";
-            init.body = JSON.stringify({ imei });
-          }
-        }
-      }
 
       const resp = await fetch(url, init);
       const ct = resp.headers.get("content-type") || "";
