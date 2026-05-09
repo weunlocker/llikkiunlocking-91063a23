@@ -398,7 +398,8 @@ export default function Dashboard() {
                     const oid = String(o.order_number ?? "").padStart(4, "0");
                     if (oqOrderId.trim() && !oid.includes(oqOrderId.trim().replace(/^#/, ""))) return false;
                     if (oqImei.trim() && !o.imei.toLowerCase().includes(oqImei.trim().toLowerCase())) return false;
-                    if (oqService.trim() && !(o.services?.name ?? "").toLowerCase().includes(oqService.trim().toLowerCase())) return false;
+                    if (oqGroup !== "all" && (o.services?.category ?? "") !== oqGroup) return false;
+                    if (oqService !== "all" && (o.services?.name ?? "") !== oqService) return false;
                     if (oqFrom && new Date(o.created_at) < new Date(oqFrom)) return false;
                     if (oqTo && new Date(o.created_at) > new Date(oqTo + "T23:59:59")) return false;
                     return true;
