@@ -44,7 +44,82 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
-  // Pull pending orders that have a supplier reference (i.e. async)
+  // Step 1: place any pending Dhru orders that don't yet have a supplier_reference
+  const { data: toPlace } = await sb
+    .from("orders")
+    .select("id, imei, service_id, services(supplier_action, supplier_id, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))")
+    .eq("status", "pending")
+    .is("supplier_reference", null)
+    .order("created_at", { ascending: true })
+    .limit(25);
+
+  let placed = 0;
+  for (const o of (toPlace ?? []) as any[]) {
+    const svc = o.services;
+    const sup = svc?.suppliers;
+    if (!sup || sup.type !== "dhru") continue;
+    try {
+      const params = new URLSearchParams();
+      const username = String(sup.dhru_username ?? "");
+      const apiKey = String(sup.dhru_api_key ?? "");
+      const action = String(svc.supplier_action ?? "");
+      if (sup.api_format === "bulk") {
+        params.set("data", JSON.stringify({ username, apikey: apiKey, action: "placeimeiorder", service: action, imei: o.imei }));
+      } else if (sup.api_format === "v6") {
+        params.set("apiaccesskey", apiKey);
+        params.set("action", "placeimeiorder");
+        params.set("requestformat", "JSON");
+        if (username) params.set("username", username);
+        params.set("parameters", `<PARAMETERS><ID>${escapeXml(action)}</ID><IMEI>${escapeXml(o.imei)}</IMEI></PARAMETERS>`);
+      } else {
+        params.set("username", username);
+        params.set("apikey", apiKey);
+        params.set("action", "placeimeiorder");
+        params.set("service", action);
+        params.set("imei", o.imei);
+      }
+      const r = await fetch(sup.endpoint_url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
+      });
+      const text = await r.text();
+      let parsed: any = text;
+      try { parsed = JSON.parse(text); } catch { /* keep */ }
+
+      const errBlock = parsed?.ERROR ?? parsed?.error;
+      if (errBlock) {
+        const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
+        const reason = String(eArr?.MESSAGE ?? eArr?.message ?? eArr?.FACTOR ?? "Rejected by supplier");
+        await sb.from("orders").update({ error_message: reason }).eq("id", o.id);
+        continue;
+      }
+      const findRef = (n: any): string | null => {
+        if (!n || typeof n !== "object") return null;
+        const ref = n.REFERENCEID ?? n.referenceid ?? n.REFERENCE ?? n.reference ?? n.ID ?? n.id;
+        if (ref != null && (typeof ref === "string" || typeof ref === "number")) return String(ref);
+        for (const v of Object.values(n)) { const r2 = findRef(v); if (r2) return r2; }
+        return null;
+      };
+      const refId = findRef(parsed?.SUCCESS ?? parsed?.success ?? parsed);
+      if (refId) {
+        await sb.from("orders").update({
+          supplier_reference: refId,
+          result: `Order placed with supplier (ref ${refId}). Awaiting result…`,
+          error_message: null,
+        }).eq("id", o.id);
+        placed++;
+      } else {
+        await sb.from("orders").update({
+          error_message: "Dhru did not return reference id",
+        }).eq("id", o.id);
+      }
+    } catch (e) {
+      console.error("Place error for order", o.id, e);
+    }
+  }
+
+  // Step 2: poll pending orders that have a supplier reference (async)
   const { data: pending, error } = await sb
     .from("orders")
     .select("id, order_number, user_id, imei, price_charged, supplier_reference, poll_attempts, service_id, services(name, response_template, success_rules, supplier_id, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))")
@@ -54,7 +129,7 @@ Deno.serve(async (req) => {
     .limit(50);
 
   if (error) return json(500, { error: error.message });
-  if (!pending || pending.length === 0) return json(200, { polled: 0 });
+  if (!pending || pending.length === 0) return json(200, { placed, polled: 0 });
 
   let completed = 0, failed = 0, stillPending = 0;
 
@@ -239,5 +314,5 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json(200, { polled: pending.length, completed, failed, stillPending });
+  return json(200, { placed, polled: pending.length, completed, failed, stillPending });
 });
