@@ -1675,6 +1675,21 @@ function AdminCategories() {
     toast.success("Deleted"); load();
   };
 
+  const moveCat = async (c: Category, dir: -1 | 1) => {
+    const sorted = [...cats].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name));
+    const idx = sorted.findIndex((x) => x.id === c.id);
+    const swapIdx = idx + dir;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= sorted.length) return;
+    const reordered = [...sorted];
+    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+    const results = await Promise.all(reordered.map((x, i) =>
+      supabase.from("categories").update({ sort_order: (i + 1) * 10 }).eq("id", x.id)
+    ));
+    const err = results.find((r) => r.error);
+    if (err?.error) { toast.error(err.error.message); return; }
+    load();
+  };
+
   return (
     <AdminLayout
       title="Categories"
