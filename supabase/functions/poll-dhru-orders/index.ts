@@ -104,6 +104,7 @@ Deno.serve(async (req) => {
       const refId = findRef(parsed?.SUCCESS ?? parsed?.success ?? parsed);
       if (refId) {
         await sb.from("orders").update({
+          status: "in_process",
           supplier_reference: refId,
           result: `Order placed with supplier (ref ${refId}). Awaiting result…`,
           error_message: null,
