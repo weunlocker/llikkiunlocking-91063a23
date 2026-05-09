@@ -344,7 +344,7 @@ async function runUpstream(ctx: PlacementCtx) {
           : evaluateRules(service.success_rules as SuccessRule[] | null, parsed);
         if (!ruleResult.ok && isExplicitFail) {
           const status = pObj?.status ? String(pObj.status) : "Rejected";
-          const respMsg = pObj?.response ? String(pObj.response) : "";
+          const respMsg = pObj?.response ? String(pObj.response) : (pObj?.error ? String(pObj.error) : "");
           errorMsg = respMsg ? `${status}: ${respMsg}` : status;
         } else if (!ruleResult.ok) {
           const r = ruleResult.failedRule!;
