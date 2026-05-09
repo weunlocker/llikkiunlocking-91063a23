@@ -17,7 +17,7 @@ export default function Services() {
   const [selected, setSelected] = useState<Service | null>(null);
 
   useEffect(() => {
-    supabase.from("services").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color").eq("active", true).order("category").order("price")
+    supabase.from("services").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color").eq("active", true).order("category").order("sort_order").order("price")
       .then(({ data }) => { setServices(data ?? []); setLoading(false); });
   }, []);
 

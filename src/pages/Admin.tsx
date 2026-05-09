@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Loader2, RotateCcw, Search, TrendingUp, Users as UsersIcon, Briefcase, ListOrdered, DollarSign, AlertCircle, RefreshCw } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, RotateCcw, Search, TrendingUp, Users as UsersIcon, Briefcase, ListOrdered, DollarSign, AlertCircle, RefreshCw, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -18,7 +18,7 @@ import { ColoredResult } from "@/components/ColoredResult";
 import { extractResponse } from "@/lib/extractResponse";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
-type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null };
+type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; sort_order: number | null };
 type Supplier = { id: string; name: string; type: "dhru" | "generic" | "ifree" | "goimeicheck"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
 type ProfileRow = { id: string; email: string | null; display_name: string | null; balance: number; banned: boolean; created_at: string };
 type OrderRow = { id: string; order_number: number; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null; profiles: { email: string | null } | null };
@@ -316,7 +316,7 @@ function AdminServices() {
 
   const load = async () => {
     const [{ data: svc }, { data: sup }, { data: cats }] = await Promise.all([
-      supabase.from("services").select("*").order("category").order("name"),
+      supabase.from("services").select("*").order("category").order("sort_order").order("name"),
       supabase.from("suppliers").select("id,name,type,endpoint_url,dhru_username,dhru_api_key,active,notes").order("name"),
       supabase.from("categories").select("id,slug,name,sort_order").order("sort_order").order("name"),
     ]);
@@ -393,6 +393,25 @@ function AdminServices() {
     if (error) { toast.error(error.message); return; }
     toast.success("Deleted"); load();
   };
+  const moveService = async (s: Service, dir: -1 | 1) => {
+    // Reorder within the same category. Normalize sort_order across that category first.
+    const group = services
+      .filter((x) => (x.category ?? "") === (s.category ?? ""))
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name));
+    const idx = group.findIndex((x) => x.id === s.id);
+    const swapIdx = idx + dir;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= group.length) return;
+    const reordered = [...group];
+    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+    // Persist new sort_order = position * 10 (gives room for future inserts)
+    const updates = reordered.map((x, i) =>
+      supabase.from("services").update({ sort_order: (i + 1) * 10 }).eq("id", x.id)
+    );
+    const results = await Promise.all(updates);
+    const err = results.find((r) => r.error);
+    if (err?.error) { toast.error(err.error.message); return; }
+    load();
+  };
   const updateRule = (idx: number, patch: Partial<SuccessRule>) => {
     if (!editing) return;
     const rules = [...(editing.success_rules ?? [])];
@@ -468,6 +487,8 @@ function AdminServices() {
                   </td>
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
+                    <Button size="icon" variant="ghost" title="Move up" onClick={() => moveService(s, -1)}><ArrowUp className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" title="Move down" onClick={() => moveService(s, 1)}><ArrowDown className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => setEditing(s)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => delService(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </td>
@@ -1654,6 +1675,21 @@ function AdminCategories() {
     toast.success("Deleted"); load();
   };
 
+  const moveCat = async (c: Category, dir: -1 | 1) => {
+    const sorted = [...cats].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name));
+    const idx = sorted.findIndex((x) => x.id === c.id);
+    const swapIdx = idx + dir;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= sorted.length) return;
+    const reordered = [...sorted];
+    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+    const results = await Promise.all(reordered.map((x, i) =>
+      supabase.from("categories").update({ sort_order: (i + 1) * 10 }).eq("id", x.id)
+    ));
+    const err = results.find((r) => r.error);
+    if (err?.error) { toast.error(err.error.message); return; }
+    load();
+  };
+
   return (
     <AdminLayout
       title="Categories"
@@ -1677,6 +1713,8 @@ function AdminCategories() {
                   <td className="px-5 py-3 font-mono text-xs text-primary">{c.slug}</td>
                   <td className="px-5 py-3 text-muted-foreground">{c.sort_order}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
+                    <Button size="icon" variant="ghost" title="Move up" onClick={() => moveCat(c, -1)}><ArrowUp className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" title="Move down" onClick={() => moveCat(c, 1)}><ArrowDown className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => setEditing(c)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => del(c)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </td>

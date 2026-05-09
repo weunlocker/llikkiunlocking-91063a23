@@ -492,6 +492,7 @@ export type Database = {
           result_font: string | null
           sample_result: string | null
           service_code: string | null
+          sort_order: number
           success_rules: Json | null
           supplier_action: string | null
           supplier_id: string | null
@@ -516,6 +517,7 @@ export type Database = {
           result_font?: string | null
           sample_result?: string | null
           service_code?: string | null
+          sort_order?: number
           success_rules?: Json | null
           supplier_action?: string | null
           supplier_id?: string | null
@@ -540,6 +542,7 @@ export type Database = {
           result_font?: string | null
           sample_result?: string | null
           service_code?: string | null
+          sort_order?: number
           success_rules?: Json | null
           supplier_action?: string | null
           supplier_id?: string | null
