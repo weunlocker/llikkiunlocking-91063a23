@@ -19,6 +19,17 @@ function getByPath(obj: unknown, path: string): unknown {
   return cur;
 }
 
+function applyTemplate(template: string, data: unknown): string {
+  if (!template) return typeof data === "string" ? data : JSON.stringify(data, null, 2);
+  return template.replace(/\{([\w\.\[\]]+)\}/g, (_, k) => {
+    if (k.toLowerCase() === "imei") return "";
+    const v = getByPath(data, k);
+    if (v === null || v === undefined) return "";
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  });
+}
+
 function normalizeHtml(s: string): string {
   return s
     .replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n").replace(/<\/div>/gi, "\n")
@@ -104,6 +115,7 @@ Deno.serve(async (req) => {
       const refId = findRef(parsed?.SUCCESS ?? parsed?.success ?? parsed);
       if (refId) {
         await sb.from("orders").update({
+          status: "in_process",
           supplier_reference: refId,
           result: `Order placed with supplier (ref ${refId}). Awaiting result…`,
           error_message: null,
@@ -123,7 +135,7 @@ Deno.serve(async (req) => {
   const { data: pending, error } = await sb
     .from("orders")
     .select("id, order_number, user_id, imei, price_charged, supplier_reference, poll_attempts, service_id, services(name, response_template, success_rules, supplier_id, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))")
-    .eq("status", "pending")
+    .in("status", ["pending", "in_process"])
     .not("supplier_reference", "is", null)
     .order("last_polled_at", { ascending: true, nullsFirst: true })
     .limit(50);
@@ -190,7 +202,8 @@ Deno.serve(async (req) => {
           const replyRaw = respObj.result ?? respObj.message;
           const hasResult = replyRaw != null && String(replyRaw).trim() !== "" && String(replyRaw).toLowerCase() !== "pending";
           if (hasResult) {
-            const finalText = normalizeHtml(String(replyRaw)) || "(empty response)";
+            const templated = svc.response_template ? applyTemplate(svc.response_template, parsed) : String(replyRaw);
+            const finalText = normalizeHtml(templated) || "(empty response)";
             await sb.from("orders").update({
               status: "completed", result: finalText,
               last_polled_at: new Date().toISOString(), poll_attempts: newAttempts,
@@ -263,7 +276,10 @@ Deno.serve(async (req) => {
           resultBlob?.CODE ?? resultBlob?.code ??
           resultBlob?.MESSAGE ?? resultBlob?.message ??
           (typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2));
-        const finalText = normalizeHtml(typeof replyText === "string" ? replyText : JSON.stringify(replyText, null, 2)) || "(empty response)";
+        const templated = svc.response_template
+          ? applyTemplate(svc.response_template, parsed)
+          : (typeof replyText === "string" ? replyText : JSON.stringify(replyText, null, 2));
+        const finalText = normalizeHtml(typeof templated === "string" ? templated : JSON.stringify(templated, null, 2)) || "(empty response)";
 
         await sb.from("orders").update({
           status: "completed",
