@@ -117,6 +117,7 @@ Deno.serve(async (req) => {
       if (!verifyJson?.success) {
         return json(401, { error: "CAPTCHA verification failed", codes: verifyJson?.["error-codes"] });
       }
+      }
     }
 
     const { data: service } = await supabase.from("services").select("*").eq("id", parsed.data.service_id).maybeSingle();
