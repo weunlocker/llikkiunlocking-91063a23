@@ -19,6 +19,8 @@ export type SiteSettings = {
   contact_phone: string | null;
   address: string | null;
   footer_text: string | null;
+  turnstile_site_key: string | null;
+  turnstile_enabled: boolean;
 };
 
 const DEFAULTS: SiteSettings = {
@@ -29,6 +31,7 @@ const DEFAULTS: SiteSettings = {
   facebook_url: null, twitter_url: null, instagram_url: null, youtube_url: null,
   telegram_url: null, whatsapp_number: null,
   contact_email: null, contact_phone: null, address: null, footer_text: null,
+  turnstile_site_key: null, turnstile_enabled: false,
 };
 
 type Ctx = { settings: SiteSettings; loading: boolean; refresh: () => Promise<void> };

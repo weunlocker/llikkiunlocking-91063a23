@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,16 @@ import { toast } from "sonner";
 import { imeiSchema } from "@/lib/validation";
 import { ColoredResult } from "@/components/ColoredResult";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (el: HTMLElement, opts: { sitekey: string; callback: (token: string) => void; "error-callback"?: () => void; "expired-callback"?: () => void; theme?: string }) => string;
+      reset: (id?: string) => void;
+      remove: (id?: string) => void;
+    };
+  }
+}
 
 type FreeService = {
   id: string;
@@ -28,6 +38,11 @@ export default function FreeCheck() {
   const [result, setResult] = useState<string>("");
   const [open, setOpen] = useState(false);
   const { settings } = useSiteSettings();
+  const [tsToken, setTsToken] = useState<string>("");
+  const tsRef = useRef<HTMLDivElement | null>(null);
+  const tsWidgetId = useRef<string | null>(null);
+
+  const turnstileEnabled = settings.turnstile_enabled && !!settings.turnstile_site_key;
 
   useEffect(() => {
     document.title = "Free IMEI Check — Model, FMI & Sim Lock";
@@ -43,14 +58,44 @@ export default function FreeCheck() {
     })();
   }, []);
 
+  // Load Turnstile script + render widget when a service is selected
+  useEffect(() => {
+    if (!turnstileEnabled || !selected) return;
+    const SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    const ensureScript = () =>
+      new Promise<void>((resolve) => {
+        if (window.turnstile) return resolve();
+        const existing = document.querySelector(`script[src="${SRC}"]`) as HTMLScriptElement | null;
+        if (existing) { existing.addEventListener("load", () => resolve()); return; }
+        const s = document.createElement("script");
+        s.src = SRC; s.async = true; s.defer = true;
+        s.onload = () => resolve();
+        document.head.appendChild(s);
+      });
+    let cancelled = false;
+    ensureScript().then(() => {
+      if (cancelled || !tsRef.current || !window.turnstile) return;
+      tsRef.current.innerHTML = "";
+      tsWidgetId.current = window.turnstile.render(tsRef.current, {
+        sitekey: settings.turnstile_site_key!,
+        theme: "auto",
+        callback: (token) => setTsToken(token),
+        "error-callback": () => setTsToken(""),
+        "expired-callback": () => setTsToken(""),
+      });
+    });
+    return () => { cancelled = true; };
+  }, [turnstileEnabled, selected, settings.turnstile_site_key]);
+
   const run = async () => {
     if (!selected) return;
     const v = imeiSchema.safeParse(imei.trim());
     if (!v.success) { toast.error("Enter a valid IMEI / serial (8–20 chars)"); return; }
+    if (turnstileEnabled && !tsToken) { toast.error("Please complete the CAPTCHA"); return; }
     setRunning(true); setResult("");
     try {
       const { data, error } = await supabase.functions.invoke("free-check", {
-        body: { service_id: selected.id, imei: imei.trim() },
+        body: { service_id: selected.id, imei: imei.trim(), turnstile_token: tsToken || undefined },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -60,6 +105,11 @@ export default function FreeCheck() {
       toast.error(e instanceof Error ? e.message : "Check failed");
     } finally {
       setRunning(false);
+      // Tokens are single-use — reset widget
+      if (turnstileEnabled && window.turnstile && tsWidgetId.current) {
+        try { window.turnstile.reset(tsWidgetId.current); } catch { /* ignore */ }
+      }
+      setTsToken("");
     }
   };
 
@@ -108,7 +158,7 @@ export default function FreeCheck() {
               <h2 className="text-lg font-semibold mb-1">{selected.name}</h2>
               <p className="text-xs text-muted-foreground">Enter the IMEI or serial number to check.</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 value={imei}
                 onChange={(e) => setImei(e.target.value)}
@@ -116,10 +166,13 @@ export default function FreeCheck() {
                 maxLength={20}
                 className="font-mono"
               />
-              <Button variant="hero" onClick={run} disabled={running || !imei.trim()}>
+              <Button variant="hero" onClick={run} disabled={running || !imei.trim() || (turnstileEnabled && !tsToken)}>
                 {running ? <Loader2 className="w-4 h-4 animate-spin" /> : "Check"}
               </Button>
             </div>
+            {turnstileEnabled && (
+              <div ref={tsRef} className="flex justify-center" />
+            )}
           </Card>
         )}
 

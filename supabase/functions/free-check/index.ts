@@ -11,6 +11,7 @@ const corsHeaders = {
 const Body = z.object({
   service_id: z.string().uuid(),
   imei: z.string().trim().regex(/^[A-Za-z0-9]{8,20}$/),
+  turnstile_token: z.string().min(10).max(2048).optional(),
 });
 
 const lastHit = new Map<string, number>();
@@ -86,6 +87,36 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { persistSession: false } },
     );
+
+    // Turnstile verification (if enabled in admin settings)
+    const { data: siteRow } = await supabase
+      .from("site_settings")
+      .select("turnstile_enabled, turnstile_site_key")
+      .eq("id", 1)
+      .maybeSingle();
+    if (siteRow?.turnstile_enabled) {
+      const token = parsed.data.turnstile_token;
+      if (!token) return json(401, { error: "CAPTCHA required" });
+      const { data: priv } = await supabase
+        .from("private_settings")
+        .select("turnstile_secret_key")
+        .eq("id", 1)
+        .maybeSingle();
+      const secret = priv?.turnstile_secret_key;
+      if (!secret) return json(500, { error: "CAPTCHA not configured" });
+      const form = new FormData();
+      form.append("secret", secret);
+      form.append("response", token);
+      form.append("remoteip", ip);
+      const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        body: form,
+      });
+      const verifyJson = await verifyRes.json().catch(() => ({}));
+      if (!verifyJson?.success) {
+        return json(401, { error: "CAPTCHA verification failed", codes: verifyJson?.["error-codes"] });
+      }
+    }
 
     const { data: service } = await supabase.from("services").select("*").eq("id", parsed.data.service_id).maybeSingle();
     if (!service) return json(404, { error: "Service not found" });

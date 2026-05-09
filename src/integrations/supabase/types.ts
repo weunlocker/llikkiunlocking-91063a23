@@ -388,6 +388,24 @@ export type Database = {
         }
         Relationships: []
       }
+      private_settings: {
+        Row: {
+          id: number
+          turnstile_secret_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          turnstile_secret_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          turnstile_secret_key?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -557,6 +575,8 @@ export type Database = {
           telegram_channel_id: string | null
           telegram_group_id: string | null
           telegram_url: string | null
+          turnstile_enabled: boolean
+          turnstile_site_key: string | null
           twitter_url: string | null
           updated_at: string
           whatsapp_number: string | null
@@ -581,6 +601,8 @@ export type Database = {
           telegram_channel_id?: string | null
           telegram_group_id?: string | null
           telegram_url?: string | null
+          turnstile_enabled?: boolean
+          turnstile_site_key?: string | null
           twitter_url?: string | null
           updated_at?: string
           whatsapp_number?: string | null
@@ -605,6 +627,8 @@ export type Database = {
           telegram_channel_id?: string | null
           telegram_group_id?: string | null
           telegram_url?: string | null
+          turnstile_enabled?: boolean
+          turnstile_site_key?: string | null
           twitter_url?: string | null
           updated_at?: string
           whatsapp_number?: string | null
