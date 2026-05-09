@@ -482,11 +482,21 @@ function AdminServices() {
         <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
-              <tr><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
+              <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
             </thead>
             <tbody>
               {filtered.map((s) => (
-                <tr key={s.id} className="border-t border-border/50 hover:bg-secondary/20">
+                <tr
+                  key={s.id}
+                  draggable
+                  onDragStart={(e) => { setDragId(s.id); e.dataTransfer.effectAllowed = "move"; }}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverId !== s.id) setDragOverId(s.id); }}
+                  onDragLeave={() => { if (dragOverId === s.id) setDragOverId(null); }}
+                  onDrop={(e) => { e.preventDefault(); if (dragId && dragId !== s.id) reorderServices(dragId, s.id); setDragId(null); setDragOverId(null); }}
+                  onDragEnd={() => { setDragId(null); setDragOverId(null); }}
+                  className={`border-t border-border/50 hover:bg-secondary/20 ${dragId === s.id ? "opacity-40" : ""} ${dragOverId === s.id && dragId !== s.id ? "bg-primary/10 outline outline-1 outline-primary/40" : ""}`}
+                >
+                  <td className="px-3 py-3 text-muted-foreground cursor-grab active:cursor-grabbing" title="Drag to reorder"><GripVertical className="w-4 h-4" /></td>
                   <td className="px-5 py-3 font-mono font-semibold text-primary">{s.service_code ?? "—"}</td>
                   <td className="px-5 py-3 font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => setEditing(s)}>{s.name}</td>
                   <td className="px-5 py-3"><span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">{s.category}</span></td>
@@ -499,14 +509,12 @@ function AdminServices() {
                   </td>
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
-                    <Button size="icon" variant="ghost" title="Move up" onClick={() => moveService(s, -1)}><ArrowUp className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" title="Move down" onClick={() => moveService(s, 1)}><ArrowDown className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => setEditing(s)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => delService(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={8} className="px-5 py-10 text-center text-muted-foreground">No services.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={9} className="px-5 py-10 text-center text-muted-foreground">No services.</td></tr>}
             </tbody>
           </table>
         </div>
