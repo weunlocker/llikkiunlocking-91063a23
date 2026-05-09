@@ -202,7 +202,8 @@ Deno.serve(async (req) => {
           const replyRaw = respObj.result ?? respObj.message;
           const hasResult = replyRaw != null && String(replyRaw).trim() !== "" && String(replyRaw).toLowerCase() !== "pending";
           if (hasResult) {
-            const finalText = normalizeHtml(String(replyRaw)) || "(empty response)";
+            const templated = svc.response_template ? applyTemplate(svc.response_template, parsed) : String(replyRaw);
+            const finalText = normalizeHtml(templated) || "(empty response)";
             await sb.from("orders").update({
               status: "completed", result: finalText,
               last_polled_at: new Date().toISOString(), poll_attempts: newAttempts,
