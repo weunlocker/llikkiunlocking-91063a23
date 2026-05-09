@@ -230,6 +230,7 @@ async function runUpstream(ctx: PlacementCtx) {
   let success = false;
   let errorMsg: string | null = null;
   let rawData: unknown = null;
+  let instantRefId: string | null = null;
 
   const hasUpstream = !!supplier || !!service.api_url;
   if (!hasUpstream) {
@@ -389,6 +390,7 @@ async function runUpstream(ctx: PlacementCtx) {
               const replyText = String(respObj.result ?? respObj.message ?? "");
               resultText = service.response_template ? applyTemplate(service.response_template, parsed) : replyText;
               resultText = normalizeHtml(resultText) || "(empty response)";
+              if (refId) instantRefId = refId;
               success = true;
             } else if (refId) {
               await supabase.from("orders").update({
@@ -459,7 +461,7 @@ async function runUpstream(ctx: PlacementCtx) {
     return;
   }
 
-  await supabase.from("orders").update({ status: "completed", result: resultText }).eq("id", order.id);
+  await supabase.from("orders").update({ status: "completed", result: resultText, ...(instantRefId ? { supplier_reference: instantRefId } : {}) }).eq("id", order.id);
 
   // Auto-fill sample_result for newly added services so admins get a preview
   // of what the response looks like, with IMEI/SN values masked for privacy.
