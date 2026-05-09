@@ -61,40 +61,93 @@ Deno.serve(async (req) => {
   for (const o of pending as any[]) {
     const svc = o.services;
     const sup = svc?.suppliers;
-    if (!sup || sup.type !== "dhru") continue;
+    if (!sup || (sup.type !== "dhru" && sup.type !== "goimeicheck")) continue;
 
     try {
-      const params = new URLSearchParams();
-      const username = sup.dhru_username ?? "";
-      const apiKey = sup.dhru_api_key ?? "";
-      const refId = String(o.supplier_reference);
-      if (sup.api_format === "bulk") {
-        params.set("data", JSON.stringify({
-          username, apikey: apiKey,
-          action: "getimeiorder",
-          id: refId,
-        }));
-      } else if (sup.api_format === "v6") {
-        params.set("apiaccesskey", apiKey);
-        params.set("action", "getimeiorder");
-        params.set("requestformat", "JSON");
-        if (username) params.set("username", username);
-        params.set("ID", refId);
-        params.set("parameters", `<PARAMETERS><ID>${escapeXml(refId)}</ID></PARAMETERS>`);
+      let r: Response;
+      if (sup.type === "goimeicheck") {
+        const base = String(sup.endpoint_url || "https://api.goimeicheck.com").replace(/\/+$/, "");
+        const qs = new URLSearchParams({
+          api_key: String(sup.dhru_api_key ?? ""),
+          tran_id: String(o.supplier_reference),
+        });
+        r = await fetch(`${base}/api/get-order/?${qs.toString()}`, { method: "GET" });
       } else {
-        params.set("username", username);
-        params.set("apikey", apiKey);
-        params.set("action", "getimeiorder");
-        params.set("id", refId);
+        const params = new URLSearchParams();
+        const username = sup.dhru_username ?? "";
+        const apiKey = sup.dhru_api_key ?? "";
+        const refId = String(o.supplier_reference);
+        if (sup.api_format === "bulk") {
+          params.set("data", JSON.stringify({
+            username, apikey: apiKey,
+            action: "getimeiorder",
+            id: refId,
+          }));
+        } else if (sup.api_format === "v6") {
+          params.set("apiaccesskey", apiKey);
+          params.set("action", "getimeiorder");
+          params.set("requestformat", "JSON");
+          if (username) params.set("username", username);
+          params.set("ID", refId);
+          params.set("parameters", `<PARAMETERS><ID>${escapeXml(refId)}</ID></PARAMETERS>`);
+        } else {
+          params.set("username", username);
+          params.set("apikey", apiKey);
+          params.set("action", "getimeiorder");
+          params.set("id", refId);
+        }
+        r = await fetch(sup.endpoint_url, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: params.toString(),
+        });
       }
-      const r = await fetch(sup.endpoint_url, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString(),
-      });
       const text = await r.text();
       let parsed: any = text;
       try { parsed = JSON.parse(text); } catch { /* keep as string */ }
+
+      // GoIMEICheck branch
+      if (sup.type === "goimeicheck") {
+        const newAttempts = (o.poll_attempts ?? 0) + 1;
+        const respObj = parsed?.response && typeof parsed.response === "object" ? parsed.response : null;
+        const statusStr = String(parsed?.status ?? "").toLowerCase();
+        if (statusStr === "success" && respObj) {
+          const replyRaw = respObj.result ?? respObj.message;
+          const hasResult = replyRaw != null && String(replyRaw).trim() !== "" && String(replyRaw).toLowerCase() !== "pending";
+          if (hasResult) {
+            const finalText = normalizeHtml(String(replyRaw)) || "(empty response)";
+            await sb.from("orders").update({
+              status: "completed", result: finalText,
+              last_polled_at: new Date().toISOString(), poll_attempts: newAttempts,
+            }).eq("id", o.id);
+            sb.functions.invoke("telegram-notify", { body: {
+              user_id: o.user_id,
+              subject: `✅ Check completed — ${svc.name}`,
+              body: `IMEI: ${o.imei}\n\n${finalText}\n\nCharged: $${Number(o.price_charged).toFixed(2)}`,
+            }}).catch(() => {});
+            notifyUserEmail(sb, o.user_id, "order_success", {
+              order_number: o.order_number, imei: o.imei, service: svc.name,
+              result: finalText, charged: Number(o.price_charged).toFixed(2),
+            });
+            completed++;
+          } else {
+            await sb.from("orders").update({
+              last_polled_at: new Date().toISOString(), poll_attempts: newAttempts,
+            }).eq("id", o.id);
+            stillPending++;
+          }
+        } else {
+          // status != success → record error but stay pending (admin policy)
+          const reason = String(respObj?.message ?? respObj?.error ?? parsed?.message ?? parsed?.error ?? "Rejected by supplier");
+          await sb.from("orders").update({
+            error_message: reason,
+            result: typeof parsed === "string" ? parsed.slice(0, 2000) : JSON.stringify(parsed).slice(0, 2000),
+            last_polled_at: new Date().toISOString(), poll_attempts: newAttempts,
+          }).eq("id", o.id);
+          failed++;
+        }
+        continue;
+      }
 
       // Dhru order status lives at SUCCESS[0].LIST.<refid>.STATUS or SUCCESS.<refid>.STATUS
       // Common values: "Success" / "Pending" / "Processing" / "Rejected" / "Cancelled"
