@@ -347,10 +347,33 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="orders" className="mt-5">
-            <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 items-end">
+            <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2 items-end">
               <div><Label className="text-xs text-muted-foreground">Order ID</Label><Input value={oqOrderId} onChange={(e) => setOqOrderId(e.target.value)} placeholder="#0001" /></div>
               <div><Label className="text-xs text-muted-foreground">IMEI/SN</Label><Input value={oqImei} onChange={(e) => setOqImei(e.target.value)} placeholder="IMEI" /></div>
-              <div><Label className="text-xs text-muted-foreground">Service</Label><Input value={oqService} onChange={(e) => setOqService(e.target.value)} placeholder="name" /></div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Group</Label>
+                <Select value={oqGroup} onValueChange={(v) => { setOqGroup(v); setOqService("all"); }}>
+                  <SelectTrigger><SelectValue placeholder="All groups" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All groups</SelectItem>
+                    {Array.from(new Set(orders.map((o) => o.services?.category).filter(Boolean) as string[])).sort().map((g) => (
+                      <SelectItem key={g} value={g}>{g}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Service</Label>
+                <Select value={oqService} onValueChange={setOqService}>
+                  <SelectTrigger><SelectValue placeholder="All services" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All services</SelectItem>
+                    {Array.from(new Set(orders.filter((o) => oqGroup === "all" || o.services?.category === oqGroup).map((o) => o.services?.name).filter(Boolean) as string[])).sort().map((n) => (
+                      <SelectItem key={n} value={n}>{n}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div><Label className="text-xs text-muted-foreground">From</Label><Input type="date" value={oqFrom} onChange={(e) => setOqFrom(e.target.value)} /></div>
               <div><Label className="text-xs text-muted-foreground">To</Label><Input type="date" value={oqTo} onChange={(e) => setOqTo(e.target.value)} /></div>
               <div>
