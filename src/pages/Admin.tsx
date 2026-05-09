@@ -316,7 +316,7 @@ function AdminServices() {
 
   const load = async () => {
     const [{ data: svc }, { data: sup }, { data: cats }] = await Promise.all([
-      supabase.from("services").select("*").order("category").order("name"),
+      supabase.from("services").select("*").order("category").order("sort_order").order("name"),
       supabase.from("suppliers").select("id,name,type,endpoint_url,dhru_username,dhru_api_key,active,notes").order("name"),
       supabase.from("categories").select("id,slug,name,sort_order").order("sort_order").order("name"),
     ]);
