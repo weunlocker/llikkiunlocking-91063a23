@@ -154,6 +154,15 @@ Deno.serve(async (req) => {
         params.set("imei", imei);
         params.set("key", String(supplier.dhru_api_key ?? ""));
         init.body = params.toString();
+      } else if (supplier.type === "goimeicheck") {
+        init.method = "GET";
+        const base = String(supplier.endpoint_url || "https://api.goimeicheck.com").replace(/\/+$/, "");
+        const qs = new URLSearchParams({
+          api_key: String(supplier.dhru_api_key ?? ""),
+          service: String(service.supplier_action ?? ""),
+          imei,
+        });
+        url = `${base}/api/place-order/?${qs.toString()}`;
       } else {
         url = url.replace(/\{IMEI\}/gi, encodeURIComponent(imei))
           .replace(/\{ACTION\}/gi, encodeURIComponent(String(service.supplier_action ?? "")));
