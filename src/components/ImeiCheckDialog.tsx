@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone, Copy, History as HistoryIcon } from "lucide-react";
+import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone, Copy, History as HistoryIcon, DollarSign as DollarSignIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { imeiSchema } from "@/lib/validation";
@@ -147,9 +147,8 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
             <Smartphone className="w-5 h-5 text-primary shrink-0" />
             <span className="break-words">{service.name}</span>
           </DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">
-            Cost per check: <span className="font-mono text-primary font-bold">${price.toFixed(2)}</span>
-            {" · "}<Clock className="w-3 h-3 inline" /> {service.delivery_time}
+          <DialogDescription className="text-xs sm:text-sm flex items-center gap-2 flex-wrap">
+            <Clock className="w-3 h-3 inline" /> {service.delivery_time}
           </DialogDescription>
         </DialogHeader>
 
@@ -184,9 +183,15 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
                 <Label htmlFor="imei-single">IMEI / Serial</Label>
                 <Input id="imei-single" value={imei} onChange={(e) => setImei(e.target.value)} placeholder="e.g. 356938035643809" maxLength={20} className="font-mono" />
               </div>
-              <div className="flex items-center justify-between text-sm glass rounded-md p-3">
-                <span className="text-muted-foreground flex items-center gap-2"><Wallet className="w-4 h-4" /> Your balance</span>
-                <span className="font-mono font-bold">${balance.toFixed(2)}</span>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="glass rounded-md p-3 flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground flex items-center gap-2"><DollarSignIcon className="w-4 h-4" /> Price</span>
+                  <span className="font-mono font-bold text-primary">${price.toFixed(2)}</span>
+                </div>
+                <div className="glass rounded-md p-3 flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground flex items-center gap-2"><Wallet className="w-4 h-4" /> Balance</span>
+                  <span className="font-mono font-bold">${balance.toFixed(2)}</span>
+                </div>
               </div>
 
               {service.sample_result && service.sample_result.trim() && (
