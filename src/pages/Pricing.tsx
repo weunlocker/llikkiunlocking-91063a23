@@ -8,7 +8,7 @@ type Service = { id: string; name: string; description: string | null; price: nu
 export default function Pricing() {
   const [services, setServices] = useState<Service[]>([]);
   useEffect(() => {
-    supabase.from("services").select("id,name,description,price,delivery_time,category").eq("active", true).order("price").then(({ data }) => setServices(data ?? []));
+    supabase.from("services").select("id,name,description,price,delivery_time,category").eq("active", true).order("sort_order").order("price").then(({ data }) => setServices(data ?? []));
   }, []);
 
   return (
