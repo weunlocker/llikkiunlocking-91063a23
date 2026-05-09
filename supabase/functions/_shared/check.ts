@@ -461,7 +461,7 @@ async function runUpstream(ctx: PlacementCtx) {
     return;
   }
 
-  await supabase.from("orders").update({ status: "completed", result: resultText }).eq("id", order.id);
+  await supabase.from("orders").update({ status: "completed", result: resultText, ...(instantRefId ? { supplier_reference: instantRefId } : {}) }).eq("id", order.id);
 
   // Auto-fill sample_result for newly added services so admins get a preview
   // of what the response looks like, with IMEI/SN values masked for privacy.
