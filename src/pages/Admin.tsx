@@ -1373,6 +1373,9 @@ function AdminSuppliers() {
     if (editing.type === "ifree" && !editing.dhru_api_key) {
       toast.error("iFreeiCloud suppliers need an API key"); return;
     }
+    if (editing.type === "goimeicheck" && !editing.dhru_api_key) {
+      toast.error("GoIMEICheck suppliers need an API key"); return;
+    }
     const payload = {
       name: editing.name.trim(),
       type: editing.type ?? "dhru",
