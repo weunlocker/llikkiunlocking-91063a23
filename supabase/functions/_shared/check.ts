@@ -370,6 +370,41 @@ async function runUpstream(ctx: PlacementCtx) {
             }
           }
         }
+      } else if (supplier && supplier.type === "goimeicheck") {
+        // GoIMEICheck envelope: { status: "success"|"error", response: { order_id, reference_id, message?, result?, imei } }
+        if (!resp.ok) {
+          errorMsg = `GoIMEICheck returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
+        } else {
+          const p = (parsed && typeof parsed === "object") ? parsed as Record<string, unknown> : null;
+          const statusStr = String(p?.status ?? "").toLowerCase();
+          const respObj = (p?.response && typeof p.response === "object") ? p.response as Record<string, unknown> : null;
+          if (statusStr !== "success" || !respObj) {
+            const errMsg = (respObj && (respObj.message ?? respObj.error)) ?? p?.message ?? p?.error ?? p?.response;
+            errorMsg = errMsg ? String(errMsg) : "Rejected by supplier";
+          } else {
+            const refId = String(respObj.order_id ?? respObj.reference_id ?? "");
+            const hasResult = (respObj.result != null && String(respObj.result).trim() !== "")
+              || (respObj.message != null && String(respObj.message).trim() !== "" && String(respObj.message).toLowerCase() !== "pending");
+            if (hasResult) {
+              const replyText = String(respObj.result ?? respObj.message ?? "");
+              resultText = service.response_template ? applyTemplate(service.response_template, parsed) : replyText;
+              resultText = normalizeHtml(resultText) || "(empty response)";
+              success = true;
+            } else if (refId) {
+              await supabase.from("orders").update({
+                supplier_reference: refId,
+                result: `Order placed with supplier (ref ${refId}). Awaiting result…`,
+              }).eq("id", order.id);
+              notifyUser(supabase, userId,
+                `⏳ Check submitted — ${service.name}`,
+                `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
+              );
+              return;
+            } else {
+              errorMsg = "GoIMEICheck did not return order id or result";
+            }
+          }
+        }
       } else if (!resp.ok) {
         errorMsg = `Provider returned ${resp.status}: ${typeof raw === "string" ? raw.slice(0, 500) : JSON.stringify(raw).slice(0, 500)}`;
       } else {
