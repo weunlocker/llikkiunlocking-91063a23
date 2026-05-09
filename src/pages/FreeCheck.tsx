@@ -208,7 +208,17 @@ export default function FreeCheck() {
           </Card>
         )}
 
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(o) => {
+          setOpen(o);
+          if (!o) {
+            setImei("");
+            setResult("");
+            setTsToken("");
+            if (window.turnstile && tsWidgetId.current) {
+              try { window.turnstile.reset(tsWidgetId.current); } catch { /* ignore */ }
+            }
+          }
+        }}>
           <DialogContent className="max-w-2xl">
             <DialogHeader className="items-center text-center">
               {settings.logo_url && (
