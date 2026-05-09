@@ -922,7 +922,7 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRo
   useEffect(() => {
     if (order) {
       setStatus(order.status);
-      setResult(order.result ?? "");
+      setResult(extractResponse(order.result ?? ""));
       setErrorMsg(order.error_message ?? "");
       setSwitchServiceId("");
       supabase.from("orders").select("supplier_reference,service_id").eq("id", order.id).maybeSingle()
