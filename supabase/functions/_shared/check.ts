@@ -375,26 +375,40 @@ async function runUpstream(ctx: PlacementCtx) {
       user_id: userId, type: "refund", amount: price, balance_after: refundedBalance,
       description: `Auto-refund: ${service.name}`, order_id: order.id,
     });
-    notifyUser(supabase, userId,
+    detach(notifyUser(supabase, userId,
       `❌ Check failed — ${service.name}`,
       `IMEI: ${imei}\nReason: ${errorMsg}\nRefunded: $${price.toFixed(2)}\nBalance: $${refundedBalance.toFixed(2)}`,
-    );
-    notifyUserEmail(supabase, userId, "order_rejected", {
+    ));
+    detach(notifyUserEmail(supabase, userId, "order_rejected", {
       order_number: order.order_number, imei, service: service.name,
       error: errorMsg, refund: price.toFixed(2), balance: refundedBalance.toFixed(2),
-    });
+    }));
     return;
   }
 
   await supabase.from("orders").update({ status: "completed", result: resultText }).eq("id", order.id);
-  notifyUser(supabase, userId,
+  detach(notifyUser(supabase, userId,
     `✅ Check completed — ${service.name}`,
     `IMEI: ${imei}\n\n${resultText}\n\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
-  );
-  notifyUserEmail(supabase, userId, "order_success", {
+  ));
+  detach(notifyUserEmail(supabase, userId, "order_success", {
     order_number: order.order_number, imei, service: service.name,
     result: resultText, charged: price.toFixed(2), balance: newBalance.toFixed(2),
-  });
+  }));
+}
+
+// Fire-and-forget helper: hands the promise to the edge runtime so it doesn't
+// block the HTTP response, but still gets to finish in the background.
+function detach(p: Promise<unknown> | unknown) {
+  if (!p || typeof (p as Promise<unknown>).then !== "function") return;
+  const promise = (p as Promise<unknown>).catch((e) => console.error("detached task failed", e));
+  try {
+    // @ts-ignore Deno Deploy / Supabase Edge runtime
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(promise);
+    }
+  } catch { /* ignore */ }
 }
 
 // -------- public entrypoints --------
