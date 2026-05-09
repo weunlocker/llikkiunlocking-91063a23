@@ -337,9 +337,21 @@ function AdminServices() {
     });
   }, [editing?.supplier_id]);
 
-  const filtered = useMemo(() => services.filter((s) =>
-    !q || s.name.toLowerCase().includes(q.toLowerCase()) || s.category?.toLowerCase().includes(q.toLowerCase())
-  ), [services, q]);
+  const filtered = useMemo(() => services.filter((s) => {
+    if (fGroup !== "all" && (s.category ?? "") !== fGroup) return false;
+    if (fSvcId !== "all" && s.id !== fSvcId) return false;
+    if (q && !(s.name.toLowerCase().includes(q.toLowerCase()) || s.category?.toLowerCase().includes(q.toLowerCase()))) return false;
+    return true;
+  }), [services, q, fGroup, fSvcId]);
+
+  const groupOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of services) if (s.category) set.add(s.category);
+    return Array.from(set).sort();
+  }, [services]);
+  const serviceOptionsForGroup = useMemo(() => {
+    return services.filter((s) => fGroup === "all" || (s.category ?? "") === fGroup);
+  }, [services, fGroup]);
 
   const saveService = async () => {
     if (!editing) return;
