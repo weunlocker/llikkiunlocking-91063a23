@@ -19,7 +19,7 @@ import { extractResponse } from "@/lib/extractResponse";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
 type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null };
-type Supplier = { id: string; name: string; type: "dhru" | "generic"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
+type Supplier = { id: string; name: string; type: "dhru" | "generic" | "ifree"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
 type ProfileRow = { id: string; email: string | null; display_name: string | null; balance: number; banned: boolean; created_at: string };
 type OrderRow = { id: string; order_number: number; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null; profiles: { email: string | null } | null };
 type TxRow = { id: string; user_id: string; amount: number; type: string; balance_after: number; description: string | null; created_at: string; profiles?: { email: string | null } | null };
