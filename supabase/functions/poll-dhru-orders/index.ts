@@ -19,6 +19,17 @@ function getByPath(obj: unknown, path: string): unknown {
   return cur;
 }
 
+function applyTemplate(template: string, data: unknown): string {
+  if (!template) return typeof data === "string" ? data : JSON.stringify(data, null, 2);
+  return template.replace(/\{([\w\.\[\]]+)\}/g, (_, k) => {
+    if (k.toLowerCase() === "imei") return "";
+    const v = getByPath(data, k);
+    if (v === null || v === undefined) return "";
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  });
+}
+
 function normalizeHtml(s: string): string {
   return s
     .replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n").replace(/<\/div>/gi, "\n")
