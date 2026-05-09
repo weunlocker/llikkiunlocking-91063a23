@@ -158,7 +158,7 @@ export default function FreeCheck() {
               <h2 className="text-lg font-semibold mb-1">{selected.name}</h2>
               <p className="text-xs text-muted-foreground">Enter the IMEI or serial number to check.</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 value={imei}
                 onChange={(e) => setImei(e.target.value)}
@@ -166,10 +166,13 @@ export default function FreeCheck() {
                 maxLength={20}
                 className="font-mono"
               />
-              <Button variant="hero" onClick={run} disabled={running || !imei.trim()}>
+              <Button variant="hero" onClick={run} disabled={running || !imei.trim() || (turnstileEnabled && !tsToken)}>
                 {running ? <Loader2 className="w-4 h-4 animate-spin" /> : "Check"}
               </Button>
             </div>
+            {turnstileEnabled && (
+              <div ref={tsRef} className="flex justify-center" />
+            )}
           </Card>
         )}
 
