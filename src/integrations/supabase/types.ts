@@ -554,6 +554,8 @@ export type Database = {
           seo_keywords: string | null
           seo_title: string | null
           tagline: string | null
+          telegram_channel_id: string | null
+          telegram_group_id: string | null
           telegram_url: string | null
           twitter_url: string | null
           updated_at: string
@@ -576,6 +578,8 @@ export type Database = {
           seo_keywords?: string | null
           seo_title?: string | null
           tagline?: string | null
+          telegram_channel_id?: string | null
+          telegram_group_id?: string | null
           telegram_url?: string | null
           twitter_url?: string | null
           updated_at?: string
@@ -598,6 +602,8 @@ export type Database = {
           seo_keywords?: string | null
           seo_title?: string | null
           tagline?: string | null
+          telegram_channel_id?: string | null
+          telegram_group_id?: string | null
           telegram_url?: string | null
           twitter_url?: string | null
           updated_at?: string
