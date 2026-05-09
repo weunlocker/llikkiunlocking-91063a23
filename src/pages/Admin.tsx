@@ -306,6 +306,8 @@ function AdminServices() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Partial<Service> | null>(null);
   const [q, setQ] = useState("");
+  const [fGroup, setFGroup] = useState<string>("all");
+  const [fSvcId, setFSvcId] = useState<string>("all");
   const [supSvc, setSupSvc] = useState<SupplierService[]>([]);
   const [supSvcLoading, setSupSvcLoading] = useState(false);
   const [supSvcQ, setSupSvcQ] = useState("");
@@ -335,9 +337,21 @@ function AdminServices() {
     });
   }, [editing?.supplier_id]);
 
-  const filtered = useMemo(() => services.filter((s) =>
-    !q || s.name.toLowerCase().includes(q.toLowerCase()) || s.category?.toLowerCase().includes(q.toLowerCase())
-  ), [services, q]);
+  const filtered = useMemo(() => services.filter((s) => {
+    if (fGroup !== "all" && (s.category ?? "") !== fGroup) return false;
+    if (fSvcId !== "all" && s.id !== fSvcId) return false;
+    if (q && !(s.name.toLowerCase().includes(q.toLowerCase()) || s.category?.toLowerCase().includes(q.toLowerCase()))) return false;
+    return true;
+  }), [services, q, fGroup, fSvcId]);
+
+  const groupOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of services) if (s.category) set.add(s.category);
+    return Array.from(set).sort();
+  }, [services]);
+  const serviceOptionsForGroup = useMemo(() => {
+    return services.filter((s) => fGroup === "all" || (s.category ?? "") === fGroup);
+  }, [services, fGroup]);
 
   const saveService = async () => {
     if (!editing) return;
@@ -405,6 +419,33 @@ function AdminServices() {
         </>
       }
     >
+      <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div>
+          <Label className="text-xs text-muted-foreground">Group</Label>
+          <Select value={fGroup} onValueChange={(v) => { setFGroup(v); setFSvcId("all"); }}>
+            <SelectTrigger><SelectValue placeholder="All groups" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All groups</SelectItem>
+              {groupOptions.map((g) => (
+                <SelectItem key={g} value={g}>{g}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Service</Label>
+          <Select value={fSvcId} onValueChange={setFSvcId}>
+            <SelectTrigger><SelectValue placeholder="All services" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All services</SelectItem>
+              {serviceOptionsForGroup.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.service_code ? `#${s.service_code} ` : ""}{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
         <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
@@ -724,8 +765,8 @@ function AdminOrders() {
   const [loading, setLoading] = useState(true);
   const [fOrderId, setFOrderId] = useState("");
   const [fImei, setFImei] = useState("");
-  const [fUser, setFUser] = useState("");
-  const [fService, setFService] = useState("");
+  const [fUser, setFUser] = useState("all");
+  const [fService, setFService] = useState("all");
   const [fDateFrom, setFDateFrom] = useState("");
   const [fDateTo, setFDateTo] = useState("");
   const [filter, setFilter] = useState<string>("all");
@@ -754,13 +795,24 @@ function AdminOrders() {
       const oid = String(o.order_number ?? "").padStart(4, "0");
       if (fOrderId.trim() && !oid.includes(fOrderId.trim().replace(/^#/, ""))) return false;
       if (fImei.trim() && !o.imei.toLowerCase().includes(fImei.trim().toLowerCase())) return false;
-      if (fUser.trim() && !(o.profiles?.email ?? "").toLowerCase().includes(fUser.trim().toLowerCase())) return false;
-      if (fService.trim() && !(o.services?.name ?? "").toLowerCase().includes(fService.trim().toLowerCase())) return false;
+      if (fUser !== "all" && (o.profiles?.email ?? "") !== fUser) return false;
+      if (fService !== "all" && (o.services?.name ?? "") !== fService) return false;
       if (fDateFrom && new Date(o.created_at) < new Date(fDateFrom)) return false;
       if (fDateTo && new Date(o.created_at) > new Date(fDateTo + "T23:59:59")) return false;
       return true;
     });
   }, [orders, filter, fOrderId, fImei, fUser, fService, fDateFrom, fDateTo]);
+
+  const userOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const o of orders) if (o.profiles?.email) set.add(o.profiles.email);
+    return Array.from(set).sort();
+  }, [orders]);
+  const serviceOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const o of orders) if (o.services?.name) set.add(o.services.name);
+    return Array.from(set).sort();
+  }, [orders]);
 
   const refundOrder = async (o: OrderRow) => {
     const ok = await confirm({ title: "Refund order?", description: `Refund $${Number(o.price_charged).toFixed(2)} back to the customer's wallet.`, confirmText: "Refund", tone: "warning" });
@@ -791,8 +843,26 @@ function AdminOrders() {
       <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
         <div><Label className="text-xs text-muted-foreground">Order ID</Label><Input value={fOrderId} onChange={(e) => setFOrderId(e.target.value)} placeholder="#0001" /></div>
         <div><Label className="text-xs text-muted-foreground">IMEI/SN</Label><Input value={fImei} onChange={(e) => setFImei(e.target.value)} placeholder="IMEI" /></div>
-        <div><Label className="text-xs text-muted-foreground">User</Label><Input value={fUser} onChange={(e) => setFUser(e.target.value)} placeholder="email" /></div>
-        <div><Label className="text-xs text-muted-foreground">Service</Label><Input value={fService} onChange={(e) => setFService(e.target.value)} placeholder="name" /></div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Client</Label>
+          <Select value={fUser} onValueChange={setFUser}>
+            <SelectTrigger><SelectValue placeholder="All clients" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All clients</SelectItem>
+              {userOptions.map((e) => (<SelectItem key={e} value={e}>{e}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Service</Label>
+          <Select value={fService} onValueChange={setFService}>
+            <SelectTrigger><SelectValue placeholder="All services" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All services</SelectItem>
+              {serviceOptions.map((n) => (<SelectItem key={n} value={n}>{n}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
         <div><Label className="text-xs text-muted-foreground">From</Label><Input type="date" value={fDateFrom} onChange={(e) => setFDateFrom(e.target.value)} /></div>
         <div><Label className="text-xs text-muted-foreground">To</Label><Input type="date" value={fDateTo} onChange={(e) => setFDateTo(e.target.value)} /></div>
       </div>
