@@ -1600,23 +1600,68 @@ function AdminCategories() {
 function AdminTelegramBot() {
   const [testChatId, setTestChatId] = useState("");
   const [testing, setTesting] = useState(false);
+  const [channelId, setChannelId] = useState("");
+  const [groupId, setGroupId] = useState("");
+  const [savingIds, setSavingIds] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("site_settings").select("telegram_channel_id,telegram_group_id").eq("id", 1).maybeSingle();
+      const r = data as unknown as { telegram_channel_id?: string | null; telegram_group_id?: string | null } | null;
+      setChannelId(r?.telegram_channel_id ?? "");
+      setGroupId(r?.telegram_group_id ?? "");
+    })();
+  }, []);
+
+  const saveIds = async () => {
+    setSavingIds(true);
+    const { error } = await supabase.from("site_settings").update({
+      telegram_channel_id: channelId.trim() || null,
+      telegram_group_id: groupId.trim() || null,
+    }).eq("id", 1);
+    setSavingIds(false);
+    if (error) toast.error(error.message);
+    else toast.success("Saved");
+  };
+
   const sendTestTelegram = async () => {
     if (!testChatId.trim()) return toast.error("Enter a chat ID");
     setTesting(true);
     const { data, error } = await supabase.functions.invoke("telegram-notify", {
-      body: { user_id: "00000000-0000-0000-0000-000000000000", chat_id: testChatId.trim(), subject: "Test", message: "✅ Telegram is wired up correctly." },
+      body: { chat_id: testChatId.trim(), subject: "Test", message: "✅ Telegram is wired up correctly." },
     });
     setTesting(false);
     if (error) return toast.error(error.message);
     if ((data as { ok?: boolean })?.ok) toast.success("Test sent — check Telegram");
     else toast.error("Failed: " + JSON.stringify(data));
   };
+
   return (
-    <AdminLayout title="Telegram Bot" subtitle="Send broadcast notifications and test the bot connection">
-      <div className="glass rounded-2xl p-6 space-y-3 max-w-2xl">
-        <h3 className="font-bold">Telegram Bot</h3>
-        <p className="text-sm text-muted-foreground">Connected via Lovable Cloud. Clients link their account in Dashboard → Notifications.</p>
-        <div className="space-y-2 pt-2 border-t border-border/40">
+    <AdminLayout title="Telegram Bot" subtitle="Configure broadcast targets and test the bot connection">
+      <div className="glass rounded-2xl p-6 space-y-4 max-w-2xl">
+        <h3 className="font-bold">Broadcast targets</h3>
+        <p className="text-sm text-muted-foreground">
+          Add the bot as an <b>admin</b> in your channel/group, then paste the chat ID here.
+          Channel IDs usually start with <code>-100…</code>. Group IDs start with <code>-…</code>.
+        </p>
+        <div>
+          <Label>Telegram Channel ID</Label>
+          <Input value={channelId} onChange={(e) => setChannelId(e.target.value)} placeholder="-1001234567890" />
+        </div>
+        <div>
+          <Label>Telegram Group ID</Label>
+          <Input value={groupId} onChange={(e) => setGroupId(e.target.value)} placeholder="-987654321" />
+        </div>
+        <Button onClick={saveIds} disabled={savingIds}>
+          {savingIds ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Save IDs
+        </Button>
+
+        <div className="space-y-2 pt-4 border-t border-border/40">
+          <h3 className="font-bold">Personal chats</h3>
+          <p className="text-sm text-muted-foreground">Clients link their account in Dashboard → Notifications (pairing code).</p>
+        </div>
+
+        <div className="space-y-2 pt-4 border-t border-border/40">
           <Label className="text-xs">Send test message to chat ID</Label>
           <div className="flex gap-2">
             <Input placeholder="123456789" value={testChatId} onChange={(e) => setTestChatId(e.target.value)} />
