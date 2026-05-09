@@ -12,6 +12,7 @@ export function extractResponse(text?: string | null): string {
   const KEYS = [
     "response", "result", "message", "data", "reply", "output",
     "description", "details", "info", "text", "content", "body",
+    "error", "error_message", "errorMessage", "msg", "reason",
   ];
   const WRAPPERS = ["RESPONSE", "Response", "response", "data", "result", "DATA", "RESULT", "payload", "0"];
 
