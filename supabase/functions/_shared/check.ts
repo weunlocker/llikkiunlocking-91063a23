@@ -196,9 +196,19 @@ async function placeOrder(opts: {
     }
   }
 
-  const newBalance = +(balance - price).toFixed(2);
-  const { error: balErr } = await supabase.from("profiles").update({ balance: newBalance }).eq("id", opts.userId);
-  if (balErr) return { ok: false, status: 500, body: { error: "Failed to charge wallet" } };
+  // Atomic check-and-deduct via SECURITY DEFINER RPC to prevent TOCTOU/double-spend
+  const { data: newBal, error: balErr } = await supabase.rpc("deduct_balance", {
+    p_user_id: opts.userId,
+    p_amount: price,
+  });
+  if (balErr) {
+    const msg = String(balErr.message || "");
+    if (msg.includes("insufficient_balance")) {
+      return { ok: false, status: 402, body: { error: "Insufficient balance", balance } };
+    }
+    return { ok: false, status: 500, body: { error: "Failed to charge wallet" } };
+  }
+  const newBalance = Number(newBal);
 
   const { data: order, error: oErr } = await supabase.from("orders").insert({
     user_id: opts.userId, service_id: service.id, imei: opts.imei,
@@ -206,6 +216,7 @@ async function placeOrder(opts: {
   }).select().single();
 
   if (oErr || !order) {
+    // Refund the atomic deduction if order insert fails
     await supabase.from("profiles").update({ balance }).eq("id", opts.userId);
     return { ok: false, status: 500, body: { error: "Failed to create order" } };
   }
