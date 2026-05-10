@@ -359,6 +359,10 @@ export type Database = {
           cashfree_enabled: boolean
           cashfree_env: string
           cashfree_min_amount: number
+          cashfree_prod_app_id: string | null
+          cashfree_prod_secret_key: string | null
+          cashfree_sandbox_app_id: string | null
+          cashfree_sandbox_secret_key: string | null
           cashfree_usd_to_inr: number
           id: number
           order_expiry_minutes: number
@@ -379,6 +383,10 @@ export type Database = {
           cashfree_enabled?: boolean
           cashfree_env?: string
           cashfree_min_amount?: number
+          cashfree_prod_app_id?: string | null
+          cashfree_prod_secret_key?: string | null
+          cashfree_sandbox_app_id?: string | null
+          cashfree_sandbox_secret_key?: string | null
           cashfree_usd_to_inr?: number
           id?: number
           order_expiry_minutes?: number
@@ -399,6 +407,10 @@ export type Database = {
           cashfree_enabled?: boolean
           cashfree_env?: string
           cashfree_min_amount?: number
+          cashfree_prod_app_id?: string | null
+          cashfree_prod_secret_key?: string | null
+          cashfree_sandbox_app_id?: string | null
+          cashfree_sandbox_secret_key?: string | null
           cashfree_usd_to_inr?: number
           id?: number
           order_expiry_minutes?: number

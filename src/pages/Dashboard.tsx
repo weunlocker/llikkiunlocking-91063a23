@@ -71,10 +71,16 @@ export default function Dashboard() {
   const customMessage = (profile as unknown as { custom_message?: string } | null)?.custom_message ?? "";
   const [serviceView, setServiceView] = useState<"grid" | "list">(() => (localStorage.getItem("serviceView") as "grid" | "list") || "grid");
   useEffect(() => { localStorage.setItem("serviceView", serviceView); }, [serviceView]);
-  const [paySettings, setPaySettings] = useState<{ binance_enabled: boolean; topup_amounts: number[]; ask_admin_enabled: boolean } | null>(null);
+  const [paySettings, setPaySettings] = useState<{ binance_enabled: boolean; cashfree_enabled: boolean; cashfree_usd_to_inr: number; topup_amounts: number[]; ask_admin_enabled: boolean } | null>(null);
   useEffect(() => {
-    supabase.from("payment_settings").select("binance_enabled,topup_amounts,ask_admin_enabled").eq("id", 1).maybeSingle()
-      .then(({ data }) => { if (data) setPaySettings({ binance_enabled: !!data.binance_enabled, topup_amounts: (data.topup_amounts as number[]) ?? [5,10,20,30], ask_admin_enabled: !!data.ask_admin_enabled }); });
+    supabase.from("payment_settings").select("binance_enabled,cashfree_enabled,cashfree_usd_to_inr,topup_amounts,ask_admin_enabled").eq("id", 1).maybeSingle()
+      .then(({ data }) => { if (data) setPaySettings({
+        binance_enabled: !!data.binance_enabled,
+        cashfree_enabled: !!(data as any).cashfree_enabled,
+        cashfree_usd_to_inr: Number((data as any).cashfree_usd_to_inr ?? 85),
+        topup_amounts: (data.topup_amounts as number[]) ?? [5,10,20,30],
+        ask_admin_enabled: !!data.ask_admin_enabled,
+      }); });
   }, []);
 
   useEffect(() => {
@@ -153,6 +159,17 @@ export default function Dashboard() {
     if (error || !(data as any)?.ok) { toast.error(error?.message || (data as any)?.error || "Failed to create payment"); return; }
     setPay(data as any);
     setTopupOpen(false);
+  };
+
+  const requestCashfreeTopup = async (overrideAmt?: number) => {
+    const amt = overrideAmt ?? Number(topupAmount);
+    if (!amt || amt < 1 || amt > 10000) { toast.error("Invalid amount"); return; }
+    if (!paySettings?.cashfree_enabled) { toast.error("Cashfree not available"); return; }
+    const { data, error } = await supabase.functions.invoke("cashfree-create-order", { body: { amount_usd: amt } });
+    if (error || !(data as any)?.ok) { toast.error(error?.message || (data as any)?.error || "Failed to create Cashfree order"); return; }
+    setTopupOpen(false);
+    // Redirect to Cashfree hosted checkout
+    window.location.href = (data as any).checkout_url;
   };
 
   // Poll the pending payment_orders row every 5s while the dialog is open
@@ -515,13 +532,37 @@ export default function Dashboard() {
       <Dialog open={topupOpen} onOpenChange={setTopupOpen}>
         <DialogContent className="glass">
           <DialogHeader><DialogTitle>Top Up Wallet</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Pay securely via Binance Pay — your wallet is credited automatically.</p>
+          <div className="space-y-5">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {(paySettings?.topup_amounts ?? [5, 10, 20, 30]).map((a) => (
-                <Button key={a} variant="hero" onClick={() => requestTopup(a)}>${a}</Button>
+                <Button key={a} variant="outline" onClick={() => setTopupAmount(String(a))} className={Number(topupAmount) === a ? "border-primary text-primary" : ""}>${a}</Button>
               ))}
             </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Amount (USD)</label>
+              <input
+                type="number" min="1" max="10000" value={topupAmount}
+                onChange={(e) => setTopupAmount(e.target.value)}
+                className="w-full h-10 rounded-md border border-border/50 bg-background px-3 text-sm font-mono"
+              />
+            </div>
+
+            <div className="space-y-2">
+              {paySettings?.binance_enabled && (
+                <Button variant="hero" className="w-full" onClick={() => requestTopup()}>
+                  Pay with Binance (USDT/Crypto)
+                </Button>
+              )}
+              {paySettings?.cashfree_enabled && (
+                <Button variant="hero" className="w-full" onClick={() => requestCashfreeTopup()}>
+                  Pay with Cashfree (UPI / Cards / NetBanking) — ₹{(Number(topupAmount || 0) * (paySettings.cashfree_usd_to_inr || 85)).toFixed(0)}
+                </Button>
+              )}
+              {!paySettings?.binance_enabled && !paySettings?.cashfree_enabled && (
+                <p className="text-xs text-muted-foreground text-center">No payment methods enabled — please contact admin.</p>
+              )}
+            </div>
+
             {paySettings?.ask_admin_enabled !== false && (
               <Button variant="neon" className="w-full" onClick={askAdmin}>
                 Need help with payment? Contact admin
