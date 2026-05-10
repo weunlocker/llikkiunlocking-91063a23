@@ -828,6 +828,27 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_chat_state: {
+        Row: {
+          bot_kind: string
+          chat_id: string
+          state: Json
+          updated_at: string
+        }
+        Insert: {
+          bot_kind: string
+          chat_id: string
+          state: Json
+          updated_at?: string
+        }
+        Update: {
+          bot_kind?: string
+          chat_id?: string
+          state?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       telegram_pairings: {
         Row: {
           bot_kind: string
