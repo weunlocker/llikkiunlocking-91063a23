@@ -10,6 +10,18 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Require authenticated admin
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
+    const auth = req.headers.get("Authorization") || "";
+    const token = auth.replace("Bearer ", "");
+    if (!token) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const userClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: auth } } });
+    const { data: userData } = await userClient.auth.getUser(token);
+    if (!userData?.user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: roles } = await adminClient.from("user_roles").select("role").eq("user_id", userData.user.id).eq("role", "admin");
+    if (!roles?.length) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
     const { name, category } = await req.json();
     const serviceName = String(name ?? "").trim();
     if (!serviceName) {
