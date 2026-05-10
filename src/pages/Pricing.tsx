@@ -59,7 +59,6 @@ export default function Pricing() {
                 {GROUPS.map((g) => (
                   <th key={g.key} className="px-4 py-4 font-semibold text-right">
                     {g.label}
-                    {g.discount > 0 && <div className="text-[10px] font-normal text-muted-foreground">−{Math.round(g.discount * 100)}%</div>}
                   </th>
                 ))}
               </tr>
