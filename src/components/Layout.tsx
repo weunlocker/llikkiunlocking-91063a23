@@ -51,6 +51,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <LanguageSwitcher />
             <Button variant="ghost" size="icon" onClick={toggleTheme} title={theme === "dark" ? "Light mode" : "Dark mode"} aria-label="Toggle theme">
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
