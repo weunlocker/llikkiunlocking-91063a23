@@ -16,8 +16,7 @@ type SimpleService = {
   price: number;
   delivery_time: string;
   category: string | null;
-  supplier_id: string | null;
-  suppliers: { type: string } | null;
+  is_async: boolean | null;
 };
 
 type ApiKeyRow = { id: string; name: string; key: string };
