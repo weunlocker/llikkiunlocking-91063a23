@@ -146,13 +146,15 @@ async function notifyAdminOrderPlaced(
   try {
     const { data: profile } = await supabase.from("profiles")
       .select("email, display_name").eq("id", ctx.userId).maybeSingle();
+    const { data: settings } = await supabase.from("site_settings")
+      .select("brand_name").eq("id", 1).maybeSingle();
     const who = profile?.display_name || (profile?.email ? String(profile.email).split("@")[0] : "user");
+    const brand = settings?.brand_name || "";
     const lines = [
       `IMEI New Order Placed #${ctx.order.order_number}`,
       `${ctx.service.name} : IMEI: ${ctx.imei}`,
       `${who} : ${ctx.price.toFixed(2)}USD`,
-      `:`,
-      `WEUNLOCKERS`,
+      ...(brand ? [``, brand] : []),
     ].join("\n");
     await supabase.functions.invoke("telegram-notify", {
       body: { broadcast: "admins", body: lines, format: "plain" },
