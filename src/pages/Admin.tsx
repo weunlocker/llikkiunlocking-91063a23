@@ -298,6 +298,33 @@ type SupplierService = { action_code: string; name: string; credit: number | nul
 
 type Category = { id: string; slug: string; name: string; sort_order: number };
 
+function PaginationBar({ page, totalPages, pageSize, total, onPage, onPageSize }: { page: number; totalPages: number; pageSize: number; total: number; onPage: (p: number) => void; onPageSize: (n: number) => void }) {
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(total, page * pageSize);
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 border-t border-border/50 text-xs">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <span>Showing {from}–{to} of {total}</span>
+        <span>·</span>
+        <span>Per page:</span>
+        <Select value={String(pageSize)} onValueChange={(v) => onPageSize(Number(v))}>
+          <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {[20, 30, 40, 50, 100].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center gap-1">
+        <Button size="sm" variant="ghost" disabled={page <= 1} onClick={() => onPage(1)}>« First</Button>
+        <Button size="sm" variant="ghost" disabled={page <= 1} onClick={() => onPage(page - 1)}>‹ Prev</Button>
+        <span className="px-2 font-mono">Page {page} / {totalPages}</span>
+        <Button size="sm" variant="ghost" disabled={page >= totalPages} onClick={() => onPage(page + 1)}>Next ›</Button>
+        <Button size="sm" variant="ghost" disabled={page >= totalPages} onClick={() => onPage(totalPages)}>Last »</Button>
+      </div>
+    </div>
+  );
+}
+
 function AdminServices() {
   const confirm = useConfirm();
   const [services, setServices] = useState<Service[]>([]);
@@ -315,6 +342,8 @@ function AdminServices() {
   const [supSvcOpen, setSupSvcOpen] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const load = async () => {
     const [{ data: svc }, { data: sup }, { data: cats }] = await Promise.all([
@@ -346,6 +375,10 @@ function AdminServices() {
     if (q && !(s.name.toLowerCase().includes(q.toLowerCase()) || s.category?.toLowerCase().includes(q.toLowerCase()))) return false;
     return true;
   }), [services, q, fGroup, fSvcId]);
+
+  useEffect(() => { setPage(1); }, [q, fGroup, fSvcId, pageSize]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageItems = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
 
   const groupOptions = useMemo(() => {
     const set = new Set<string>();
@@ -485,7 +518,7 @@ function AdminServices() {
               <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
             </thead>
             <tbody>
-              {filtered.map((s) => (
+              {pageItems.map((s) => (
                 <tr
                   key={s.id}
                   draggable
@@ -517,6 +550,7 @@ function AdminServices() {
               {filtered.length === 0 && <tr><td colSpan={9} className="px-5 py-10 text-center text-muted-foreground">No services.</td></tr>}
             </tbody>
           </table>
+          <PaginationBar page={page} totalPages={totalPages} pageSize={pageSize} total={filtered.length} onPage={setPage} onPageSize={setPageSize} />
         </div>
       }
 
@@ -844,6 +878,8 @@ function AdminOrders() {
   const [fDateTo, setFDateTo] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [view, setView] = useState<OrderRow | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const load = async () => {
     const [o, profs, svcs] = await Promise.all([
@@ -875,6 +911,10 @@ function AdminOrders() {
       return true;
     });
   }, [orders, filter, fOrderId, fImei, fUser, fService, fDateFrom, fDateTo]);
+
+  useEffect(() => { setPage(1); }, [filter, fOrderId, fImei, fUser, fService, fDateFrom, fDateTo, pageSize]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageItems = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
 
   const userOptions = useMemo(() => {
     const set = new Set<string>();
@@ -947,7 +987,7 @@ function AdminOrders() {
               <tr><th className="px-5 py-3">Order ID</th><th className="px-5 py-3">User</th><th className="px-5 py-3">Service</th><th className="px-5 py-3">IMEI/SN</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Charged</th><th className="px-5 py-3">Date</th><th></th></tr>
             </thead>
             <tbody>
-              {filtered.map((o) => (
+              {pageItems.map((o) => (
                 <tr key={o.id} className="border-t border-border/50 hover:bg-secondary/20 cursor-pointer" onClick={() => setView(o)}>
                   <td className="px-5 py-3 font-mono text-xs">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
                   <td className="px-5 py-3 text-xs">{o.profiles?.email}</td>
@@ -966,6 +1006,7 @@ function AdminOrders() {
               {filtered.length === 0 && <tr><td colSpan={8} className="px-5 py-10 text-center text-muted-foreground">No orders.</td></tr>}
             </tbody>
           </table>
+          <PaginationBar page={page} totalPages={totalPages} pageSize={pageSize} total={filtered.length} onPage={setPage} onPageSize={setPageSize} />
         </div>
       }
 
