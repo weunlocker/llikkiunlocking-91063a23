@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
 
     await admin.from("payment_settings").update({ binance_last_polled_at: new Date().toISOString() }).eq("id", 1);
 
-    return json(200, { ok: true, scanned: deposits.length, matched: matched.length, details: matched });
+    return json(200, { ok: true, scanned: deposits.length, matched: matched.length });
   } catch (e) {
     console.error("binance-poll-deposits error:", e);
     return json(500, { error: e instanceof Error ? e.message : "Server error" });
