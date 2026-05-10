@@ -75,8 +75,6 @@ export default function Home() {
       />
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-border/40">
-
-      <section className="relative overflow-hidden border-b border-border/40">
         <div className="absolute inset-0 grid-bg opacity-30" />
         <div className="absolute top-1/3 left-1/4 w-[28rem] h-[28rem] bg-primary/10 rounded-full blur-[140px]" />
         <div className="absolute bottom-0 right-1/4 w-[28rem] h-[28rem] bg-accent/10 rounded-full blur-[140px]" />
