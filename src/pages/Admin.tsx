@@ -315,6 +315,8 @@ function AdminServices() {
   const [supSvcOpen, setSupSvcOpen] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const load = async () => {
     const [{ data: svc }, { data: sup }, { data: cats }] = await Promise.all([
