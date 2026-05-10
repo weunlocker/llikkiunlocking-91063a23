@@ -272,6 +272,13 @@ export type Database = {
             referencedRelation: "services"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "orders_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payment_orders: {
@@ -843,9 +850,141 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      services_public: {
+        Row: {
+          active: boolean | null
+          category: string | null
+          created_at: string | null
+          delivery_time: string | null
+          description: string | null
+          id: string | null
+          is_free: boolean | null
+          name: string | null
+          price: number | null
+          result_color: string | null
+          result_font: string | null
+          sample_result: string | null
+          service_code: string | null
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          delivery_time?: string | null
+          description?: string | null
+          id?: string | null
+          is_free?: boolean | null
+          name?: string | null
+          price?: number | null
+          result_color?: string | null
+          result_font?: string | null
+          sample_result?: string | null
+          service_code?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          category?: string | null
+          created_at?: string | null
+          delivery_time?: string | null
+          description?: string | null
+          id?: string | null
+          is_free?: boolean | null
+          name?: string | null
+          price?: number | null
+          result_color?: string | null
+          result_font?: string | null
+          sample_result?: string | null
+          service_code?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      site_settings_public: {
+        Row: {
+          address: string | null
+          brand_name: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          facebook_url: string | null
+          favicon_url: string | null
+          footer_text: string | null
+          id: number | null
+          instagram_url: string | null
+          logo_url: string | null
+          seo_description: string | null
+          seo_keywords: string | null
+          seo_title: string | null
+          tagline: string | null
+          telegram_url: string | null
+          turnstile_enabled: boolean | null
+          turnstile_site_key: string | null
+          twitter_url: string | null
+          updated_at: string | null
+          whatsapp_number: string | null
+          youtube_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          brand_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          facebook_url?: string | null
+          favicon_url?: string | null
+          footer_text?: string | null
+          id?: number | null
+          instagram_url?: string | null
+          logo_url?: string | null
+          seo_description?: string | null
+          seo_keywords?: string | null
+          seo_title?: string | null
+          tagline?: string | null
+          telegram_url?: string | null
+          turnstile_enabled?: boolean | null
+          turnstile_site_key?: string | null
+          twitter_url?: string | null
+          updated_at?: string | null
+          whatsapp_number?: string | null
+          youtube_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          brand_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          facebook_url?: string | null
+          favicon_url?: string | null
+          footer_text?: string | null
+          id?: number | null
+          instagram_url?: string | null
+          logo_url?: string | null
+          seo_description?: string | null
+          seo_keywords?: string | null
+          seo_title?: string | null
+          tagline?: string | null
+          telegram_url?: string | null
+          turnstile_enabled?: boolean | null
+          turnstile_site_key?: string | null
+          twitter_url?: string | null
+          updated_at?: string | null
+          whatsapp_number?: string | null
+          youtube_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      deduct_balance: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: number
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
