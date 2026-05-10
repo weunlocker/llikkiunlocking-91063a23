@@ -44,6 +44,36 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_login_events: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          ip: string | null
+          success: boolean
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip?: string | null
+          success: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip?: string | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -444,6 +474,7 @@ export type Database = {
           balance: number
           banned: boolean
           city: string | null
+          client_bot_chat_id: string | null
           country: string | null
           created_at: string
           custom_message: string | null
@@ -465,6 +496,7 @@ export type Database = {
           balance?: number
           banned?: boolean
           city?: string | null
+          client_bot_chat_id?: string | null
           country?: string | null
           created_at?: string
           custom_message?: string | null
@@ -486,6 +518,7 @@ export type Database = {
           balance?: number
           banned?: boolean
           city?: string | null
+          client_bot_chat_id?: string | null
           country?: string | null
           created_at?: string
           custom_message?: string | null
@@ -592,7 +625,12 @@ export type Database = {
       site_settings: {
         Row: {
           address: string | null
+          admin_bot_token: string | null
+          admin_bot_username: string | null
+          admin_chat_ids: string[]
           brand_name: string
+          client_bot_token: string | null
+          client_bot_username: string | null
           contact_email: string | null
           contact_phone: string | null
           created_at: string
@@ -618,7 +656,12 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          admin_bot_token?: string | null
+          admin_bot_username?: string | null
+          admin_chat_ids?: string[]
           brand_name?: string
+          client_bot_token?: string | null
+          client_bot_username?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
@@ -644,7 +687,12 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          admin_bot_token?: string | null
+          admin_bot_username?: string | null
+          admin_chat_ids?: string[]
           brand_name?: string
+          client_bot_token?: string | null
+          client_bot_username?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           created_at?: string
@@ -777,6 +825,57 @@ export type Database = {
           id?: string
           metadata?: Json | null
           reason?: string
+        }
+        Relationships: []
+      }
+      telegram_pairings: {
+        Row: {
+          bot_kind: string
+          chat_id: string | null
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bot_kind: string
+          chat_id?: string | null
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bot_kind?: string
+          chat_id?: string | null
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_updates: {
+        Row: {
+          bot_kind: string
+          created_at: string
+          update_id: number
+        }
+        Insert: {
+          bot_kind: string
+          created_at?: string
+          update_id: number
+        }
+        Update: {
+          bot_kind?: string
+          created_at?: string
+          update_id?: number
         }
         Relationships: []
       }
