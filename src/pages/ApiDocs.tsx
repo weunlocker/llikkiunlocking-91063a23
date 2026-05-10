@@ -16,8 +16,7 @@ type SimpleService = {
   price: number;
   delivery_time: string;
   category: string | null;
-  supplier_id: string | null;
-  suppliers: { type: string } | null;
+  is_async: boolean | null;
 };
 
 type ApiKeyRow = { id: string; name: string; key: string };
@@ -41,9 +40,8 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
     (async () => {
       const [{ data: svc }, { data: k }] = await Promise.all([
         supabase
-          .from("services")
-          .select("id, service_code, name, price, delivery_time, category, supplier_id, suppliers(type)")
-          .eq("active", true)
+          .from("services_public")
+          .select("id, service_code, name, price, delivery_time, category, is_async")
           .order("service_code"),
         user
           ? supabase.from("api_keys").select("id, name, key").eq("user_id", user.id).order("created_at", { ascending: false })
@@ -92,8 +90,8 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
   };
 
   // Split services: instant (Simple-Link compatible) vs Dhru (async, NOT for Simple Link)
-  const instantServices = services.filter((s) => !s.supplier_id || (s.suppliers && s.suppliers.type !== "dhru"));
-  const dhruServices = services.filter((s) => s.supplier_id && s.suppliers?.type === "dhru");
+  const instantServices = services.filter((s) => !s.is_async);
+  const dhruServices = services.filter((s) => s.is_async);
 
   const username = profile?.email ?? "your-account@email.com";
   const apiKey = keys[0]?.key ?? "YOUR_API_KEY";

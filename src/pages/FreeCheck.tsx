@@ -56,9 +56,8 @@ export default function FreeCheck() {
     document.title = "Free IMEI Check — Model, FMI & Sim Lock";
     (async () => {
       const { data } = await supabase
-        .from("services")
+        .from("services_public")
         .select("id,name,description,delivery_time,result_font")
-        .eq("active", true)
         .eq("is_free", true)
         .order("name");
       setServices((data ?? []) as FreeService[]);
@@ -70,7 +69,7 @@ export default function FreeCheck() {
     let cancelled = false;
     (async () => {
       const { data } = await supabase
-        .from("site_settings")
+        .from("site_settings_public")
         .select("turnstile_site_key, turnstile_enabled")
         .eq("id", 1)
         .maybeSingle();
