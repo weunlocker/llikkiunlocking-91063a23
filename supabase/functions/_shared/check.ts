@@ -278,7 +278,7 @@ async function runUpstream(ctx: PlacementCtx) {
     }).eq("id", order.id);
     notifyUser(supabase, userId,
       `Order Queued — ${service.name}`,
-      `IMEI: ${imei}\nYour order has been queued. You'll be notified when it's processed.\nCharged: ${price.toFixed(2)} USD\nBalance: ${newBalance.toFixed(2)} USD`,
+      `IMEI: ${imei}\nYour order has been queued. You'll be notified when it's processed.`,
     );
     return; // remain pending; cron will place + poll
   } else {
