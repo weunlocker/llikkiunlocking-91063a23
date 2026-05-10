@@ -409,7 +409,7 @@ async function runUpstream(ctx: PlacementCtx) {
                 result: `Order placed with supplier (ref ${refId}). Awaiting result…`,
               }).eq("id", order.id);
               notifyUser(supabase, userId,
-                `⏳ Check submitted — ${service.name}`,
+                `Order Submitted — ${service.name}`,
                 `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
               );
               return; // remain pending; poller takes over
@@ -443,7 +443,7 @@ async function runUpstream(ctx: PlacementCtx) {
                 result: `Order placed with supplier (ref ${refId}). Awaiting result…`,
               }).eq("id", order.id);
               notifyUser(supabase, userId,
-                `⏳ Check submitted — ${service.name}`,
+                `Order Submitted — ${service.name}`,
                 `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
               );
               return;
@@ -496,7 +496,7 @@ async function runUpstream(ctx: PlacementCtx) {
       description: `Auto-refund: ${service.name}`, order_id: order.id,
     });
     detach(notifyUser(supabase, userId,
-      `❌ Check failed — ${service.name}`,
+      `Order Failed — ${service.name}`,
       `IMEI: ${imei}\nReason: ${errorMsg}\nRefunded: $${price.toFixed(2)}\nBalance: $${refundedBalance.toFixed(2)}`,
     ));
     detach(notifyUserEmail(supabase, userId, "order_rejected", {
@@ -516,7 +516,7 @@ async function runUpstream(ctx: PlacementCtx) {
   }
 
   detach(notifyUser(supabase, userId,
-    `✅ Check completed — ${service.name}`,
+    `Order Completed — ${service.name}`,
     `IMEI: ${imei}\n\n${resultText}\n\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
   ));
   detach(notifyUserEmail(supabase, userId, "order_success", {
