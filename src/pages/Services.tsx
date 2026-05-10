@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
+import Seo from "@/components/Seo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,12 @@ export default function Services() {
 
   return (
     <Layout>
+      <Seo
+        title="All IMEI Check & Unlock Services | LIKKI UNLOCKING"
+        description="Browse 100+ wholesale IMEI check and phone unlocking services. iCloud, carrier, blacklist, FMI, MDM and more. Instant results with full API access."
+        keywords="IMEI services, iCloud check, carrier check, blacklist check, FMI status, MDM removal, phone unlock services"
+        path="/services"
+      />
       <div className="container py-12">
         <div className="text-center mb-12 animate-fade-up">
           <h1 className="text-4xl md:text-5xl font-bold mb-3">All <span className="glow-text">Services</span></h1>

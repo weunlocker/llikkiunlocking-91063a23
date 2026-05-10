@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
+import Seo from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Shield, Zap, Lock, Globe, ArrowRight, CheckCircle2, Code2, Award, Clock, Users, TrendingUp, Star, Quote, ShieldCheck, BadgeCheck, Server, KeyRound } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -35,8 +36,44 @@ export default function Home() {
     supabase.from("services_public").select("id,name,description,price,delivery_time,category").order("sort_order").order("price").limit(6).then(({ data }) => setServices(data ?? []));
   }, []);
 
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "LIKKI UNLOCKING",
+    url: "https://likkiunlocking.com",
+    logo: "https://likkiunlocking.com/favicon.png",
+    description: "Wholesale IMEI checks, carrier lookup, iCloud, blacklist & device unlocking with instant results and full API access.",
+    sameAs: [],
+  };
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "LIKKI UNLOCKING",
+    url: "https://likkiunlocking.com",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: "https://likkiunlocking.com/services?q={search_term_string}",
+      "query-input": "required name=search_term_string",
+    },
+  };
+  const aggregateJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    serviceType: "IMEI Check & Phone Unlocking",
+    provider: { "@type": "Organization", name: "LIKKI UNLOCKING" },
+    areaServed: "Worldwide",
+    aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "1280" },
+  };
+
   return (
     <Layout>
+      <Seo
+        title="LIKKI UNLOCKING — #1 Wholesale IMEI Check & Phone Unlocking Supplier"
+        description="Direct supplier for IMEI checks, iCloud, carrier lookup, blacklist & phone unlocking. Instant results, wholesale pricing, full API. Trusted by 10,000+ resellers worldwide."
+        keywords="IMEI check, phone unlock, iCloud unlock, carrier check, blacklist check, wholesale IMEI, IMEI API, GSM unlock"
+        path="/"
+        jsonLd={[orgJsonLd, websiteJsonLd, aggregateJsonLd]}
+      />
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-border/40">
         <div className="absolute inset-0 grid-bg opacity-30" />

@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import Seo from "@/components/Seo";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Clock } from "lucide-react";
@@ -22,6 +23,12 @@ export default function Pricing() {
 
   return (
     <Layout>
+      <Seo
+        title="Wholesale Pricing & Delivery Times | LIKKI UNLOCKING"
+        description="Transparent group-wise wholesale pricing for IMEI checks, iCloud unlocks, carrier lookups and more. Silver, Gold & Diamond client tiers — best rates guaranteed."
+        keywords="IMEI check price, unlock price, wholesale pricing, IMEI service cost, iCloud unlock price"
+        path="/pricing"
+      />
       <div className="container py-8 md:py-12 px-3 md:px-4">
         <div className="text-center mb-8 md:mb-12 animate-fade-up">
           <h1 className="text-3xl md:text-5xl font-bold mb-3">Pricing & <span className="glow-text">Delivery</span></h1>
