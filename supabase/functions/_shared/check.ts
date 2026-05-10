@@ -131,14 +131,34 @@ function normalizeHtml(s: string): string {
 async function notifyUser(supabase: ReturnType<typeof makeServiceClient>, userId: string, subject: string, body: string) {
   try {
     await supabase.functions.invoke("telegram-notify", {
-      body: { user_id: userId, subject, body },
-    });
-    // Also broadcast to admin bot
-    await supabase.functions.invoke("telegram-notify", {
-      body: { broadcast: "admins", subject, body: `[user:${userId}]\n${body}` },
+      body: { user_id: userId, subject, body, format: "plain" },
     });
   } catch (e) {
     console.error("notifyUser failed", e);
+  }
+}
+
+// Plain "Order Placed" notice for the admin bot (matches the requested format).
+async function notifyAdminOrderPlaced(
+  supabase: ReturnType<typeof makeServiceClient>,
+  ctx: { order: any; service: any; userId: string; imei: string; price: number },
+) {
+  try {
+    const { data: profile } = await supabase.from("profiles")
+      .select("email, display_name").eq("id", ctx.userId).maybeSingle();
+    const who = profile?.display_name || (profile?.email ? String(profile.email).split("@")[0] : "user");
+    const lines = [
+      `IMEI New Order Placed #${ctx.order.order_number}`,
+      `${ctx.service.name} : IMEI: ${ctx.imei}`,
+      `${who} : ${ctx.price.toFixed(2)}USD`,
+      `:`,
+      `WEUNLOCKERS`,
+    ].join("\n");
+    await supabase.functions.invoke("telegram-notify", {
+      body: { broadcast: "admins", body: lines, format: "plain" },
+    });
+  } catch (e) {
+    console.error("notifyAdminOrderPlaced failed", e);
   }
 }
 
