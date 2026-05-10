@@ -516,8 +516,8 @@ async function runUpstream(ctx: PlacementCtx) {
   }
 
   detach(notifyUser(supabase, userId,
-    `Order Completed — ${service.name}`,
-    `IMEI: ${imei}\n\n${resultText}`,
+    `✅ ${imei}`,
+    `${resultText}\n\n${service.name}`,
   ));
   detach(notifyUserEmail(supabase, userId, "order_success", {
     order_number: order.order_number, imei, service: service.name,
