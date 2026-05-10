@@ -515,7 +515,7 @@ function AdminServices() {
         <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
-              <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
+              <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-3 py-3 text-right">Default</th><th className="px-3 py-3 text-right text-slate-300">Silver −10%</th><th className="px-3 py-3 text-right text-yellow-400">Gold −30%</th><th className="px-3 py-3 text-right text-cyan-300">Diamond −50%</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
             </thead>
             <tbody>
               {pageItems.map((s) => (
@@ -533,7 +533,10 @@ function AdminServices() {
                   <td className="px-5 py-3 font-mono font-semibold text-primary">{s.service_code ?? "—"}</td>
                   <td className="px-5 py-3 font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => setEditing(s)}>{s.name}</td>
                   <td className="px-5 py-3"><span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">{s.category}</span></td>
-                  <td className="px-5 py-3 font-mono">${Number(s.price).toFixed(2)}</td>
+                  <td className="px-3 py-3 font-mono text-right">${Number(s.price).toFixed(2)}</td>
+                  <td className="px-3 py-3 font-mono text-right text-slate-300">${(Number(s.price) * 0.90).toFixed(2)}</td>
+                  <td className="px-3 py-3 font-mono text-right text-yellow-400">${(Number(s.price) * 0.70).toFixed(2)}</td>
+                  <td className="px-3 py-3 font-mono text-right text-cyan-300">${(Number(s.price) * 0.50).toFixed(2)}</td>
                   <td className="px-5 py-3 text-muted-foreground text-xs">{s.delivery_time}</td>
                   <td className="px-5 py-3 text-xs text-muted-foreground truncate max-w-[200px]">
                     {s.supplier_id
@@ -547,7 +550,7 @@ function AdminServices() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={9} className="px-5 py-10 text-center text-muted-foreground">No services.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={12} className="px-5 py-10 text-center text-muted-foreground">No services.</td></tr>}
             </tbody>
           </table>
           <PaginationBar page={page} totalPages={totalPages} pageSize={pageSize} total={filtered.length} onPage={setPage} onPageSize={setPageSize} />
@@ -609,6 +612,15 @@ function AdminServices() {
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Price (USD)</Label><Input type="number" step="0.01" value={editing.price ?? 0} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} /></div>
                 <div><Label>Delivery Time</Label><Input value={editing.delivery_time ?? ""} onChange={(e) => setEditing({ ...editing, delivery_time: e.target.value })} maxLength={50} /></div>
+              </div>
+              <div className="rounded-lg border border-border/60 bg-secondary/20 p-3">
+                <div className="text-xs text-muted-foreground mb-2">Auto-calculated client group prices</div>
+                <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                  <div className="rounded bg-background/40 py-2"><div className="text-muted-foreground">Default</div><div className="font-mono font-bold">${Number(editing.price ?? 0).toFixed(2)}</div></div>
+                  <div className="rounded bg-background/40 py-2"><div className="text-slate-300">Silver −10%</div><div className="font-mono font-bold text-slate-200">${(Number(editing.price ?? 0) * 0.90).toFixed(2)}</div></div>
+                  <div className="rounded bg-background/40 py-2"><div className="text-yellow-400">Gold −30%</div><div className="font-mono font-bold text-yellow-300">${(Number(editing.price ?? 0) * 0.70).toFixed(2)}</div></div>
+                  <div className="rounded bg-background/40 py-2"><div className="text-cyan-300">Diamond −50%</div><div className="font-mono font-bold text-cyan-200">${(Number(editing.price ?? 0) * 0.50).toFixed(2)}</div></div>
+                </div>
               </div>
               {/* Supplier picker */}
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
@@ -1970,6 +1982,89 @@ function AdminTelegramBot() {
 }
 
 
+/* ---------- Groups ---------- */
+const GROUPS_META: { key: string; label: string; discount: number; tone: string }[] = [
+  { key: "standard", label: "Standard (Default)", discount: 0, tone: "text-foreground" },
+  { key: "silver", label: "Silver", discount: 0.10, tone: "text-slate-300" },
+  { key: "gold", label: "Gold", discount: 0.30, tone: "text-yellow-400" },
+  { key: "diamond", label: "Diamond", discount: 0.50, tone: "text-cyan-300" },
+];
+
+function AdminGroups() {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [users, setUsers] = useState<{ id: string; email: string | null; display_name: string | null; user_group: string | null; balance: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>("all");
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("profiles").select("id,email,display_name,user_group,balance").order("created_at", { ascending: false }).limit(1000);
+    const list = (data ?? []) as typeof users;
+    setUsers(list);
+    const c: Record<string, number> = {};
+    for (const u of list) { const k = (u.user_group ?? "standard").toLowerCase(); c[k] = (c[k] ?? 0) + 1; }
+    setCounts(c);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const setUserGroup = async (uid: string, group: string) => {
+    const { error } = await supabase.from("profiles").update({ user_group: group }).eq("id", uid);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Group updated"); load();
+  };
+
+  const visible = users.filter((u) => filter === "all" || (u.user_group ?? "standard").toLowerCase() === filter);
+
+  return (
+    <AdminLayout title="Client Groups" subtitle="Pricing tiers — discounts apply automatically to base service prices">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        {GROUPS_META.map((g) => (
+          <button key={g.key} type="button" onClick={() => setFilter(g.key)}
+            className={`glass rounded-xl p-4 text-left transition-all hover:border-primary/40 ${filter === g.key ? "ring-2 ring-primary" : ""}`}>
+            <div className={`text-xs font-bold uppercase tracking-wider ${g.tone}`}>{g.label}</div>
+            <div className="text-2xl font-bold mt-1">{counts[g.key] ?? 0} <span className="text-xs text-muted-foreground font-normal">users</span></div>
+            <div className="text-xs text-muted-foreground mt-1">{g.discount > 0 ? `−${g.discount * 100}% on every service` : "Full price"}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm text-muted-foreground">{visible.length} user{visible.length === 1 ? "" : "s"}{filter !== "all" ? ` in ${filter}` : ""}</div>
+        {filter !== "all" && <Button size="sm" variant="ghost" onClick={() => setFilter("all")}>Show all</Button>}
+      </div>
+
+      {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> : (
+        <div className="glass rounded-2xl overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
+              <tr><th className="px-5 py-3">User</th><th className="px-5 py-3">Email</th><th className="px-5 py-3">Balance</th><th className="px-5 py-3">Group</th></tr>
+            </thead>
+            <tbody>
+              {visible.map((u) => (
+                <tr key={u.id} className="border-t border-border/50 hover:bg-secondary/20">
+                  <td className="px-5 py-2.5 font-medium">{u.display_name || "—"}</td>
+                  <td className="px-5 py-2.5 text-muted-foreground">{u.email}</td>
+                  <td className="px-5 py-2.5 font-mono">${Number(u.balance).toFixed(2)}</td>
+                  <td className="px-5 py-2.5">
+                    <Select value={(u.user_group ?? "standard").toLowerCase()} onValueChange={(v) => setUserGroup(u.id, v)}>
+                      <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {GROUPS_META.map((g) => <SelectItem key={g.key} value={g.key}>{g.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                </tr>
+              ))}
+              {visible.length === 0 && <tr><td colSpan={4} className="px-5 py-10 text-center text-muted-foreground">No users in this group.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </AdminLayout>
+  );
+}
+
 /* ---------- Router ---------- */
 import AdminEmailSettings from "./AdminEmailSettings";
 import AdminPayments from "./AdminPayments";
@@ -1980,6 +2075,7 @@ export default function Admin() {
       <Route index element={<AdminDashboard />} />
       <Route path="payments" element={<AdminPayments />} />
       <Route path="users" element={<AdminUsers />} />
+      <Route path="groups" element={<AdminGroups />} />
       <Route path="suppliers" element={<AdminSuppliers />} />
       <Route path="categories" element={<AdminCategories />} />
       <Route path="services" element={<AdminServices />} />
