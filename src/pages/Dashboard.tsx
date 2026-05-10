@@ -424,6 +424,11 @@ export default function Dashboard() {
                     return true;
                   });
                   if (filteredOrders.length === 0) return <div className="p-12 text-center text-muted-foreground">No orders found.</div>;
+                  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / oPageSize));
+                  const safePage = Math.min(oPage, totalPages);
+                  const pageOrders = filteredOrders.slice((safePage - 1) * oPageSize, safePage * oPageSize);
+                  const from = (safePage - 1) * oPageSize + 1;
+                  const to = Math.min(filteredOrders.length, safePage * oPageSize);
                   return (
                 <table className="w-full text-sm">
                   <thead className="bg-secondary/40 text-left">
