@@ -39,7 +39,18 @@ Deno.serve(async (req) => {
     const subject = p.subject as string | undefined;
     const body = (p.body ?? p.message ?? p.text) as string | undefined;
     if (!body) return json(400, { error: "body required" });
-    const text = subject ? `<b>${escapeHtml(subject)}</b>\n\n<pre>${escapeHtml(body)}</pre>` : `<pre>${escapeHtml(body)}</pre>`;
+    // format: 'plain' = bold subject + plain escaped body (no <pre> code block)
+    // format: 'html'  = caller-provided HTML, sent as-is (no escaping)
+    // default         = bold subject + <pre>body</pre>
+    const fmt = (p.format as string | undefined) ?? "default";
+    let text: string;
+    if (fmt === "html") {
+      text = subject ? `<b>${escapeHtml(subject)}</b>\n${body}` : body;
+    } else if (fmt === "plain") {
+      text = subject ? `<b>${escapeHtml(subject)}</b>\n${escapeHtml(body)}` : escapeHtml(body);
+    } else {
+      text = subject ? `<b>${escapeHtml(subject)}</b>\n\n<pre>${escapeHtml(body)}</pre>` : `<pre>${escapeHtml(body)}</pre>`;
+    }
 
     const cfg = await getBotConfig(supabase);
     const results: any[] = [];

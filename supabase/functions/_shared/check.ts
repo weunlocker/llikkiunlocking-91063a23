@@ -131,14 +131,34 @@ function normalizeHtml(s: string): string {
 async function notifyUser(supabase: ReturnType<typeof makeServiceClient>, userId: string, subject: string, body: string) {
   try {
     await supabase.functions.invoke("telegram-notify", {
-      body: { user_id: userId, subject, body },
-    });
-    // Also broadcast to admin bot
-    await supabase.functions.invoke("telegram-notify", {
-      body: { broadcast: "admins", subject, body: `[user:${userId}]\n${body}` },
+      body: { user_id: userId, subject, body, format: "plain" },
     });
   } catch (e) {
     console.error("notifyUser failed", e);
+  }
+}
+
+// Plain "Order Placed" notice for the admin bot (matches the requested format).
+async function notifyAdminOrderPlaced(
+  supabase: ReturnType<typeof makeServiceClient>,
+  ctx: { order: any; service: any; userId: string; imei: string; price: number },
+) {
+  try {
+    const { data: profile } = await supabase.from("profiles")
+      .select("email, display_name").eq("id", ctx.userId).maybeSingle();
+    const who = profile?.display_name || (profile?.email ? String(profile.email).split("@")[0] : "user");
+    const lines = [
+      `IMEI New Order Placed #${ctx.order.order_number}`,
+      `${ctx.service.name} : IMEI: ${ctx.imei}`,
+      `${who} : ${ctx.price.toFixed(2)}USD`,
+      `:`,
+      `WEUNLOCKERS`,
+    ].join("\n");
+    await supabase.functions.invoke("telegram-notify", {
+      body: { broadcast: "admins", body: lines, format: "plain" },
+    });
+  } catch (e) {
+    console.error("notifyAdminOrderPlaced failed", e);
   }
 }
 
@@ -257,8 +277,8 @@ async function runUpstream(ctx: PlacementCtx) {
       result: "Queued — order will be placed with supplier shortly.",
     }).eq("id", order.id);
     notifyUser(supabase, userId,
-      `⏳ Check queued — ${service.name}`,
-      `IMEI: ${imei}\nYour order has been queued. You'll be notified when it's processed.\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
+      `Order Queued — ${service.name}`,
+      `IMEI: ${imei}\nYour order has been queued. You'll be notified when it's processed.\nCharged: ${price.toFixed(2)} USD\nBalance: ${newBalance.toFixed(2)} USD`,
     );
     return; // remain pending; cron will place + poll
   } else {
@@ -389,8 +409,8 @@ async function runUpstream(ctx: PlacementCtx) {
                 result: `Order placed with supplier (ref ${refId}). Awaiting result…`,
               }).eq("id", order.id);
               notifyUser(supabase, userId,
-                `⏳ Check submitted — ${service.name}`,
-                `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
+                `Order Submitted — ${service.name}`,
+                `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.\nCharged: ${price.toFixed(2)} USD\nBalance: ${newBalance.toFixed(2)} USD`,
               );
               return; // remain pending; poller takes over
             }
@@ -423,8 +443,8 @@ async function runUpstream(ctx: PlacementCtx) {
                 result: `Order placed with supplier (ref ${refId}). Awaiting result…`,
               }).eq("id", order.id);
               notifyUser(supabase, userId,
-                `⏳ Check submitted — ${service.name}`,
-                `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
+                `Order Submitted — ${service.name}`,
+                `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.\nCharged: ${price.toFixed(2)} USD\nBalance: ${newBalance.toFixed(2)} USD`,
               );
               return;
             } else {
@@ -476,7 +496,7 @@ async function runUpstream(ctx: PlacementCtx) {
       description: `Auto-refund: ${service.name}`, order_id: order.id,
     });
     detach(notifyUser(supabase, userId,
-      `❌ Check failed — ${service.name}`,
+      `Order Failed — ${service.name}`,
       `IMEI: ${imei}\nReason: ${errorMsg}\nRefunded: $${price.toFixed(2)}\nBalance: $${refundedBalance.toFixed(2)}`,
     ));
     detach(notifyUserEmail(supabase, userId, "order_rejected", {
@@ -496,8 +516,8 @@ async function runUpstream(ctx: PlacementCtx) {
   }
 
   detach(notifyUser(supabase, userId,
-    `✅ Check completed — ${service.name}`,
-    `IMEI: ${imei}\n\n${resultText}\n\nCharged: $${price.toFixed(2)} · Balance: $${newBalance.toFixed(2)}`,
+    `Order Completed — ${service.name}`,
+    `IMEI: ${imei}\n\n${resultText}\n\nCharged: ${price.toFixed(2)} USD\nBalance: ${newBalance.toFixed(2)} USD`,
   ));
   detach(notifyUserEmail(supabase, userId, "order_success", {
     order_number: order.order_number, imei, service: service.name,
@@ -529,6 +549,7 @@ export async function executeCheckAsync(opts: {
   const placed = await placeOrder(opts);
   if (!placed.ok) return { status: placed.status, body: placed.body };
   const ctx = placed.ctx;
+  detach(notifyAdminOrderPlaced(ctx.supabase, ctx));
   const background = runUpstream(ctx).catch((e) => console.error("runUpstream failed", e));
   return {
     status: 202,
@@ -551,6 +572,7 @@ export async function executeCheck(opts: {
   const placed = await placeOrder(opts);
   if (!placed.ok) return { ok: false, status: placed.status, body: placed.body };
   const ctx = placed.ctx;
+  detach(notifyAdminOrderPlaced(ctx.supabase, ctx));
   await runUpstream(ctx);
 
   const { data: finalOrder } = await ctx.supabase.from("orders").select("status, result, error_message, supplier_reference").eq("id", ctx.order.id).maybeSingle();
