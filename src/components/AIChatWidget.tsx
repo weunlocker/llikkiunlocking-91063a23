@@ -189,11 +189,7 @@ export default function AIChatWidget() {
           aria-label="Chat with AI assistant"
           className="fixed right-3 bottom-3 sm:right-4 sm:bottom-4 z-40 w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-xl bg-gradient-to-br from-primary to-purple-600 text-primary-foreground flex items-center justify-center hover:scale-110 transition-transform"
         >
-          {logoUrl ? (
-            <img src={logoUrl} alt={brand} className="w-8 h-8 rounded-full object-cover" />
-          ) : (
-            <span className="text-sm font-extrabold tracking-tight">{brand.charAt(0)}</span>
-          )}
+          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
           <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] rounded-full px-1.5 py-0.5 font-bold">AI</span>
         </button>
       )}
