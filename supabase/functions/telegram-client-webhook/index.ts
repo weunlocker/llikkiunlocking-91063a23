@@ -135,21 +135,14 @@ async function handleMessage(supabase: any, token: string, msg: any) {
       return sendWithCancel(token, chatId, "Invalid IMEI. Send 8–20 alphanumeric characters, or tap Cancel.");
     }
     await clearState(supabase, chatId);
-    await sendMessage(token, chatId, "Order placed");
     try {
-      const result = await executeCheck({ userId: user.id, serviceId: cur.serviceId, imei: text, source: "telegram" as any });
-      const b: any = result.body || {};
-      const ok = result.status >= 200 && result.status < 300 && !b.ERROR;
-      if (ok) {
-        const success = (b.SUCCESS && b.SUCCESS[0]) || {};
-        const out = success.RESULT || success.result || success.MESSAGE || JSON.stringify(b).slice(0, 1500);
-        return sendWithMenu(token, chatId, `${escapeHtml(cur.serviceName)}\nIMEI: ${escapeHtml(text)}\n\n${escapeHtml(String(out))}`);
-      }
-      const err = b.ERROR?.[0]?.MESSAGE || b.error || "Failed";
-      return sendWithMenu(token, chatId, `Order Failed\n${escapeHtml(cur.serviceName)}\nIMEI: ${escapeHtml(text)}\n${escapeHtml(String(err))}`);
+      // executeCheck dispatches the formatted result/failure notification to this chat,
+      // so we don't send any extra message from the webhook to avoid duplicates.
+      await executeCheck({ userId: user.id, serviceId: cur.serviceId, imei: text, source: "telegram" as any });
     } catch (e) {
-      return sendWithMenu(token, chatId, `Order Failed\n${escapeHtml(cur.serviceName)}\nIMEI: ${escapeHtml(text)}\n${escapeHtml(e instanceof Error ? e.message : "error")}`);
+      await sendWithMenu(token, chatId, `Order Failed\n${escapeHtml(cur.serviceName)}\nIMEI: ${escapeHtml(text)}\n${escapeHtml(e instanceof Error ? e.message : "error")}`);
     }
+    return;
   }
   if (cur.kind === "await_status_order") {
     await clearState(supabase, chatId);
