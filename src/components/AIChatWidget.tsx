@@ -209,7 +209,20 @@ export default function AIChatWidget() {
                 </div>
               </div>
             </div>
-            <button onClick={() => setOpen(false)} aria-label="Close" className="p-1 rounded hover:bg-muted">
+            <button
+              onClick={() => {
+                abortRef.current?.abort();
+                setOpen(false);
+                setMessages([initialGreeting]);
+                setInput("");
+                setPendingChannel(null);
+                setGuestName("");
+                setGuestEmail("");
+                setGuestPhone("");
+              }}
+              aria-label="Close"
+              className="p-1 rounded hover:bg-muted"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>
