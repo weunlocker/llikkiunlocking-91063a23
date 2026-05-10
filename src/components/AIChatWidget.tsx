@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import { useLocation } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Channel = "wa" | "tg";
@@ -126,12 +127,15 @@ export default function AIChatWidget() {
     };
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const bearer = session?.access_token || PUBLISHABLE_KEY;
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${bearer}`,
+          apikey: PUBLISHABLE_KEY,
         },
         body: JSON.stringify({ messages: next }),
       });
