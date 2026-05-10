@@ -1232,7 +1232,7 @@ function AdminNotifications() {
   const sendToUsers = async () => {
     if (!msg.trim()) return;
     setSending("users");
-    const { data: profs } = await supabase.from("profiles").select("id,telegram_chat_id,notify_telegram").not("telegram_chat_id", "is", null);
+    const { data: profs } = await supabase.from("profiles").select("id,client_bot_chat_id,notify_telegram").not("client_bot_chat_id", "is", null);
     let sent = 0;
     for (const p of profs ?? []) {
       if (!p.notify_telegram) continue;
