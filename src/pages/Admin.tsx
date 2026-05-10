@@ -515,7 +515,7 @@ function AdminServices() {
         <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
-              <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
+              <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-3 py-3 text-right">Default</th><th className="px-3 py-3 text-right text-slate-300">Silver −10%</th><th className="px-3 py-3 text-right text-yellow-400">Gold −30%</th><th className="px-3 py-3 text-right text-cyan-300">Diamond −50%</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
             </thead>
             <tbody>
               {pageItems.map((s) => (
