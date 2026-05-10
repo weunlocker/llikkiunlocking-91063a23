@@ -228,8 +228,8 @@ Deno.serve(async (req) => {
             }).eq("id", o.id);
             sb.functions.invoke("telegram-notify", { body: {
               user_id: o.user_id,
-              subject: `Order Completed — ${svc.name}`,
-              body: `IMEI: ${o.imei}\n\n${finalText}`,
+              subject: `✅ ${o.imei}`,
+              body: `${finalText}\n\n${svc.name}`,
               format: "plain",
             }}).catch(() => {});
             notifyUserEmail(sb, o.user_id, "order_success", {
@@ -310,8 +310,8 @@ Deno.serve(async (req) => {
         // Notify user
         sb.functions.invoke("telegram-notify", { body: {
           user_id: o.user_id,
-          subject: `Order Completed — ${svc.name}`,
-          body: `IMEI: ${o.imei}\n\n${finalText}`,
+          subject: `✅ ${o.imei}`,
+          body: `${finalText}\n\n${svc.name}`,
           format: "plain",
         }}).catch(() => {});
         notifyUserEmail(sb, o.user_id, "order_success", {
