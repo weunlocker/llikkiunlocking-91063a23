@@ -1,11 +1,45 @@
 // Telegram Client Bot webhook. Public endpoint; verifies secret_token header.
-// Handles pairing, /balance, /orders, /placeorder (interactive), /status <imei>.
+// Button-driven UI (reply keyboard) — no slash commands needed.
 import { executeCheck } from "../_shared/check.ts";
 import { deriveSecret, escapeHtml, getBotConfig, makeServiceClient, sendMessage, tgApi } from "../_shared/tg.ts";
 
-// Per-chat state for awaiting IMEI input after picking a service.
-const awaiting = new Map<string, { serviceId: string; ts: number }>();
+// Per-chat conversation state.
+type State =
+  | { kind: "idle" }
+  | { kind: "await_imei"; serviceId: string }
+  | { kind: "await_status_imei" };
+const state = new Map<string, State>();
 const PAGE = 8;
+
+// Button labels (used both for keyboard render and incoming text routing).
+const BTN = {
+  balance: "💰 Balance",
+  orders: "📦 My Orders",
+  place: "🛠 Place Order",
+  status: "🔎 Order Status",
+  help: "ℹ️ Help",
+  cancel: "✖ Cancel",
+} as const;
+
+function mainKeyboard() {
+  return {
+    keyboard: [
+      [{ text: BTN.balance }, { text: BTN.orders }],
+      [{ text: BTN.place }, { text: BTN.status }],
+      [{ text: BTN.help }],
+    ],
+    resize_keyboard: true,
+    is_persistent: true,
+  };
+}
+
+function cancelKeyboard() {
+  return {
+    keyboard: [[{ text: BTN.cancel }]],
+    resize_keyboard: true,
+    is_persistent: true,
+  };
+}
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("ok");
@@ -40,81 +74,125 @@ async function findUserByChat(supabase: any, chatId: string) {
   return data;
 }
 
+function sendWithMenu(token: string, chatId: string, text: string) {
+  return tgApi(token, "sendMessage", {
+    chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true,
+    reply_markup: mainKeyboard(),
+  });
+}
+
+function sendWithCancel(token: string, chatId: string, text: string) {
+  return tgApi(token, "sendMessage", {
+    chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true,
+    reply_markup: cancelKeyboard(),
+  });
+}
+
 async function handleMessage(supabase: any, token: string, msg: any) {
   const chatId = String(msg.chat.id);
   const text: string = (msg.text || "").trim();
   if (!text) return;
 
-  // 1) Pairing
+  // /start with optional code (deep-link from dashboard)
   if (text.startsWith("/start")) {
     const code = text.split(/\s+/)[1];
-    if (code) return tryPair(supabase, token, chatId, code);
-    return sendMessage(token, chatId, "👋 Welcome! Send your <b>6-digit pairing code</b> from the dashboard, or use /start &lt;code&gt;.");
+    if (code && /^\d{6}$/.test(code)) return tryPair(supabase, token, chatId, code);
+    return sendWithMenu(token, chatId, "👋 <b>Welcome!</b>\nSend your <b>6-digit pairing code</b> from the dashboard to link your account, or use the buttons below.");
   }
+
+  // Bare 6-digit pairing code
   if (/^\d{6}$/.test(text)) return tryPair(supabase, token, chatId, text);
 
-  // 2) Need link
-  const user = await findUserByChat(supabase, chatId);
-  if (!user) {
-    return sendMessage(token, chatId, "🔒 Your Telegram is not linked. Open the dashboard → <b>Connect Telegram</b> and send the 6-digit code here.");
+  // Cancel always works
+  if (text === BTN.cancel || text.toLowerCase() === "/cancel") {
+    state.delete(chatId);
+    return sendWithMenu(token, chatId, "Cancelled.");
   }
 
-  // 3) Awaiting IMEI from /placeorder
-  const w = awaiting.get(chatId);
-  if (w && !text.startsWith("/")) {
+  // Require linked account for everything else
+  const user = await findUserByChat(supabase, chatId);
+  if (!user) {
+    return sendMessage(token, chatId, "🔒 Your Telegram is not linked.\nOpen the dashboard → <b>Connect Telegram</b> and send the 6-digit code here.");
+  }
+
+  // Stateful flows
+  const cur = state.get(chatId) ?? { kind: "idle" };
+  if (cur.kind === "await_imei") {
     if (!/^[A-Za-z0-9]{8,20}$/.test(text)) {
-      return sendMessage(token, chatId, "❌ Invalid IMEI. 8–20 alphanumeric chars.");
+      return sendWithCancel(token, chatId, "❌ Invalid IMEI. Send 8–20 alphanumeric characters, or tap ✖ Cancel.");
     }
-    awaiting.delete(chatId);
+    state.delete(chatId);
     await sendMessage(token, chatId, "⏳ Placing order…");
     try {
-      const result = await executeCheck({ userId: user.id, serviceId: w.serviceId, imei: text, source: "telegram" as any });
+      const result = await executeCheck({ userId: user.id, serviceId: cur.serviceId, imei: text, source: "telegram" as any });
       const b: any = result.body || {};
       const ok = result.status >= 200 && result.status < 300 && !b.ERROR;
       if (ok) {
         const success = (b.SUCCESS && b.SUCCESS[0]) || {};
         const out = success.RESULT || success.result || success.MESSAGE || JSON.stringify(b).slice(0, 1500);
-        return sendMessage(token, chatId, `✅ <b>Order placed</b>\n<pre>${escapeHtml(String(out))}</pre>`);
+        return sendWithMenu(token, chatId, `✅ <b>Order placed</b>\n<pre>${escapeHtml(String(out))}</pre>`);
       }
       const err = b.ERROR?.[0]?.MESSAGE || b.error || "Failed";
-      return sendMessage(token, chatId, `❌ ${escapeHtml(String(err))}`);
+      return sendWithMenu(token, chatId, `❌ ${escapeHtml(String(err))}`);
     } catch (e) {
-      return sendMessage(token, chatId, `❌ ${escapeHtml(e instanceof Error ? e.message : "error")}`);
+      return sendWithMenu(token, chatId, `❌ ${escapeHtml(e instanceof Error ? e.message : "error")}`);
     }
   }
-  if (text === "/cancel") { awaiting.delete(chatId); return sendMessage(token, chatId, "Cancelled."); }
+  if (cur.kind === "await_status_imei") {
+    state.delete(chatId);
+    return showStatus(supabase, token, chatId, user.id, text);
+  }
 
-  // 4) Commands
-  if (text.startsWith("/balance")) {
-    return sendMessage(token, chatId, `💰 Balance: <b>$${Number(user.balance).toFixed(2)}</b>`);
+  // Button routing (and slash aliases for power users)
+  if (text === BTN.balance || text === "/balance") {
+    return sendWithMenu(token, chatId, `💰 <b>Balance</b>\n$${Number(user.balance).toFixed(2)}`);
   }
-  if (text.startsWith("/orders")) {
-    const { data: orders } = await supabase.from("orders")
-      .select("order_number, imei, status, created_at, services(name)")
-      .eq("user_id", user.id).order("created_at", { ascending: false }).limit(10);
-    if (!orders?.length) return sendMessage(token, chatId, "No orders yet.");
-    const lines = orders.map((o: any) =>
-      `#${o.order_number} • ${escapeHtml(o.services?.name ?? "—")} • <code>${escapeHtml(o.imei)}</code> • <b>${o.status}</b>`,
-    ).join("\n");
-    return sendMessage(token, chatId, `📦 <b>Last orders</b>\n${lines}`);
+  if (text === BTN.orders || text === "/orders") {
+    return showOrders(supabase, token, chatId, user.id);
   }
-  if (text.startsWith("/status")) {
-    const imei = text.split(/\s+/)[1];
-    if (!imei) return sendMessage(token, chatId, "Usage: /status &lt;imei&gt;");
-    const { data: o } = await supabase.from("orders")
-      .select("order_number, status, result, error_message, services(name)")
-      .eq("user_id", user.id).eq("imei", imei).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (!o) return sendMessage(token, chatId, "No order found.");
-    const extra = o.result
-      ? `\n<pre>${escapeHtml(String(o.result).slice(0, 1500))}</pre>`
-      : (o.error_message ? `\n❗ ${escapeHtml(o.error_message)}` : "");
-    return sendMessage(token, chatId, `#${o.order_number} • ${escapeHtml(o.services?.name ?? "")} • <b>${o.status}</b>${extra}`);
-  }
-  if (text.startsWith("/placeorder")) {
+  if (text === BTN.place || text === "/placeorder") {
     return showServiceList(supabase, token, chatId, 0);
   }
+  if (text === BTN.status || text === "/status") {
+    state.set(chatId, { kind: "await_status_imei" });
+    return sendWithCancel(token, chatId, "🔎 Send the <b>IMEI</b> to check status.");
+  }
+  if (text === BTN.help || text === "/help") {
+    return sendWithMenu(token, chatId,
+      "Use the buttons below:\n" +
+      "• 💰 Balance — your wallet\n" +
+      "• 📦 My Orders — last 10\n" +
+      "• 🛠 Place Order — pick a service & send IMEI\n" +
+      "• 🔎 Order Status — look up by IMEI",
+    );
+  }
 
-  return sendMessage(token, chatId, "Commands: /balance /orders /placeorder /status &lt;imei&gt;");
+  return sendWithMenu(token, chatId, "Tap a button below 👇");
+}
+
+async function showOrders(supabase: any, token: string, chatId: string, userId: string) {
+  const { data: orders } = await supabase.from("orders")
+    .select("order_number, imei, status, created_at, services(name)")
+    .eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
+  if (!orders?.length) return sendWithMenu(token, chatId, "No orders yet.");
+  const lines = orders.map((o: any) =>
+    `#${o.order_number} • ${escapeHtml(o.services?.name ?? "—")} • <code>${escapeHtml(o.imei)}</code> • <b>${o.status}</b>`,
+  ).join("\n");
+  return sendWithMenu(token, chatId, `📦 <b>Last orders</b>\n${lines}`);
+}
+
+async function showStatus(supabase: any, token: string, chatId: string, userId: string, imei: string) {
+  if (!/^[A-Za-z0-9]{6,30}$/.test(imei)) {
+    return sendWithMenu(token, chatId, "❌ Invalid IMEI.");
+  }
+  const { data: o } = await supabase.from("orders")
+    .select("order_number, status, result, error_message, services(name)")
+    .eq("user_id", userId).eq("imei", imei).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (!o) return sendWithMenu(token, chatId, "No order found for that IMEI.");
+  const extra = o.result
+    ? `\n<pre>${escapeHtml(String(o.result).slice(0, 1500))}</pre>`
+    : (o.error_message ? `\n❗ ${escapeHtml(o.error_message)}` : "");
+  return sendWithMenu(token, chatId, `#${o.order_number} • ${escapeHtml(o.services?.name ?? "")} • <b>${o.status}</b>${extra}`);
 }
 
 async function tryPair(supabase: any, token: string, chatId: string, code: string) {
@@ -123,11 +201,11 @@ async function tryPair(supabase: any, token: string, chatId: string, code: strin
     .eq("bot_kind", "client").eq("code", code).is("used_at", null).maybeSingle();
   if (!pair) return sendMessage(token, chatId, "❌ Invalid or expired code.");
   if (new Date(pair.expires_at).getTime() < Date.now()) {
-    return sendMessage(token, chatId, "⌛ Code expired. Generate a new one.");
+    return sendMessage(token, chatId, "⌛ Code expired. Generate a new one in the dashboard.");
   }
   await supabase.from("telegram_pairings").update({ used_at: new Date().toISOString(), chat_id: chatId }).eq("id", pair.id);
   await supabase.from("profiles").update({ client_bot_chat_id: chatId, notify_telegram: true }).eq("id", pair.user_id);
-  return sendMessage(token, chatId, "✅ <b>Linked!</b> Try /balance or /placeorder.");
+  return sendWithMenu(token, chatId, "✅ <b>Linked!</b> Use the buttons below to manage your account.");
 }
 
 async function showServiceList(supabase: any, token: string, chatId: string, page: number) {
@@ -136,7 +214,7 @@ async function showServiceList(supabase: any, token: string, chatId: string, pag
   const list = services ?? [];
   const start = page * PAGE;
   const slice = list.slice(start, start + PAGE);
-  if (!slice.length) return sendMessage(token, chatId, "No services available.");
+  if (!slice.length) return sendWithMenu(token, chatId, "No services available.");
   const buttons: any[] = slice.map((s: any) => [{
     text: `${s.service_code ?? ""} · ${s.name} · $${Number(s.price).toFixed(2)}`,
     callback_data: `svc:${s.id}`,
@@ -159,7 +237,7 @@ async function handleCallback(supabase: any, token: string, cb: any) {
   if (!user) return sendMessage(token, chatId, "🔒 Account not linked.");
   if (data.startsWith("pg:")) return showServiceList(supabase, token, chatId, Number(data.slice(3)));
   if (data.startsWith("svc:")) {
-    awaiting.set(chatId, { serviceId: data.slice(4), ts: Date.now() });
-    return sendMessage(token, chatId, "📱 Send the <b>IMEI</b> (8–20 chars). /cancel to abort.");
+    state.set(chatId, { kind: "await_imei", serviceId: data.slice(4) });
+    return sendWithCancel(token, chatId, "📱 Send the <b>IMEI</b> (8–20 chars), or tap ✖ Cancel.");
   }
 }
