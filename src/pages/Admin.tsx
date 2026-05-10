@@ -298,6 +298,33 @@ type SupplierService = { action_code: string; name: string; credit: number | nul
 
 type Category = { id: string; slug: string; name: string; sort_order: number };
 
+function PaginationBar({ page, totalPages, pageSize, total, onPage, onPageSize }: { page: number; totalPages: number; pageSize: number; total: number; onPage: (p: number) => void; onPageSize: (n: number) => void }) {
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(total, page * pageSize);
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 border-t border-border/50 text-xs">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <span>Showing {from}–{to} of {total}</span>
+        <span>·</span>
+        <span>Per page:</span>
+        <Select value={String(pageSize)} onValueChange={(v) => onPageSize(Number(v))}>
+          <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {[20, 30, 40, 50, 100].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center gap-1">
+        <Button size="sm" variant="ghost" disabled={page <= 1} onClick={() => onPage(1)}>« First</Button>
+        <Button size="sm" variant="ghost" disabled={page <= 1} onClick={() => onPage(page - 1)}>‹ Prev</Button>
+        <span className="px-2 font-mono">Page {page} / {totalPages}</span>
+        <Button size="sm" variant="ghost" disabled={page >= totalPages} onClick={() => onPage(page + 1)}>Next ›</Button>
+        <Button size="sm" variant="ghost" disabled={page >= totalPages} onClick={() => onPage(totalPages)}>Last »</Button>
+      </div>
+    </div>
+  );
+}
+
 function AdminServices() {
   const confirm = useConfirm();
   const [services, setServices] = useState<Service[]>([]);
