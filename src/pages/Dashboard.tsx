@@ -66,6 +66,8 @@ export default function Dashboard() {
   const [oqFrom, setOqFrom] = useState("");
   const [oqTo, setOqTo] = useState("");
   const [orderStatus, setOrderStatus] = useState("all");
+  const [oPage, setOPage] = useState(1);
+  const [oPageSize, setOPageSize] = useState(20);
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgDismissed, setMsgDismissed] = useState(false);
   const customMessage = (profile as unknown as { custom_message?: string } | null)?.custom_message ?? "";
@@ -123,7 +125,7 @@ export default function Dashboard() {
   const load = async () => {
     if (!user) return;
     const [{ data: o }, { data: t }, { data: svc }, { data: ovs }] = await Promise.all([
-      supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,updated_at,services(name,category,delivery_time,result_font,result_color)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
+      supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,updated_at,services(name,category,delivery_time,result_font,result_color)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1000),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color").order("category").order("sort_order").order("price"),
       supabase.from("user_service_overrides").select("service_id,enabled,custom_price").eq("user_id", user.id),
@@ -422,13 +424,19 @@ export default function Dashboard() {
                     return true;
                   });
                   if (filteredOrders.length === 0) return <div className="p-12 text-center text-muted-foreground">No orders found.</div>;
+                  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / oPageSize));
+                  const safePage = Math.min(oPage, totalPages);
+                  const pageOrders = filteredOrders.slice((safePage - 1) * oPageSize, safePage * oPageSize);
+                  const from = (safePage - 1) * oPageSize + 1;
+                  const to = Math.min(filteredOrders.length, safePage * oPageSize);
                   return (
+                <>
                 <table className="w-full text-sm">
                   <thead className="bg-secondary/40 text-left">
                      <tr><th className="px-5 py-3">Order ID</th><th className="px-5 py-3">Service</th><th className="px-5 py-3">IMEI</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Price</th><th className="px-5 py-3">Date</th><th className="px-5 py-3">Result</th></tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.map((o) => (
+                    {pageOrders.map((o) => (
                       <tr key={o.id} className="border-t border-border/50 hover:bg-secondary/20 cursor-pointer" onClick={() => setOrderDetail(o)}>
                         <td className="px-5 py-3 font-mono text-xs">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
                         <td className="px-5 py-3 font-medium">{o.services?.name ?? "—"}</td>
@@ -445,6 +453,27 @@ export default function Dashboard() {
                     ))}
                   </tbody>
                 </table>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 border-t border-border/50 text-xs">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span>Showing {from}–{to} of {filteredOrders.length}</span>
+                    <span>·</span>
+                    <span>Per page:</span>
+                    <Select value={String(oPageSize)} onValueChange={(v) => { setOPageSize(Number(v)); setOPage(1); }}>
+                      <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {[20, 30, 40, 50, 100].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="ghost" disabled={safePage <= 1} onClick={() => setOPage(1)}>« First</Button>
+                    <Button size="sm" variant="ghost" disabled={safePage <= 1} onClick={() => setOPage(safePage - 1)}>‹ Prev</Button>
+                    <span className="px-2 font-mono">Page {safePage} / {totalPages}</span>
+                    <Button size="sm" variant="ghost" disabled={safePage >= totalPages} onClick={() => setOPage(safePage + 1)}>Next ›</Button>
+                    <Button size="sm" variant="ghost" disabled={safePage >= totalPages} onClick={() => setOPage(totalPages)}>Last »</Button>
+                  </div>
+                </div>
+                </>
                   );
                 })()
               }
