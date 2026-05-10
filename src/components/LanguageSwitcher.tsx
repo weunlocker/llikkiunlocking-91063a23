@@ -8,32 +8,36 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const LANGUAGES: { code: string; label: string; flag: string }[] = [
-  { code: "en", label: "English", flag: "🇺🇸" },
-  { code: "es", label: "Español", flag: "🇪🇸" },
-  { code: "fr", label: "Français", flag: "🇫🇷" },
-  { code: "de", label: "Deutsch", flag: "🇩🇪" },
-  { code: "pt", label: "Português", flag: "🇵🇹" },
-  { code: "it", label: "Italiano", flag: "🇮🇹" },
-  { code: "ru", label: "Русский", flag: "🇷🇺" },
-  { code: "ar", label: "العربية", flag: "🇸🇦" },
-  { code: "hi", label: "हिन्दी", flag: "🇮🇳" },
-  { code: "te", label: "తెలుగు", flag: "🇮🇳" },
-  { code: "ta", label: "தமிழ்", flag: "🇮🇳" },
-  { code: "bn", label: "বাংলা", flag: "🇧🇩" },
-  { code: "ur", label: "اردو", flag: "🇵🇰" },
-  { code: "zh-CN", label: "中文", flag: "🇨🇳" },
-  { code: "ja", label: "日本語", flag: "🇯🇵" },
-  { code: "ko", label: "한국어", flag: "🇰🇷" },
-  { code: "vi", label: "Tiếng Việt", flag: "🇻🇳" },
-  { code: "th", label: "ไทย", flag: "🇹🇭" },
-  { code: "id", label: "Indonesia", flag: "🇮🇩" },
-  { code: "tr", label: "Türkçe", flag: "🇹🇷" },
-  { code: "fa", label: "فارسی", flag: "🇮🇷" },
-  { code: "nl", label: "Nederlands", flag: "🇳🇱" },
-  { code: "pl", label: "Polski", flag: "🇵🇱" },
-  { code: "uk", label: "Українська", flag: "🇺🇦" },
-  { code: "fil", label: "Filipino", flag: "🇵🇭" },
+// Pure language list (no country flags) — selection is by LANGUAGE only.
+const LANGUAGES: { code: string; label: string; native: string }[] = [
+  { code: "en", label: "English", native: "English" },
+  { code: "es", label: "Spanish", native: "Español" },
+  { code: "fr", label: "French", native: "Français" },
+  { code: "de", label: "German", native: "Deutsch" },
+  { code: "pt", label: "Portuguese", native: "Português" },
+  { code: "it", label: "Italian", native: "Italiano" },
+  { code: "ru", label: "Russian", native: "Русский" },
+  { code: "ar", label: "Arabic", native: "العربية" },
+  { code: "hi", label: "Hindi", native: "हिन्दी" },
+  { code: "te", label: "Telugu", native: "తెలుగు" },
+  { code: "ta", label: "Tamil", native: "தமிழ்" },
+  { code: "bn", label: "Bengali", native: "বাংলা" },
+  { code: "ur", label: "Urdu", native: "اردو" },
+  { code: "zh-CN", label: "Chinese (Simplified)", native: "简体中文" },
+  { code: "zh-TW", label: "Chinese (Traditional)", native: "繁體中文" },
+  { code: "ja", label: "Japanese", native: "日本語" },
+  { code: "ko", label: "Korean", native: "한국어" },
+  { code: "vi", label: "Vietnamese", native: "Tiếng Việt" },
+  { code: "th", label: "Thai", native: "ไทย" },
+  { code: "id", label: "Indonesian", native: "Bahasa Indonesia" },
+  { code: "ms", label: "Malay", native: "Bahasa Melayu" },
+  { code: "tr", label: "Turkish", native: "Türkçe" },
+  { code: "fa", label: "Persian", native: "فارسی" },
+  { code: "nl", label: "Dutch", native: "Nederlands" },
+  { code: "pl", label: "Polish", native: "Polski" },
+  { code: "uk", label: "Ukrainian", native: "Українська" },
+  { code: "fil", label: "Filipino", native: "Filipino" },
+  { code: "sw", label: "Swahili", native: "Kiswahili" },
 ];
 
 declare global {
@@ -43,31 +47,12 @@ declare global {
   }
 }
 
-function setCookie(name: string, value: string) {
-  const host = window.location.hostname;
-  const root = host.split(".").slice(-2).join(".");
-  document.cookie = `${name}=${value};path=/;max-age=31536000`;
-  document.cookie = `${name}=${value};path=/;domain=.${root};max-age=31536000`;
-  document.cookie = `${name}=${value};path=/;domain=${host};max-age=31536000`;
-}
+let scriptLoaded = false;
+let scriptReady: Promise<void> | null = null;
 
-function applyLanguage(code: string) {
-  // googtrans cookie format: /<source>/<target>
-  setCookie("googtrans", `/en/${code}`);
-  localStorage.setItem("preferred_lang", code);
-  // Reload so Google Translate reads the new cookie and re-translates
-  window.location.reload();
-}
-
-export default function LanguageSwitcher() {
-  const [current, setCurrent] = useState<string>("en");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("preferred_lang");
-    if (saved) setCurrent(saved);
-
-    if (document.getElementById("google-translate-script")) return;
-
+function loadGoogleTranslate(): Promise<void> {
+  if (scriptReady) return scriptReady;
+  scriptReady = new Promise((resolve) => {
     window.googleTranslateElementInit = () => {
       try {
         new window.google.translate.TranslateElement(
@@ -75,20 +60,70 @@ export default function LanguageSwitcher() {
             pageLanguage: "en",
             includedLanguages: LANGUAGES.map((l) => l.code).join(","),
             autoDisplay: false,
-            layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
           },
           "google_translate_element"
         );
+        scriptLoaded = true;
+        // Wait for the hidden <select> to mount
+        const wait = setInterval(() => {
+          if (document.querySelector(".goog-te-combo")) {
+            clearInterval(wait);
+            resolve();
+          }
+        }, 100);
       } catch (e) {
         console.error("Google Translate init error", e);
+        resolve();
       }
     };
 
-    const s = document.createElement("script");
-    s.id = "google-translate-script";
-    s.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-    s.async = true;
-    document.body.appendChild(s);
+    if (!document.getElementById("google-translate-script")) {
+      const s = document.createElement("script");
+      s.id = "google-translate-script";
+      s.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+      s.async = true;
+      document.body.appendChild(s);
+    }
+  });
+  return scriptReady;
+}
+
+function triggerTranslate(code: string) {
+  const select = document.querySelector(".goog-te-combo") as HTMLSelectElement | null;
+  if (!select) return false;
+  select.value = code;
+  select.dispatchEvent(new Event("change"));
+  return true;
+}
+
+async function applyLanguage(code: string) {
+  localStorage.setItem("preferred_lang", code);
+  await loadGoogleTranslate();
+
+  if (code === "en") {
+    // Restore original by clearing translation
+    if (!triggerTranslate("")) triggerTranslate("en");
+    return;
+  }
+
+  // Retry a few times in case the combo isn't fully ready
+  for (let i = 0; i < 20; i++) {
+    if (triggerTranslate(code)) return;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+}
+
+export default function LanguageSwitcher() {
+  const [current, setCurrent] = useState<string>("en");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("preferred_lang");
+    if (saved) {
+      setCurrent(saved);
+      applyLanguage(saved);
+    } else {
+      loadGoogleTranslate();
+    }
   }, []);
 
   const active = LANGUAGES.find((l) => l.code === current) || LANGUAGES[0];
@@ -108,18 +143,23 @@ export default function LanguageSwitcher() {
             aria-label="Change language"
           >
             <Globe className="w-4 h-4" />
-            <span className="ml-1 text-xs hidden sm:inline">{active.flag}</span>
+            <span className="ml-1 text-xs hidden sm:inline uppercase">{active.code.split("-")[0]}</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="max-h-[70vh] overflow-y-auto w-52 bg-popover">
+        <DropdownMenuContent align="end" className="max-h-[70vh] overflow-y-auto w-60 bg-popover">
           {LANGUAGES.map((l) => (
             <DropdownMenuItem
               key={l.code}
-              onClick={() => applyLanguage(l.code)}
+              onClick={() => {
+                setCurrent(l.code);
+                applyLanguage(l.code);
+              }}
               className="cursor-pointer notranslate flex items-center gap-2"
             >
-              <span className="text-base">{l.flag}</span>
-              <span className="flex-1">{l.label}</span>
+              <span className="flex-1">
+                <span className="font-medium">{l.native}</span>
+                <span className="text-muted-foreground text-xs ml-2">{l.label}</span>
+              </span>
               {l.code === current && <Check className="w-4 h-4 text-primary" />}
             </DropdownMenuItem>
           ))}
