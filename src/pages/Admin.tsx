@@ -1462,7 +1462,7 @@ function AdminSuppliers() {
       toast.error("Name and endpoint URL are required"); return;
     }
     if (editing.type === "dhru" && (!editing.dhru_username || !editing.dhru_api_key)) {
-      toast.error("Dhru suppliers need username + API key"); return;
+      toast.error("Action API suppliers need username + API key"); return;
     }
     if (editing.type === "ifree" && !editing.dhru_api_key) {
       toast.error("iFreeiCloud suppliers need an API key"); return;
@@ -1535,7 +1535,7 @@ function AdminSuppliers() {
   };
 
   const syncSupplier = async (s: Supplier) => {
-    if (s.type !== "dhru") { toast.error("Sync only works for Dhru suppliers"); return; }
+    if (s.type !== "dhru") { toast.error("Sync only works for Action API suppliers"); return; }
     setSyncing(s.id);
     try {
       const { data, error } = await supabase.functions.invoke("supplier-sync", { body: { supplier_id: s.id } });
@@ -1592,7 +1592,7 @@ function AdminSuppliers() {
                   </td>
                 </tr>
               ))}
-              {list.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">No suppliers yet. Add one to wire Dhru / GSM / custom providers once and reuse them across services.</td></tr>}
+              {list.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">No suppliers yet. Add one to wire wholesale / GSM / custom providers once and reuse them across services.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -1604,7 +1604,7 @@ function AdminSuppliers() {
           {editing && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Name</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="e.g. DHRU Main" maxLength={100} /></div>
+                <div><Label>Name</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="e.g. Main Supplier" maxLength={100} /></div>
                 <div><Label>Type</Label>
                   <Select value={editing.type ?? "dhru"} onValueChange={(v) => {
                     const next = { ...editing, type: v as "dhru" | "generic" | "ifree" | "goimeicheck" };
@@ -1614,7 +1614,7 @@ function AdminSuppliers() {
                   }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="dhru">Dhru Fusion (action API)</SelectItem>
+                      <SelectItem value="dhru">Action API (wholesale)</SelectItem>
                       <SelectItem value="ifree">iFreeiCloud (instant API)</SelectItem>
                       <SelectItem value="goimeicheck">GoIMEICheck (instant + async)</SelectItem>
                       <SelectItem value="generic">Generic HTTP API</SelectItem>
@@ -1628,7 +1628,7 @@ function AdminSuppliers() {
                   placeholder={editing.type === "dhru" ? "https://yoursupplier.com/api/index.php" : editing.type === "ifree" ? "https://api.ifreeicloud.co.uk" : editing.type === "goimeicheck" ? "https://api.goimeicheck.com" : "https://api.provider.com/check?imei={IMEI}&action={ACTION}"} />
                 <p className="text-xs text-muted-foreground mt-1">
                   {editing.type === "dhru"
-                    ? "Dhru API base URL (POST endpoint). Service code per service is set in the Service editor."
+                    ? "Action API base URL (POST endpoint). Service code per service is set in the Service editor."
                     : editing.type === "ifree"
                       ? "iFreeiCloud endpoint. Per-service Service ID is set in the Service editor (Supplier action = numeric service ID)."
                       : editing.type === "goimeicheck"
@@ -1668,7 +1668,7 @@ function AdminSuppliers() {
         <DialogContent className="glass max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>{syncResult?.supplier.name} — {syncResult?.services.length} services synced</DialogTitle>
-            {syncResult?.action_used && <p className="text-xs text-muted-foreground">via Dhru action <code className="px-1 bg-secondary/50 rounded">{syncResult.action_used}</code></p>}
+            {syncResult?.action_used && <p className="text-xs text-muted-foreground">via action <code className="px-1 bg-secondary/50 rounded">{syncResult.action_used}</code></p>}
           </DialogHeader>
           {syncResult && (
             <div className="space-y-3 overflow-hidden flex flex-col flex-1">
@@ -1936,7 +1936,7 @@ function AdminTelegramBot() {
   };
 
   return (
-    <AdminLayout title="Telegram Bot" subtitle="Two bots: Admin (you) + Client (clients pair via 6-digit code, Dhru-style)">
+    <AdminLayout title="Telegram Bot" subtitle="Two bots: Admin (you) + Client (clients pair via 6-digit code)">
       <div className="glass rounded-2xl p-6 space-y-4 max-w-2xl">
         <h3 className="font-bold">🛡 Admin Bot</h3>
         <p className="text-xs text-muted-foreground">
@@ -1949,7 +1949,7 @@ function AdminTelegramBot() {
         <div className="pt-3 border-t border-border/40 space-y-3">
           <h3 className="font-bold">👥 Client Bot</h3>
           <p className="text-xs text-muted-foreground">
-            Clients open this bot from their dashboard and send the 6-digit pairing code shown there. No chat_id needed — same UX as Dhru.
+            Clients open this bot from their dashboard and send the 6-digit pairing code shown there. No chat_id needed.
           </p>
           <div><Label>Bot Token</Label><Input type="password" value={clientToken} onChange={(e) => setClientToken(e.target.value)} placeholder="123456:ABC-DEF..." /></div>
           <div><Label>Bot Username (without @)</Label><Input value={clientUsername} onChange={(e) => setClientUsername(e.target.value)} placeholder="my_client_bot" /></div>
