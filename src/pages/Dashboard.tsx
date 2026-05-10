@@ -505,33 +505,22 @@ export default function Dashboard() {
           <TabsContent value="settings" className="mt-5">
             <div className="glass rounded-2xl p-6 space-y-6 max-w-2xl">
               <TelegramPairCard />
-              <div>
-                <h3 className="font-bold text-lg mb-1 flex items-center gap-2"><Send className="w-5 h-5 text-primary" /> Telegram Notifications</h3>
-                <p className="text-sm text-muted-foreground">Get instant order results and balance alerts on Telegram.</p>
-              </div>
-
-              <div className="rounded-lg bg-secondary/30 p-4 text-sm space-y-2">
-                <p className="font-semibold">How to connect:</p>
-                <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                  <li>Open Telegram and start a chat with our notifications bot.</li>
-                  <li>Send any message (e.g. <span className="font-mono">/start</span>).</li>
-                  <li>Send <span className="font-mono">/getid</span> to <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-primary underline">@userinfobot</a> to get your numeric chat ID.</li>
-                  <li>Paste your chat ID below, enable notifications, and click Save.</li>
-                  <li>Then click <strong>Send test</strong> to verify.</li>
-                </ol>
-              </div>
-
-              <div>
-                <Label>Telegram Chat ID</Label>
-                <Input value={tgChatId} onChange={(e) => setTgChatId(e.target.value)} placeholder="e.g. 123456789" className="font-mono" />
-              </div>
 
               <div className="flex items-center justify-between rounded-lg border border-border/60 p-3">
                 <div>
                   <Label className="text-base">Telegram alerts</Label>
-                  <p className="text-xs text-muted-foreground">Receive order results and wallet updates.</p>
+                  <p className="text-xs text-muted-foreground">Receive order results and wallet updates on the linked bot.</p>
                 </div>
-                <Switch checked={tgEnabled} onCheckedChange={setTgEnabled} />
+                <Switch
+                  checked={tgEnabled}
+                  onCheckedChange={async (v) => {
+                    setTgEnabled(v);
+                    if (!user) return;
+                    const { error } = await supabase.from("profiles").update({ notify_telegram: v }).eq("id", user.id);
+                    if (error) toast.error(error.message);
+                    else { toast.success("Saved"); refreshProfile(); }
+                  }}
+                />
               </div>
 
               <div className="flex items-center justify-between rounded-lg border border-border/60 p-3 opacity-60">
@@ -540,15 +529,6 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground">Coming soon — set up an email domain in Cloud → Emails to enable.</p>
                 </div>
                 <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} disabled />
-              </div>
-
-              <div className="flex gap-2">
-                <Button variant="hero" onClick={savePrefs} disabled={savingPrefs}>
-                  {savingPrefs && <Loader2 className="w-4 h-4 animate-spin" />}Save
-                </Button>
-                <Button variant="glass" onClick={sendTestTg} disabled={testingTg || !tgEnabled || !tgChatId}>
-                  {testingTg && <Loader2 className="w-4 h-4 animate-spin" />}Send test
-                </Button>
               </div>
             </div>
           </TabsContent>
