@@ -6,19 +6,19 @@ import { deriveSecret, escapeHtml, getBotConfig, makeServiceClient, sendMessage,
 // Per-chat conversation state.
 type State =
   | { kind: "idle" }
-  | { kind: "await_imei"; serviceId: string }
-  | { kind: "await_status_imei" };
+  | { kind: "await_imei"; serviceId: string; serviceName: string }
+  | { kind: "await_status_order" };
 const state = new Map<string, State>();
 const PAGE = 8;
 
 // Button labels (used both for keyboard render and incoming text routing).
 const BTN = {
-  balance: "💰 Balance",
-  orders: "📦 My Orders",
-  place: "🛠 Place Order",
-  status: "🔎 Order Status",
-  help: "ℹ️ Help",
-  cancel: "✖ Cancel",
+  balance: "Balance",
+  orders: "My Orders",
+  place: "Place Order",
+  status: "Order Status",
+  help: "Help",
+  cancel: "Cancel",
 } as const;
 
 function mainKeyboard() {
@@ -97,7 +97,7 @@ async function handleMessage(supabase: any, token: string, msg: any) {
   if (text.startsWith("/start")) {
     const code = text.split(/\s+/)[1];
     if (code && /^\d{6}$/.test(code)) return tryPair(supabase, token, chatId, code);
-    return sendWithMenu(token, chatId, "👋 <b>Welcome!</b>\nSend your <b>6-digit pairing code</b> from the dashboard to link your account, or use the buttons below.");
+    return sendWithMenu(token, chatId, "Welcome. Send your 6-digit pairing code from the dashboard to link your account, or use the buttons below.");
   }
 
   // Bare 6-digit pairing code
@@ -112,17 +112,17 @@ async function handleMessage(supabase: any, token: string, msg: any) {
   // Require linked account for everything else
   const user = await findUserByChat(supabase, chatId);
   if (!user) {
-    return sendMessage(token, chatId, "🔒 Your Telegram is not linked.\nOpen the dashboard → <b>Connect Telegram</b> and send the 6-digit code here.");
+    return sendMessage(token, chatId, "Your Telegram is not linked. Open the dashboard, choose Connect Telegram, and send the 6-digit code here.");
   }
 
   // Stateful flows
   const cur = state.get(chatId) ?? { kind: "idle" };
   if (cur.kind === "await_imei") {
     if (!/^[A-Za-z0-9]{8,20}$/.test(text)) {
-      return sendWithCancel(token, chatId, "❌ Invalid IMEI. Send 8–20 alphanumeric characters, or tap ✖ Cancel.");
+      return sendWithCancel(token, chatId, "Invalid IMEI. Send 8–20 alphanumeric characters, or tap Cancel.");
     }
     state.delete(chatId);
-    await sendMessage(token, chatId, "⏳ Placing order…");
+    await sendMessage(token, chatId, "Order placed");
     try {
       const result = await executeCheck({ userId: user.id, serviceId: cur.serviceId, imei: text, source: "telegram" as any });
       const b: any = result.body || {};
@@ -130,22 +130,22 @@ async function handleMessage(supabase: any, token: string, msg: any) {
       if (ok) {
         const success = (b.SUCCESS && b.SUCCESS[0]) || {};
         const out = success.RESULT || success.result || success.MESSAGE || JSON.stringify(b).slice(0, 1500);
-        return sendWithMenu(token, chatId, `✅ <b>Order placed</b>\n<pre>${escapeHtml(String(out))}</pre>`);
+        return sendWithMenu(token, chatId, `${escapeHtml(cur.serviceName)}\nIMEI: ${escapeHtml(text)}\n\n${escapeHtml(String(out))}`);
       }
       const err = b.ERROR?.[0]?.MESSAGE || b.error || "Failed";
-      return sendWithMenu(token, chatId, `❌ ${escapeHtml(String(err))}`);
+      return sendWithMenu(token, chatId, `Order Failed\n${escapeHtml(cur.serviceName)}\nIMEI: ${escapeHtml(text)}\n${escapeHtml(String(err))}`);
     } catch (e) {
-      return sendWithMenu(token, chatId, `❌ ${escapeHtml(e instanceof Error ? e.message : "error")}`);
+      return sendWithMenu(token, chatId, `Order Failed\n${escapeHtml(cur.serviceName)}\nIMEI: ${escapeHtml(text)}\n${escapeHtml(e instanceof Error ? e.message : "error")}`);
     }
   }
-  if (cur.kind === "await_status_imei") {
+  if (cur.kind === "await_status_order") {
     state.delete(chatId);
     return showStatus(supabase, token, chatId, user.id, text);
   }
 
   // Button routing (and slash aliases for power users)
   if (text === BTN.balance || text === "/balance") {
-    return sendWithMenu(token, chatId, `💰 <b>Balance</b>\n$${Number(user.balance).toFixed(2)}`);
+    return sendWithMenu(token, chatId, `Balance\n$${Number(user.balance).toFixed(2)}`);
   }
   if (text === BTN.orders || text === "/orders") {
     return showOrders(supabase, token, chatId, user.id);
@@ -154,20 +154,20 @@ async function handleMessage(supabase: any, token: string, msg: any) {
     return showServiceList(supabase, token, chatId, 0);
   }
   if (text === BTN.status || text === "/status") {
-    state.set(chatId, { kind: "await_status_imei" });
-    return sendWithCancel(token, chatId, "🔎 Send the <b>IMEI</b> to check status.");
+    state.set(chatId, { kind: "await_status_order" });
+    return sendWithCancel(token, chatId, "Send the Order ID to check status.");
   }
   if (text === BTN.help || text === "/help") {
     return sendWithMenu(token, chatId,
       "Use the buttons below:\n" +
-      "• 💰 Balance — your wallet\n" +
-      "• 📦 My Orders — last 10\n" +
-      "• 🛠 Place Order — pick a service & send IMEI\n" +
-      "• 🔎 Order Status — look up by IMEI",
+      "Balance — your wallet\n" +
+      "My Orders — last 10\n" +
+      "Place Order — pick a service and send IMEI\n" +
+      "Order Status — look up by Order ID",
     );
   }
 
-  return sendWithMenu(token, chatId, "Tap a button below 👇");
+  return sendWithMenu(token, chatId, "Tap a button below.");
 }
 
 async function showOrders(supabase: any, token: string, chatId: string, userId: string) {
@@ -176,55 +176,56 @@ async function showOrders(supabase: any, token: string, chatId: string, userId: 
     .eq("user_id", userId).order("created_at", { ascending: false }).limit(10);
   if (!orders?.length) return sendWithMenu(token, chatId, "No orders yet.");
   const lines = orders.map((o: any) =>
-    `#${o.order_number} • ${escapeHtml(o.services?.name ?? "—")} • <code>${escapeHtml(o.imei)}</code> • <b>${o.status}</b>`,
-  ).join("\n");
-  return sendWithMenu(token, chatId, `📦 <b>Last orders</b>\n${lines}`);
+    `Order ID: ${o.order_number}\n${escapeHtml(o.services?.name ?? "—")}\nIMEI: ${escapeHtml(o.imei)}\nStatus: ${o.status}`,
+  ).join("\n\n");
+  return sendWithMenu(token, chatId, `Last orders\n\n${lines}`);
 }
 
-async function showStatus(supabase: any, token: string, chatId: string, userId: string, imei: string) {
-  if (!/^[A-Za-z0-9]{6,30}$/.test(imei)) {
-    return sendWithMenu(token, chatId, "❌ Invalid IMEI.");
+async function showStatus(supabase: any, token: string, chatId: string, userId: string, input: string) {
+  const orderNumber = input.replace(/^#/, "").trim();
+  if (!/^[A-Za-z0-9-]{1,40}$/.test(orderNumber)) {
+    return sendWithMenu(token, chatId, "Invalid Order ID.");
   }
   const { data: o } = await supabase.from("orders")
-    .select("order_number, status, result, error_message, services(name)")
-    .eq("user_id", userId).eq("imei", imei).order("created_at", { ascending: false }).limit(1).maybeSingle();
-  if (!o) return sendWithMenu(token, chatId, "No order found for that IMEI.");
+    .select("order_number, imei, status, result, error_message, services(name)")
+    .eq("user_id", userId).eq("order_number", orderNumber).maybeSingle();
+  if (!o) return sendWithMenu(token, chatId, "No order found for that Order ID.");
   const extra = o.result
-    ? `\n<pre>${escapeHtml(String(o.result).slice(0, 1500))}</pre>`
-    : (o.error_message ? `\n❗ ${escapeHtml(o.error_message)}` : "");
-  return sendWithMenu(token, chatId, `#${o.order_number} • ${escapeHtml(o.services?.name ?? "")} • <b>${o.status}</b>${extra}`);
+    ? `\n\n${escapeHtml(String(o.result).slice(0, 1500))}`
+    : (o.error_message ? `\n\n${escapeHtml(o.error_message)}` : "");
+  return sendWithMenu(token, chatId, `Order ID: ${o.order_number}\n${escapeHtml(o.services?.name ?? "")}\nIMEI: ${escapeHtml(o.imei ?? "")}\nStatus: ${o.status}${extra}`);
 }
 
 async function tryPair(supabase: any, token: string, chatId: string, code: string) {
   const { data: pair } = await supabase.from("telegram_pairings")
     .select("id, user_id, expires_at, used_at")
     .eq("bot_kind", "client").eq("code", code).is("used_at", null).maybeSingle();
-  if (!pair) return sendMessage(token, chatId, "❌ Invalid or expired code.");
+  if (!pair) return sendMessage(token, chatId, "Invalid or expired code.");
   if (new Date(pair.expires_at).getTime() < Date.now()) {
-    return sendMessage(token, chatId, "⌛ Code expired. Generate a new one in the dashboard.");
+    return sendMessage(token, chatId, "Code expired. Generate a new one in the dashboard.");
   }
   await supabase.from("telegram_pairings").update({ used_at: new Date().toISOString(), chat_id: chatId }).eq("id", pair.id);
   await supabase.from("profiles").update({ client_bot_chat_id: chatId, notify_telegram: true }).eq("id", pair.user_id);
-  return sendWithMenu(token, chatId, "✅ <b>Linked!</b> Use the buttons below to manage your account.");
+  return sendWithMenu(token, chatId, "Linked. Use the buttons below to manage your account.");
 }
 
 async function showServiceList(supabase: any, token: string, chatId: string, page: number) {
   const { data: services } = await supabase.from("services")
-    .select("id, service_code, name, price").eq("active", true).order("sort_order").order("name");
+    .select("id, name").eq("active", true).order("sort_order").order("name");
   const list = services ?? [];
   const start = page * PAGE;
   const slice = list.slice(start, start + PAGE);
   if (!slice.length) return sendWithMenu(token, chatId, "No services available.");
   const buttons: any[] = slice.map((s: any) => [{
-    text: `${s.service_code ?? ""} · ${s.name} · $${Number(s.price).toFixed(2)}`,
+    text: s.name,
     callback_data: `svc:${s.id}`,
   }]);
   const nav: any[] = [];
-  if (page > 0) nav.push({ text: "« Prev", callback_data: `pg:${page - 1}` });
-  if (start + PAGE < list.length) nav.push({ text: "Next »", callback_data: `pg:${page + 1}` });
+  if (page > 0) nav.push({ text: "Prev", callback_data: `pg:${page - 1}` });
+  if (start + PAGE < list.length) nav.push({ text: "Next", callback_data: `pg:${page + 1}` });
   if (nav.length) buttons.push(nav);
   return tgApi(token, "sendMessage", {
-    chat_id: chatId, text: "🛠 <b>Pick a service:</b>", parse_mode: "HTML",
+    chat_id: chatId, text: "Pick a service:", parse_mode: "HTML",
     reply_markup: { inline_keyboard: buttons },
   });
 }
@@ -234,10 +235,13 @@ async function handleCallback(supabase: any, token: string, cb: any) {
   const data: string = cb.data || "";
   await tgApi(token, "answerCallbackQuery", { callback_query_id: cb.id });
   const user = await findUserByChat(supabase, chatId);
-  if (!user) return sendMessage(token, chatId, "🔒 Account not linked.");
+  if (!user) return sendMessage(token, chatId, "Account not linked.");
   if (data.startsWith("pg:")) return showServiceList(supabase, token, chatId, Number(data.slice(3)));
   if (data.startsWith("svc:")) {
-    state.set(chatId, { kind: "await_imei", serviceId: data.slice(4) });
-    return sendWithCancel(token, chatId, "📱 Send the <b>IMEI</b> (8–20 chars), or tap ✖ Cancel.");
+    const serviceId = data.slice(4);
+    const { data: svc } = await supabase.from("services").select("name").eq("id", serviceId).maybeSingle();
+    const serviceName = svc?.name ?? "Service";
+    state.set(chatId, { kind: "await_imei", serviceId, serviceName });
+    return sendWithCancel(token, chatId, `${escapeHtml(serviceName)}\nSend IMEI`);
   }
 }
