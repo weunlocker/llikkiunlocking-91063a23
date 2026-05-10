@@ -90,8 +90,8 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
   };
 
   // Split services: instant (Simple-Link compatible) vs Dhru (async, NOT for Simple Link)
-  const instantServices = services.filter((s) => !s.supplier_id || (s.suppliers && s.suppliers.type !== "dhru"));
-  const dhruServices = services.filter((s) => s.supplier_id && s.suppliers?.type === "dhru");
+  const instantServices = services.filter((s) => !s.is_async);
+  const dhruServices = services.filter((s) => s.is_async);
 
   const username = profile?.email ?? "your-account@email.com";
   const apiKey = keys[0]?.key ?? "YOUR_API_KEY";
