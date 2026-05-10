@@ -858,6 +858,7 @@ export type Database = {
           delivery_time: string | null
           description: string | null
           id: string | null
+          is_async: boolean | null
           is_free: boolean | null
           name: string | null
           price: number | null
@@ -867,40 +868,6 @@ export type Database = {
           service_code: string | null
           sort_order: number | null
           updated_at: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          category?: string | null
-          created_at?: string | null
-          delivery_time?: string | null
-          description?: string | null
-          id?: string | null
-          is_free?: boolean | null
-          name?: string | null
-          price?: number | null
-          result_color?: string | null
-          result_font?: string | null
-          sample_result?: string | null
-          service_code?: string | null
-          sort_order?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          active?: boolean | null
-          category?: string | null
-          created_at?: string | null
-          delivery_time?: string | null
-          description?: string | null
-          id?: string | null
-          is_free?: boolean | null
-          name?: string | null
-          price?: number | null
-          result_color?: string | null
-          result_font?: string | null
-          sample_result?: string | null
-          service_code?: string | null
-          sort_order?: number | null
-          updated_at?: string | null
         }
         Relationships: []
       }
