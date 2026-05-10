@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
+import Seo from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { Shield, Zap, Lock, Globe, ArrowRight, CheckCircle2, Code2, Award, Clock, Users, TrendingUp, Star, Quote, ShieldCheck, BadgeCheck, Server, KeyRound } from "lucide-react";
 import { useEffect, useState } from "react";
