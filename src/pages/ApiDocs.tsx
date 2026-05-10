@@ -40,9 +40,8 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
     (async () => {
       const [{ data: svc }, { data: k }] = await Promise.all([
         supabase
-          .from("services")
-          .select("id, service_code, name, price, delivery_time, category, supplier_id, suppliers(type)")
-          .eq("active", true)
+          .from("services_public")
+          .select("id, service_code, name, price, delivery_time, category, is_async")
           .order("service_code"),
         user
           ? supabase.from("api_keys").select("id, name, key").eq("user_id", user.id).order("created_at", { ascending: false })
