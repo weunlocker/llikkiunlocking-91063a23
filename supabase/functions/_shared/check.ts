@@ -496,8 +496,8 @@ async function runUpstream(ctx: PlacementCtx) {
       description: `Auto-refund: ${service.name}`, order_id: order.id,
     });
     detach(notifyUser(supabase, userId,
-      `Order Failed`,
-      `${service.name}\nIMEI: ${imei}\n${errorMsg}`,
+      `❌ ${imei}`,
+      `${errorMsg}\n\n${service.name}`,
     ));
     detach(notifyUserEmail(supabase, userId, "order_rejected", {
       order_number: order.order_number, imei, service: service.name,
