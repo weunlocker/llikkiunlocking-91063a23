@@ -1,103 +1,75 @@
-// Sends notifications to users (Telegram + future email).
-// Called server-side from check.ts and wallet-topup. Uses service role.
+// Sends notifications via the configured Telegram bots (admin + client).
+// Auth: service-role JWT or admin user JWT.
+//
+// Payload:
+//   { user_id, subject?, body|message, bot?: 'client'|'admin' }   // default 'client', sends to user's chat
+//   { broadcast: 'admins', subject?, body }                       // sends to every admin chat_id via admin bot
+//   { chat_id, body, bot?: 'client'|'admin' }                     // direct chat_id send
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { escapeHtml, getBotConfig, sendMessage } from "../_shared/tg.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const TG_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
-
-function json(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), {
-    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
+const json = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
   try {
-    // Auth gate: require either service_role JWT or admin user JWT
-    const authHeader = req.headers.get("Authorization") || "";
-    const token = authHeader.replace("Bearer ", "").trim();
+    const auth = req.headers.get("Authorization") || "";
+    const token = auth.replace("Bearer ", "").trim();
     if (!token) return json(401, { error: "Unauthorized" });
 
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-    let isAuthorized = false;
-    if (token === SERVICE_KEY) {
-      isAuthorized = true;
-    } else {
-      const { data: userData } = await supabase.auth.getUser(token);
-      if (userData?.user) {
-        const { data: roles } = await supabase
-          .from("user_roles").select("role").eq("user_id", userData.user.id).eq("role", "admin");
-        if (roles && roles.length > 0) isAuthorized = true;
+    let isAuthorized = token === SERVICE_KEY;
+    if (!isAuthorized) {
+      const { data: u } = await supabase.auth.getUser(token);
+      if (u?.user) {
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", u.user.id).eq("role", "admin");
+        if (roles?.length) isAuthorized = true;
       }
     }
     if (!isAuthorized) return json(403, { error: "Forbidden" });
 
-    const payload = await req.json();
-    const user_id = payload.user_id;
-    const subject = payload.subject;
-    const body = payload.body ?? payload.message ?? payload.text;
-    const directChatId: string | undefined = payload.chat_id;
-    if ((!user_id && !directChatId) || !body) {
-      return json(400, { error: "user_id (or chat_id) and body (or message) required" });
+    const p = await req.json();
+    const subject = p.subject as string | undefined;
+    const body = (p.body ?? p.message ?? p.text) as string | undefined;
+    if (!body) return json(400, { error: "body required" });
+    const text = subject ? `<b>${escapeHtml(subject)}</b>\n\n<pre>${escapeHtml(body)}</pre>` : `<pre>${escapeHtml(body)}</pre>`;
+
+    const cfg = await getBotConfig(supabase);
+    const results: any[] = [];
+
+    // Broadcast to admins
+    if (p.broadcast === "admins") {
+      const tok = cfg?.admin_bot_token;
+      const ids: string[] = (cfg?.admin_chat_ids ?? []).map(String);
+      if (!tok || ids.length === 0) return json(200, { ok: true, results: [{ skipped: "no_admin_bot_or_chats" }] });
+      for (const id of ids) results.push({ chat_id: id, ...(await sendMessage(tok, id, text)) });
+      return json(200, { ok: true, results });
     }
 
-    let chatId: string | null = directChatId ?? null;
-    let allow = !!directChatId;
+    const botKind: "admin" | "client" = p.bot === "admin" ? "admin" : "client";
+    const tok = botKind === "admin" ? cfg?.admin_bot_token : cfg?.client_bot_token;
+    if (!tok) return json(200, { ok: false, reason: `no_${botKind}_bot_token` });
 
-    if (!chatId && user_id) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("telegram_chat_id, notify_telegram, email")
-        .eq("id", user_id)
-        .maybeSingle();
+    let chatId: string | null = p.chat_id ? String(p.chat_id) : null;
+    if (!chatId && p.user_id) {
+      const { data: profile } = await supabase.from("profiles")
+        .select("client_bot_chat_id, telegram_chat_id, notify_telegram").eq("id", p.user_id).maybeSingle();
       if (!profile) return json(200, { ok: false, reason: "no_profile" });
-      chatId = profile.telegram_chat_id;
-      allow = !!(profile.notify_telegram && profile.telegram_chat_id);
+      if (profile.notify_telegram === false) return json(200, { ok: true, skipped: "user_disabled" });
+      chatId = profile.client_bot_chat_id || profile.telegram_chat_id || null;
     }
+    if (!chatId) return json(200, { ok: true, skipped: "no_chat_id" });
 
-    const results: Record<string, unknown> = { telegram: "skipped", email: "skipped" };
-
-    if (allow && chatId) {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
-      if (LOVABLE_API_KEY && TELEGRAM_API_KEY) {
-        const text = subject ? `<b>${escapeHtml(subject)}</b>\n\n<pre>${escapeHtml(body)}</pre>` : `<pre>${escapeHtml(body)}</pre>`;
-        try {
-          const resp = await fetch(`${TG_GATEWAY}/sendMessage`, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-              "X-Connection-Api-Key": TELEGRAM_API_KEY,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" }),
-          });
-          const data = await resp.json();
-          results.telegram = resp.ok ? "sent" : `error: ${JSON.stringify(data).slice(0, 200)}`;
-        } catch (e) {
-          results.telegram = `error: ${e instanceof Error ? e.message : "unknown"}`;
-        }
-      } else {
-        results.telegram = "missing_keys";
-      }
-    }
-
-    return json(200, { ok: true, results });
+    const r = await sendMessage(tok, chatId, text);
+    return json(200, { ok: r.ok, result: r });
   } catch (e) {
     return json(500, { error: e instanceof Error ? e.message : "unknown" });
   }
 });
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}

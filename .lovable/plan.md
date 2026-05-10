@@ -1,64 +1,49 @@
 ## Goal
+Add a dual Telegram bot system (Admin Bot + Client Bot) with Dhru-style pairing, push notifications, and interactive commands.
 
-Replace the Binance Pay merchant flow with a **personal Binance account** flow:
-- Admin enters Binance **Pay ID**, **QR image**, **read-only API key/secret**, supported coins
-- Customer top-up shows the QR + Pay ID + a **unique memo** for their order
-- A scheduled job polls Binance deposit history with the personal API key, matches deposits by memo/amount, and auto-credits the user's wallet
-- Other payment gateways stay visible in admin but disabled ("coming soon")
+## 1. Database changes
+- Add columns to `site_settings`:
+  - `admin_bot_token`, `admin_bot_username`, `admin_chat_ids` (text[]), `client_bot_token`, `client_bot_username`
+- New table `telegram_pairings`:
+  - `user_id`, `code` (6-digit), `bot_kind` ('admin'|'client'), `expires_at`, `used_at`, `chat_id`
+- Add to `profiles`: `client_bot_chat_id` (already have `telegram_chat_id` — repurpose or add separate `admin_bot_chat_id` for admins).
+- New table `auth_login_events` (user_id, email, ip, user_agent, success, created_at) — for login success/failed alerts.
 
-## Database changes (one migration)
+## 2. Edge functions
+- **`telegram-admin-webhook`** (verify_jwt=false): receives admin bot updates. Commands: `/start`, `/clients`, `/orders`, `/invoices`, `/balance <user>`. Validates chat_id is in `admin_chat_ids`.
+- **`telegram-client-webhook`** (verify_jwt=false): receives client bot updates.
+  - `/start <code>` or plain 6-digit message → look up `telegram_pairings`, bind chat_id to user.
+  - `/balance` → show balance.
+  - `/orders` → last 10 orders.
+  - `/placeorder` → interactive: list services (paginated inline keyboard) → ask IMEI → confirm → call existing check logic.
+  - `/status <imei>`.
+- **`telegram-pair`** (called from client panel): generates pairing code, stores in `telegram_pairings`, returns `{code, bot_username}`.
+- **`telegram-set-webhooks`** (admin-only): registers webhook URLs with both bots using their tokens (saved in settings). Also calls `setMyCommands`.
+- **`telegram-notify`** (extend existing): add events for `login_success`, `login_failed`, `order_placed`, `order_success`, `order_rejected`. Routes to admin bot (all admins) and client bot (the specific user) based on event.
 
-Extend `payment_settings` with personal-account fields:
-- `binance_pay_id` (text) — public Pay ID shown to customers
-- `binance_qr_url` (text) — uploaded QR image (uses existing `branding` storage bucket)
-- `binance_coins` (jsonb, default `["USDT"]`) — coins to accept
-- `binance_min_amount` (numeric, default 1) — min top-up
-- `binance_poll_enabled` (bool, default true)
-- `binance_last_polled_at` (timestamptz)
-- (existing `binance_api_key` / `binance_secret_key` are reused for the read-only personal API key)
+## 3. Frontend
+- **Admin → Settings → Telegram tab**:
+  - Inputs for admin & client bot tokens, usernames, admin chat IDs (comma-separated).
+  - "Register webhooks" button → calls `telegram-set-webhooks`.
+  - Test buttons.
+- **Client Dashboard → "Connect Telegram" card**:
+  - Shows `@client_bot_username` + 6-digit pairing code (refresh button, 10-min expiry countdown).
+  - Instructions: "Open bot → send /start <code>".
+  - Once paired: shows "Connected as @username — Disconnect".
+- **Login page**: trigger `auth_login_events` insert + call `telegram-notify` (login_success/login_failed) with IP from request headers.
 
-Extend `payment_orders`:
-- `memo` (text, unique-per-pending) — short code customer must paste in Binance "Remarks"
-- `coin` (text)
-- `tx_id` (text) — matched Binance deposit txId
-- `matched_at` (timestamptz)
+## 4. Notification triggers
+- Hook into existing order flow (`_shared/check.ts`, `poll-dhru-orders`) to call `telegram-notify` on placed/success/rejected.
+- Hook into `useAuth` sign-in for login alerts (call edge function with IP).
 
-Add stub rows + UI flags for placeholder providers (no schema change needed; rendered as disabled cards).
+## 5. Security
+- All bot tokens stored in `site_settings` (admin-only RLS).
+- Webhook secret token derived from bot token (HMAC) — verified on each webhook hit.
+- Pairing codes single-use, 10-min expiry, rate-limited per user.
+- Admin commands gated by chat_id whitelist.
 
-## Edge functions
-
-**Modify `binance-create-order`** → rename behavior to "create pending top-up":
-- Validate amount, generate short unique `memo` (e.g. `LK-AB12CD`), insert `payment_orders` row with `status=pending`, `expires_at = now()+expiry`
-- Return `{ pay_id, qr_url, coins, amount, memo, expires_at }` for the client to display
-
-**New `binance-poll-deposits`** (scheduled, no JWT):
-- Loads `payment_settings`, signs `GET /sapi/v1/capital/deposit/hisrec` with HMAC-SHA256 using personal API key/secret
-- For each `status=1` (success) deposit, look for a pending `payment_orders` row where the deposit memo (or `addressTag`) matches and amount ≥ requested
-- On match: mark order `paid`, set `tx_id`/`matched_at`, increment `profiles.balance`, insert `transactions` row, send notification
-- Updates `binance_last_polled_at`
-- Cron: every 1 min via `pg_cron` + `pg_net`
-
-**Keep `binance-webhook`** but make it a no-op (returns 200) since merchant API is no longer used.
-
-## Frontend
-
-**Admin → Payments (`src/pages/AdminPayments.tsx`)**
-- Binance section: Pay ID, QR upload (to `branding` bucket), read-only API key/secret, coins multi-select, min amount, expiry minutes, poll toggle, "Test deposit poll" button
-- Below Binance, show **disabled placeholder cards**: Stripe, PayPal, Crypto.com Pay — each with a "Coming soon" badge so they're visible but inert
-
-**Dashboard wallet top-up (`src/pages/Dashboard.tsx`)**
-- After amount selection, show a **payment dialog**: large QR image, copyable Pay ID, copyable **memo**, amount + coin, countdown timer
-- Polls own `payment_orders` row every 5s; closes with success toast when `status=paid`
-- "I've paid" button → manual TXID submit (optional, creates an admin task)
-
-**Order edit dialog (admin)** — small "Match payment" helper that lists unmatched deposits (optional, can ship later).
-
-## Security notes
-- Personal Binance API key needs only **Enable Reading** permission; never enable Withdraw/Trade
-- Stored encrypted-at-rest in `payment_settings`, only accessed by service role in edge functions
-- Memo collision avoided by 6-char random + DB unique check
-- Rate-limit `binance-create-order` per user (1 pending order at a time)
-
-## Out of scope
-- Implementing Stripe/PayPal/etc. (placeholders only)
-- Withdrawal/refund automation
+## Technical notes
+- Bot API calls use direct `https://api.telegram.org/bot{TOKEN}/...` (no Telegram connector since admin supplies tokens).
+- Inline keyboards for `/placeorder` service picker (callback_data carries service_code).
+- `setMyCommands` so users see suggestions in Telegram UI.
+- Idempotency: store `update_id` on processed updates table to dedupe Telegram retries.

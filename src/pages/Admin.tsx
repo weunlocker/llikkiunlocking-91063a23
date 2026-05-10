@@ -1854,12 +1854,27 @@ function AdminTelegramBot() {
   const [groupId, setGroupId] = useState("");
   const [savingIds, setSavingIds] = useState(false);
 
+  const [adminToken, setAdminToken] = useState("");
+  const [adminUsername, setAdminUsername] = useState("");
+  const [adminChatIds, setAdminChatIds] = useState("");
+  const [clientToken, setClientToken] = useState("");
+  const [clientUsername, setClientUsername] = useState("");
+  const [savingBots, setSavingBots] = useState(false);
+  const [registering, setRegistering] = useState(false);
+
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("site_settings").select("telegram_channel_id,telegram_group_id").eq("id", 1).maybeSingle();
-      const r = data as unknown as { telegram_channel_id?: string | null; telegram_group_id?: string | null } | null;
+      const { data } = await supabase.from("site_settings").select(
+        "telegram_channel_id,telegram_group_id,admin_bot_token,admin_bot_username,admin_chat_ids,client_bot_token,client_bot_username",
+      ).eq("id", 1).maybeSingle();
+      const r = data as any;
       setChannelId(r?.telegram_channel_id ?? "");
       setGroupId(r?.telegram_group_id ?? "");
+      setAdminToken(r?.admin_bot_token ?? "");
+      setAdminUsername(r?.admin_bot_username ?? "");
+      setAdminChatIds((r?.admin_chat_ids ?? []).join(", "));
+      setClientToken(r?.client_bot_token ?? "");
+      setClientUsername(r?.client_bot_username ?? "");
     })();
   }, []);
 
@@ -1870,15 +1885,37 @@ function AdminTelegramBot() {
       telegram_group_id: groupId.trim() || null,
     }).eq("id", 1);
     setSavingIds(false);
-    if (error) toast.error(error.message);
-    else toast.success("Saved");
+    if (error) toast.error(error.message); else toast.success("Saved");
+  };
+
+  const saveBots = async () => {
+    setSavingBots(true);
+    const ids = adminChatIds.split(",").map((s) => s.trim()).filter(Boolean);
+    const { error } = await supabase.from("site_settings").update({
+      admin_bot_token: adminToken.trim() || null,
+      admin_bot_username: adminUsername.trim().replace(/^@/, "") || null,
+      admin_chat_ids: ids,
+      client_bot_token: clientToken.trim() || null,
+      client_bot_username: clientUsername.trim().replace(/^@/, "") || null,
+    } as any).eq("id", 1);
+    setSavingBots(false);
+    if (error) toast.error(error.message); else toast.success("Bot config saved");
+  };
+
+  const registerWebhooks = async () => {
+    setRegistering(true);
+    const { data, error } = await supabase.functions.invoke("telegram-set-webhooks", { body: {} });
+    setRegistering(false);
+    if (error) return toast.error(error.message);
+    toast.success("Webhooks registered");
+    console.log("setWebhook results:", data);
   };
 
   const sendTestTelegram = async () => {
     if (!testChatId.trim()) return toast.error("Enter a chat ID");
     setTesting(true);
     const { data, error } = await supabase.functions.invoke("telegram-notify", {
-      body: { chat_id: testChatId.trim(), subject: "Test", message: "✅ Telegram is wired up correctly." },
+      body: { chat_id: testChatId.trim(), bot: "client", subject: "Test", message: "✅ Telegram is wired up correctly." },
     });
     setTesting(false);
     if (error) return toast.error(error.message);
@@ -1887,32 +1924,39 @@ function AdminTelegramBot() {
   };
 
   return (
-    <AdminLayout title="Telegram Bot" subtitle="Configure broadcast targets and test the bot connection">
+    <AdminLayout title="Telegram Bot" subtitle="Two bots: Admin (you) + Client (clients pair via 6-digit code, Dhru-style)">
       <div className="glass rounded-2xl p-6 space-y-4 max-w-2xl">
-        <h3 className="font-bold">Broadcast targets</h3>
-        <p className="text-sm text-muted-foreground">
-          Add the bot as an <b>admin</b> in your channel/group, then paste the chat ID here.
-          Channel IDs usually start with <code>-100…</code>. Group IDs start with <code>-…</code>.
+        <h3 className="font-bold">🛡 Admin Bot</h3>
+        <p className="text-xs text-muted-foreground">
+          Create a bot in @BotFather, paste its token + username. Add your chat_id (from @userinfobot) to receive notifications and use admin commands.
         </p>
-        <div>
-          <Label>Telegram Channel ID</Label>
-          <Input value={channelId} onChange={(e) => setChannelId(e.target.value)} placeholder="-1001234567890" />
-        </div>
-        <div>
-          <Label>Telegram Group ID</Label>
-          <Input value={groupId} onChange={(e) => setGroupId(e.target.value)} placeholder="-987654321" />
-        </div>
-        <Button onClick={saveIds} disabled={savingIds}>
-          {savingIds ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null} Save IDs
-        </Button>
+        <div><Label>Bot Token</Label><Input type="password" value={adminToken} onChange={(e) => setAdminToken(e.target.value)} placeholder="123456:ABC-DEF..." /></div>
+        <div><Label>Bot Username (without @)</Label><Input value={adminUsername} onChange={(e) => setAdminUsername(e.target.value)} placeholder="my_admin_bot" /></div>
+        <div><Label>Admin Chat IDs (comma-separated)</Label><Input value={adminChatIds} onChange={(e) => setAdminChatIds(e.target.value)} placeholder="123456789, 987654321" /></div>
 
-        <div className="space-y-2 pt-4 border-t border-border/40">
-          <h3 className="font-bold">Personal chats</h3>
-          <p className="text-sm text-muted-foreground">Clients link their account in Dashboard → Notifications (pairing code).</p>
+        <div className="pt-3 border-t border-border/40 space-y-3">
+          <h3 className="font-bold">👥 Client Bot</h3>
+          <p className="text-xs text-muted-foreground">
+            Clients open this bot from their dashboard and send the 6-digit pairing code shown there. No chat_id needed — same UX as Dhru.
+          </p>
+          <div><Label>Bot Token</Label><Input type="password" value={clientToken} onChange={(e) => setClientToken(e.target.value)} placeholder="123456:ABC-DEF..." /></div>
+          <div><Label>Bot Username (without @)</Label><Input value={clientUsername} onChange={(e) => setClientUsername(e.target.value)} placeholder="my_client_bot" /></div>
         </div>
 
+        <div className="flex gap-2 pt-3">
+          <Button onClick={saveBots} disabled={savingBots}>{savingBots && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Save bot config</Button>
+          <Button variant="outline" onClick={registerWebhooks} disabled={registering}>{registering && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Register webhooks</Button>
+        </div>
+
+        <div className="pt-4 border-t border-border/40 space-y-2">
+          <h3 className="font-bold">📢 Channel / Group (broadcast targets)</h3>
+          <div><Label>Telegram Channel ID</Label><Input value={channelId} onChange={(e) => setChannelId(e.target.value)} placeholder="-1001234567890" /></div>
+          <div><Label>Telegram Group ID</Label><Input value={groupId} onChange={(e) => setGroupId(e.target.value)} placeholder="-987654321" /></div>
+          <Button onClick={saveIds} disabled={savingIds} size="sm">{savingIds && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Save IDs</Button>
+        </div>
+
         <div className="space-y-2 pt-4 border-t border-border/40">
-          <Label className="text-xs">Send test message to chat ID</Label>
+          <Label className="text-xs">Send test message to chat ID (uses client bot)</Label>
           <div className="flex gap-2">
             <Input placeholder="123456789" value={testChatId} onChange={(e) => setTestChatId(e.target.value)} />
             <Button size="sm" onClick={sendTestTelegram} disabled={testing}>

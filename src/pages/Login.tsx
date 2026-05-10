@@ -27,6 +27,10 @@ export default function Login() {
       password: parsed.data.password,
     });
     setLoading(false);
+    // Fire-and-forget login event (admin notification + audit log)
+    supabase.functions.invoke("auth-event", {
+      body: { email: parsed.data.email, success: !error },
+    }).catch(() => {});
     if (error) {
       toast.error(error.message);
       return;

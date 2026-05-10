@@ -504,6 +504,7 @@ export default function Dashboard() {
 
           <TabsContent value="settings" className="mt-5">
             <div className="glass rounded-2xl p-6 space-y-6 max-w-2xl">
+              <TelegramPairCard />
               <div>
                 <h3 className="font-bold text-lg mb-1 flex items-center gap-2"><Send className="w-5 h-5 text-primary" /> Telegram Notifications</h3>
                 <p className="text-sm text-muted-foreground">Get instant order results and balance alerts on Telegram.</p>
@@ -715,5 +716,81 @@ export default function Dashboard() {
         onBulkStarted={() => setSearchParams({ tab: "orders" }, { replace: true })}
       />
     </Layout>
+  );
+}
+
+function TelegramPairCard() {
+  const [pair, setPair] = useState<{ code: string; bot_username: string; expires_at: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [linked, setLinked] = useState<string | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("client_bot_chat_id").eq("id", user.id).maybeSingle();
+      setLinked((data as any)?.client_bot_chat_id ?? null);
+    })();
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const generate = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.functions.invoke("telegram-pair", { body: { bot_kind: "client" } });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    if ((data as any)?.error) return toast.error((data as any).error);
+    setPair(data as any);
+  };
+
+  const unlink = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("profiles").update({ client_bot_chat_id: null } as any).eq("id", user.id);
+    setLinked(null); setPair(null);
+    toast.success("Unlinked");
+  };
+
+  if (linked) {
+    return (
+      <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4">
+        <div className="font-semibold text-emerald-700 dark:text-emerald-300">✅ Telegram connected</div>
+        <p className="text-xs text-muted-foreground mt-1">Chat ID: <code>{linked}</code></p>
+        <Button size="sm" variant="outline" className="mt-3" onClick={unlink}>Disconnect</Button>
+      </div>
+    );
+  }
+
+  const remaining = pair ? Math.max(0, Math.floor((new Date(pair.expires_at).getTime() - now) / 1000)) : 0;
+
+  return (
+    <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-3">
+      <div className="font-semibold flex items-center gap-2"><Send className="w-4 h-4" /> Connect Telegram (Dhru-style)</div>
+      {!pair && (
+        <>
+          <p className="text-xs text-muted-foreground">Generate a 6-digit code, open the bot, and send the code. Done — no chat ID needed.</p>
+          <Button size="sm" onClick={generate} disabled={loading}>
+            {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Generate pairing code
+          </Button>
+        </>
+      )}
+      {pair && (
+        <div className="space-y-2">
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <a href={`https://t.me/${pair.bot_username}`} target="_blank" rel="noopener noreferrer"
+               className="text-primary underline font-mono">@{pair.bot_username}</a>
+            <span className="text-3xl font-bold tracking-widest font-mono">{pair.code}</span>
+            <span className="text-xs text-muted-foreground">expires in {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}</span>
+          </div>
+          <ol className="list-decimal list-inside text-xs text-muted-foreground space-y-1">
+            <li>Tap @{pair.bot_username} above to open the bot.</li>
+            <li>Press <b>Start</b>, then send the 6-digit code.</li>
+          </ol>
+          <Button size="sm" variant="outline" onClick={generate} disabled={loading}>Generate new code</Button>
+        </div>
+      )}
+    </div>
   );
 }
