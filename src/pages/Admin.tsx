@@ -523,6 +523,7 @@ function AdminServices() {
               {filtered.length === 0 && <tr><td colSpan={9} className="px-5 py-10 text-center text-muted-foreground">No services.</td></tr>}
             </tbody>
           </table>
+          <PaginationBar page={page} totalPages={totalPages} pageSize={pageSize} total={filtered.length} onPage={setPage} onPageSize={setPageSize} />
         </div>
       }
 
