@@ -25,3 +25,13 @@ project_id = "jhkumqyugvezfulkoine"
     verify_jwt = false
   [functions.telegram-notify]
     verify_jwt = false
+  [functions.telegram-admin-webhook]
+    verify_jwt = false
+  [functions.telegram-client-webhook]
+    verify_jwt = false
+  [functions.telegram-set-webhooks]
+    verify_jwt = false
+  [functions.telegram-pair]
+    verify_jwt = false
+  [functions.auth-event]
+    verify_jwt = false
