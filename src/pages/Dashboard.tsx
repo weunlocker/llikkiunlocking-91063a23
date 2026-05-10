@@ -66,6 +66,8 @@ export default function Dashboard() {
   const [oqFrom, setOqFrom] = useState("");
   const [oqTo, setOqTo] = useState("");
   const [orderStatus, setOrderStatus] = useState("all");
+  const [oPage, setOPage] = useState(1);
+  const [oPageSize, setOPageSize] = useState(20);
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgDismissed, setMsgDismissed] = useState(false);
   const customMessage = (profile as unknown as { custom_message?: string } | null)?.custom_message ?? "";
