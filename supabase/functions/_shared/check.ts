@@ -410,7 +410,7 @@ async function runUpstream(ctx: PlacementCtx) {
               }).eq("id", order.id);
               notifyUser(supabase, userId,
                 `Order Submitted — ${service.name}`,
-                `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.\nCharged: ${price.toFixed(2)} USD\nBalance: ${newBalance.toFixed(2)} USD`,
+                `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.`,
               );
               return; // remain pending; poller takes over
             }
@@ -444,7 +444,7 @@ async function runUpstream(ctx: PlacementCtx) {
               }).eq("id", order.id);
               notifyUser(supabase, userId,
                 `Order Submitted — ${service.name}`,
-                `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.\nCharged: ${price.toFixed(2)} USD\nBalance: ${newBalance.toFixed(2)} USD`,
+                `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.`,
               );
               return;
             } else {
@@ -497,7 +497,7 @@ async function runUpstream(ctx: PlacementCtx) {
     });
     detach(notifyUser(supabase, userId,
       `Order Failed — ${service.name}`,
-      `IMEI: ${imei}\nReason: ${errorMsg}\nRefunded: $${price.toFixed(2)}\nBalance: $${refundedBalance.toFixed(2)}`,
+      `IMEI: ${imei}\nReason: ${errorMsg}`,
     ));
     detach(notifyUserEmail(supabase, userId, "order_rejected", {
       order_number: order.order_number, imei, service: service.name,
@@ -517,7 +517,7 @@ async function runUpstream(ctx: PlacementCtx) {
 
   detach(notifyUser(supabase, userId,
     `Order Completed — ${service.name}`,
-    `IMEI: ${imei}\n\n${resultText}\n\nCharged: ${price.toFixed(2)} USD\nBalance: ${newBalance.toFixed(2)} USD`,
+    `IMEI: ${imei}\n\n${resultText}`,
   ));
   detach(notifyUserEmail(supabase, userId, "order_success", {
     order_number: order.order_number, imei, service: service.name,
