@@ -747,7 +747,7 @@ function TelegramPairCard() {
 
   return (
     <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-3">
-      <div className="font-semibold flex items-center gap-2"><Send className="w-4 h-4" /> Connect Telegram (Dhru-style)</div>
+      <div className="font-semibold flex items-center gap-2"><Send className="w-4 h-4" /> Connect Telegram</div>
       {!pair && (
         <>
           <p className="text-xs text-muted-foreground">Generate a 6-digit code, open the bot, and send the code. Done — no chat ID needed.</p>

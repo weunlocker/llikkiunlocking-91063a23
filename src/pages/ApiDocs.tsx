@@ -111,7 +111,7 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
               <span className="glow-text">API Access</span>
             </h1>
             <p className="text-muted-foreground text-lg">
-              Works with any Dhru-compatible client — or use a Simple Link.
+              Works with any standard wholesale API client — or use a Simple Link.
             </p>
           </div>
         )}
@@ -160,7 +160,7 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
         <Tabs defaultValue="simple">
           <TabsList className="glass w-full justify-start overflow-x-auto flex-nowrap">
             <TabsTrigger value="simple" className="shrink-0"><LinkIcon className="w-4 h-4 mr-2" />Simple Link</TabsTrigger>
-            <TabsTrigger value="dhru" className="shrink-0"><Code2 className="w-4 h-4 mr-2" />Dhru-compatible API</TabsTrigger>
+            <TabsTrigger value="dhru" className="shrink-0"><Code2 className="w-4 h-4 mr-2" />Wholesale API</TabsTrigger>
             <TabsTrigger value="ids" className="shrink-0">Service IDs</TabsTrigger>
           </TabsList>
 
@@ -184,7 +184,7 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
               <div className="text-sm">
                 <div className="font-semibold mb-1">Simple Link works only for instant services</div>
                 <p className="text-muted-foreground">
-                  Services that are routed through a <b>Dhru supplier</b> are processed asynchronously (the result comes minutes later). They are <b>not</b> available via Simple Link — use the <b>Dhru-compatible API</b> tab below for those.
+                  Services routed through an <b>async supplier</b> are processed asynchronously (the result comes minutes later). They are <b>not</b> available via Simple Link — use the <b>Wholesale API</b> tab below for those.
                 </p>
               </div>
             </div>
@@ -204,12 +204,12 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
           {/* ───── Dhru-compatible ───── */}
           <TabsContent value="dhru" className="mt-5 space-y-4">
             <div className="glass rounded-2xl p-6">
-              <h3 className="font-bold mb-2">Plug into any Dhru client</h3>
+              <h3 className="font-bold mb-2">Plug into any compatible client</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Add a new server in your Dhru-style application using the credentials above. Our endpoint replies in the standard Dhru JSON shape (<span className="font-mono">SUCCESS</span> / <span className="font-mono">ERROR</span>).
+                Add a new server in your wholesale IMEI client using the credentials above. Our endpoint replies with a standard JSON shape (<span className="font-mono">SUCCESS</span> / <span className="font-mono">ERROR</span>).
               </p>
               <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                <li>Open your Dhru tool → <b>Add server</b> / <b>API settings</b>.</li>
+                <li>Open your IMEI client → <b>Add server</b> / <b>API settings</b>.</li>
                 <li>Set <b>API URL</b> to <span className="font-mono break-all">{base}</span></li>
                 <li>Set <b>Username</b> to your account email and <b>API Key</b> to your <span className="font-mono">imei_…</span> key.</li>
                 <li>Run <b>imeiservicelist</b> to import all available services.</li>
@@ -245,7 +245,7 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
           {/* ───── Service IDs ───── */}
           <TabsContent value="ids" className="mt-5 space-y-4">
             <ServiceIdTable
-              title="Instant services — work with Simple Link & Dhru API"
+              title="Instant services — work with Simple Link & Wholesale API"
               hint="Use these IDs in the service= parameter of a Simple Link."
               services={instantServices}
               onCopy={copy}
@@ -253,8 +253,8 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
               loading={loading}
             />
             <ServiceIdTable
-              title="Dhru-supplier services — Dhru API only (async)"
-              hint="These are processed by an upstream Dhru supplier. Place the order, then poll for the result. Not available via Simple Link."
+              title="Async services — Wholesale API only"
+              hint="These are processed by an upstream supplier. Place the order, then poll for the result. Not available via Simple Link."
               services={dhruServices}
               onCopy={copy}
               instant={false}
@@ -306,7 +306,7 @@ function ServiceIdTable({ title, hint, services, onCopy, instant, loading }: {
         <div className="flex items-center gap-2 mb-1">
           <h3 className="font-bold">{title}</h3>
           <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded ${instant ? "bg-success/20 text-success" : "bg-warning/20 text-warning"}`}>
-            {instant ? "Instant" : "Async (Dhru)"}
+            {instant ? "Instant" : "Async"}
           </span>
         </div>
         <p className="text-xs text-muted-foreground">{hint}</p>
