@@ -356,6 +356,10 @@ export type Database = {
           binance_poll_enabled: boolean
           binance_qr_url: string | null
           binance_secret_key: string | null
+          cashfree_enabled: boolean
+          cashfree_env: string
+          cashfree_min_amount: number
+          cashfree_usd_to_inr: number
           id: number
           order_expiry_minutes: number
           topup_amounts: Json
@@ -372,6 +376,10 @@ export type Database = {
           binance_poll_enabled?: boolean
           binance_qr_url?: string | null
           binance_secret_key?: string | null
+          cashfree_enabled?: boolean
+          cashfree_env?: string
+          cashfree_min_amount?: number
+          cashfree_usd_to_inr?: number
           id?: number
           order_expiry_minutes?: number
           topup_amounts?: Json
@@ -388,6 +396,10 @@ export type Database = {
           binance_poll_enabled?: boolean
           binance_qr_url?: string | null
           binance_secret_key?: string | null
+          cashfree_enabled?: boolean
+          cashfree_env?: string
+          cashfree_min_amount?: number
+          cashfree_usd_to_inr?: number
           id?: number
           order_expiry_minutes?: number
           topup_amounts?: Json
