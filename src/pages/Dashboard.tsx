@@ -532,13 +532,37 @@ export default function Dashboard() {
       <Dialog open={topupOpen} onOpenChange={setTopupOpen}>
         <DialogContent className="glass">
           <DialogHeader><DialogTitle>Top Up Wallet</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Pay securely via Binance Pay — your wallet is credited automatically.</p>
+          <div className="space-y-5">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {(paySettings?.topup_amounts ?? [5, 10, 20, 30]).map((a) => (
-                <Button key={a} variant="hero" onClick={() => requestTopup(a)}>${a}</Button>
+                <Button key={a} variant="outline" onClick={() => setTopupAmount(String(a))} className={Number(topupAmount) === a ? "border-primary text-primary" : ""}>${a}</Button>
               ))}
             </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Amount (USD)</label>
+              <input
+                type="number" min="1" max="10000" value={topupAmount}
+                onChange={(e) => setTopupAmount(e.target.value)}
+                className="w-full h-10 rounded-md border border-border/50 bg-background px-3 text-sm font-mono"
+              />
+            </div>
+
+            <div className="space-y-2">
+              {paySettings?.binance_enabled && (
+                <Button variant="hero" className="w-full" onClick={() => requestTopup()}>
+                  Pay with Binance (USDT/Crypto)
+                </Button>
+              )}
+              {paySettings?.cashfree_enabled && (
+                <Button variant="hero" className="w-full" onClick={() => requestCashfreeTopup()}>
+                  Pay with Cashfree (UPI / Cards / NetBanking) — ₹{(Number(topupAmount || 0) * (paySettings.cashfree_usd_to_inr || 85)).toFixed(0)}
+                </Button>
+              )}
+              {!paySettings?.binance_enabled && !paySettings?.cashfree_enabled && (
+                <p className="text-xs text-muted-foreground text-center">No payment methods enabled — please contact admin.</p>
+              )}
+            </div>
+
             {paySettings?.ask_admin_enabled !== false && (
               <Button variant="neon" className="w-full" onClick={askAdmin}>
                 Need help with payment? Contact admin
