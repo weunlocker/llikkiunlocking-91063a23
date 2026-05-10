@@ -349,6 +349,10 @@ function AdminServices() {
     return true;
   }), [services, q, fGroup, fSvcId]);
 
+  useEffect(() => { setPage(1); }, [q, fGroup, fSvcId, pageSize]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageItems = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
+
   const groupOptions = useMemo(() => {
     const set = new Set<string>();
     for (const s of services) if (s.category) set.add(s.category);
