@@ -533,7 +533,10 @@ function AdminServices() {
                   <td className="px-5 py-3 font-mono font-semibold text-primary">{s.service_code ?? "—"}</td>
                   <td className="px-5 py-3 font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => setEditing(s)}>{s.name}</td>
                   <td className="px-5 py-3"><span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">{s.category}</span></td>
-                  <td className="px-5 py-3 font-mono">${Number(s.price).toFixed(2)}</td>
+                  <td className="px-3 py-3 font-mono text-right">${Number(s.price).toFixed(2)}</td>
+                  <td className="px-3 py-3 font-mono text-right text-slate-300">${(Number(s.price) * 0.90).toFixed(2)}</td>
+                  <td className="px-3 py-3 font-mono text-right text-yellow-400">${(Number(s.price) * 0.70).toFixed(2)}</td>
+                  <td className="px-3 py-3 font-mono text-right text-cyan-300">${(Number(s.price) * 0.50).toFixed(2)}</td>
                   <td className="px-5 py-3 text-muted-foreground text-xs">{s.delivery_time}</td>
                   <td className="px-5 py-3 text-xs text-muted-foreground truncate max-w-[200px]">
                     {s.supplier_id
