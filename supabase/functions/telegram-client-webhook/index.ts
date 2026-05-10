@@ -118,7 +118,7 @@ async function handleMessage(supabase: any, token: string, msg: any) {
 
   // Cancel always works
   if (text === BTN.cancel || text.toLowerCase() === "/cancel") {
-    state.delete(chatId);
+    await clearState(supabase, chatId);
     return sendWithMenu(token, chatId, "Cancelled.");
   }
 
@@ -129,12 +129,12 @@ async function handleMessage(supabase: any, token: string, msg: any) {
   }
 
   // Stateful flows
-  const cur = state.get(chatId) ?? { kind: "idle" };
+  const cur = await getState(supabase, chatId);
   if (cur.kind === "await_imei") {
     if (!/^[A-Za-z0-9]{8,20}$/.test(text)) {
       return sendWithCancel(token, chatId, "Invalid IMEI. Send 8–20 alphanumeric characters, or tap Cancel.");
     }
-    state.delete(chatId);
+    await clearState(supabase, chatId);
     await sendMessage(token, chatId, "Order placed");
     try {
       const result = await executeCheck({ userId: user.id, serviceId: cur.serviceId, imei: text, source: "telegram" as any });
@@ -152,7 +152,7 @@ async function handleMessage(supabase: any, token: string, msg: any) {
     }
   }
   if (cur.kind === "await_status_order") {
-    state.delete(chatId);
+    await clearState(supabase, chatId);
     return showStatus(supabase, token, chatId, user.id, text);
   }
 
@@ -167,7 +167,7 @@ async function handleMessage(supabase: any, token: string, msg: any) {
     return showServiceList(supabase, token, chatId, 0);
   }
   if (text === BTN.status || text === "/status") {
-    state.set(chatId, { kind: "await_status_order" });
+    await setState(supabase, chatId, { kind: "await_status_order" });
     return sendWithCancel(token, chatId, "Send the Order ID to check status.");
   }
   if (text === BTN.help || text === "/help") {
@@ -254,7 +254,7 @@ async function handleCallback(supabase: any, token: string, cb: any) {
     const serviceId = data.slice(4);
     const { data: svc } = await supabase.from("services").select("name").eq("id", serviceId).maybeSingle();
     const serviceName = svc?.name ?? "Service";
-    state.set(chatId, { kind: "await_imei", serviceId, serviceName });
+    await setState(supabase, chatId, { kind: "await_imei", serviceId, serviceName });
     return sendWithCancel(token, chatId, `${escapeHtml(serviceName)}\nSend IMEI`);
   }
 }
