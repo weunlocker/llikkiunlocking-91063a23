@@ -37,6 +37,10 @@ type BinanceDeposit = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "").trim();
+    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    if (token !== SERVICE_KEY) return json(401, { error: "Unauthorized" });
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -128,7 +132,7 @@ Deno.serve(async (req) => {
 
     await admin.from("payment_settings").update({ binance_last_polled_at: new Date().toISOString() }).eq("id", 1);
 
-    return json(200, { ok: true, scanned: deposits.length, matched: matched.length, details: matched });
+    return json(200, { ok: true, scanned: deposits.length, matched: matched.length });
   } catch (e) {
     console.error("binance-poll-deposits error:", e);
     return json(500, { error: e instanceof Error ? e.message : "Server error" });

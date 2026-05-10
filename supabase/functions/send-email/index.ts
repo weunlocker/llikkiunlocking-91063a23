@@ -45,17 +45,47 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   let body: Body | null = null;
   try {
+    // Auth gate: require service_role JWT or admin user JWT
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "").trim();
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
+
+    let isAdmin = false;
+    let isService = false;
+    if (token === SERVICE_KEY) {
+      isService = true;
+    } else {
+      const { data: userData } = await supabase.auth.getUser(token);
+      if (userData?.user) {
+        const { data: roles } = await supabase
+          .from("user_roles").select("role").eq("user_id", userData.user.id).eq("role", "admin");
+        if (roles && roles.length > 0) isAdmin = true;
+      }
+    }
+    if (!isService && !isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     body = (await req.json()) as Body;
     if (!body?.event || !body?.to) {
       return new Response(JSON.stringify({ error: "event + to required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    // Non-admin/non-service callers cannot override templates (defense in depth)
+    if (!isService && !isAdmin) {
+      body.override_html = undefined;
+      body.override_subject = undefined;
+    }
 
     const { data: cfg, error } = await supabase
       .from("email_settings").select("*").eq("id", 1).maybeSingle();
