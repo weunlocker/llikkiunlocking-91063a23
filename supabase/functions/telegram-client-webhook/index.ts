@@ -3,13 +3,26 @@
 import { executeCheck } from "../_shared/check.ts";
 import { deriveSecret, escapeHtml, getBotConfig, makeServiceClient, sendMessage, tgApi } from "../_shared/tg.ts";
 
-// Per-chat conversation state.
+// Per-chat conversation state (persisted in DB so it survives across edge function instances).
 type State =
   | { kind: "idle" }
   | { kind: "await_imei"; serviceId: string; serviceName: string }
   | { kind: "await_status_order" };
-const state = new Map<string, State>();
 const PAGE = 8;
+
+async function getState(supabase: any, chatId: string): Promise<State> {
+  const { data } = await supabase.from("telegram_chat_state")
+    .select("state").eq("chat_id", chatId).maybeSingle();
+  return (data?.state as State) ?? { kind: "idle" };
+}
+async function setState(supabase: any, chatId: string, s: State) {
+  await supabase.from("telegram_chat_state").upsert({
+    chat_id: chatId, bot_kind: "client", state: s, updated_at: new Date().toISOString(),
+  }, { onConflict: "chat_id" });
+}
+async function clearState(supabase: any, chatId: string) {
+  await supabase.from("telegram_chat_state").delete().eq("chat_id", chatId);
+}
 
 // Button labels (used both for keyboard render and incoming text routing).
 const BTN = {
