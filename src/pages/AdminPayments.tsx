@@ -75,6 +75,14 @@ export default function AdminPayments() {
           topup_amounts: Array.isArray(data.topup_amounts) ? (data.topup_amounts as number[]) : [5, 10, 20, 30],
           ask_admin_enabled: !!data.ask_admin_enabled,
           order_expiry_minutes: Number(data.order_expiry_minutes ?? 30),
+          cashfree_enabled: !!(data as any).cashfree_enabled,
+          cashfree_env: ((data as any).cashfree_env === "production" ? "production" : "sandbox"),
+          cashfree_min_amount: Number((data as any).cashfree_min_amount ?? 1),
+          cashfree_usd_to_inr: Number((data as any).cashfree_usd_to_inr ?? 85),
+          cashfree_sandbox_app_id: (data as any).cashfree_sandbox_app_id ?? "",
+          cashfree_sandbox_secret_key: (data as any).cashfree_sandbox_secret_key ?? "",
+          cashfree_prod_app_id: (data as any).cashfree_prod_app_id ?? "",
+          cashfree_prod_secret_key: (data as any).cashfree_prod_secret_key ?? "",
         });
       }
       setLoading(false);
