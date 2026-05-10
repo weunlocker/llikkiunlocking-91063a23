@@ -45,21 +45,10 @@ Deno.serve(async (req) => {
         allowed_updates: ["message", "callback_query"],
         drop_pending_updates: true,
       });
-      if (kind === "admin") {
-        const cmds = [
-          { command: "start", description: "Show admin menu" },
-          { command: "stats", description: "Today's stats" },
-          { command: "clients", description: "Recent clients" },
-          { command: "orders", description: "Recent orders" },
-          { command: "balance", description: "Lookup user balance: /balance <email>" },
-        ];
-        await tgApi(tok, "setMyCommands", { commands: cmds });
-      } else {
-        // Client bot: hide the left-side menu/commands icon — buttons only.
-        await tgApi(tok, "deleteMyCommands", {});
-        await tgApi(tok, "deleteMyCommands", { scope: { type: "all_private_chats" } });
-        await tgApi(tok, "setChatMenuButton", { menu_button: { type: "default" } });
-      }
+      // Hide left-side menu/commands icon on both bots — buttons only.
+      await tgApi(tok, "deleteMyCommands", {});
+      await tgApi(tok, "deleteMyCommands", { scope: { type: "all_private_chats" } });
+      await tgApi(tok, "setChatMenuButton", { menu_button: { type: "default" } });
       results[kind] = wh.ok ? { ok: true, url } : { ok: false, error: wh.data };
     }
 
