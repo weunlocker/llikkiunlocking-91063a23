@@ -851,6 +851,8 @@ function AdminOrders() {
   const [fDateTo, setFDateTo] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [view, setView] = useState<OrderRow | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const load = async () => {
     const [o, profs, svcs] = await Promise.all([
