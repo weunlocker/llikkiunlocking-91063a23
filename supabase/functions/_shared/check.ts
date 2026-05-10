@@ -133,6 +133,10 @@ async function notifyUser(supabase: ReturnType<typeof makeServiceClient>, userId
     await supabase.functions.invoke("telegram-notify", {
       body: { user_id: userId, subject, body },
     });
+    // Also broadcast to admin bot
+    await supabase.functions.invoke("telegram-notify", {
+      body: { broadcast: "admins", subject, body: `[user:${userId}]\n${body}` },
+    });
   } catch (e) {
     console.error("notifyUser failed", e);
   }
