@@ -189,11 +189,7 @@ export default function AIChatWidget() {
           aria-label="Chat with AI assistant"
           className="fixed right-3 bottom-3 sm:right-4 sm:bottom-4 z-40 w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-xl bg-gradient-to-br from-primary to-purple-600 text-primary-foreground flex items-center justify-center hover:scale-110 transition-transform"
         >
-          {logoUrl ? (
-            <img src={logoUrl} alt={brand} className="w-8 h-8 rounded-full object-cover" />
-          ) : (
-            <span className="text-sm font-extrabold tracking-tight">{brand.charAt(0)}</span>
-          )}
+          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
           <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] rounded-full px-1.5 py-0.5 font-bold">AI</span>
         </button>
       )}
@@ -203,13 +199,9 @@ export default function AIChatWidget() {
         <div className="fixed right-2 left-2 sm:left-auto sm:right-4 bottom-3 sm:bottom-4 z-50 w-auto sm:w-[380px] max-h-[80vh] flex flex-col rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-2xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary/20 to-purple-600/20 border-b border-border/60">
             <div className="flex items-center gap-2">
-              {logoUrl ? (
-                <img src={logoUrl} alt={brand} className="w-9 h-9 rounded-full object-cover ring-2 ring-primary/40" />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-primary-foreground" />
-                </div>
-              )}
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-primary-foreground" />
+              </div>
               <div>
                 <div className="text-sm font-semibold leading-tight">{brand} Assistant</div>
                 <div className="text-[11px] text-muted-foreground flex items-center gap-1">
