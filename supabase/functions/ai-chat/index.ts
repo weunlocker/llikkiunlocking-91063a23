@@ -110,6 +110,45 @@ async function buildLiveContext(supabase: any, userId: string | null, lastUserTe
     lines.push(parts.join(" | "));
   }
 
+  // Payment / top-up / deposit instructions
+  if (/pay|payment|topup|top.?up|deposit|recharge|fund|wallet|add.*balance|add.*money|binance|cashfree|upi|usdt|crypto/i.test(lastUserText)) {
+    const { data: ps } = await supabase
+      .from("payment_settings")
+      .select("binance_enabled, binance_pay_id, binance_qr_url, binance_coins, binance_min_amount, cashfree_enabled, cashfree_min_amount, cashfree_usd_to_inr, ask_admin_enabled, topup_amounts")
+      .eq("id", 1).maybeSingle();
+    if (ps) {
+      const methods: string[] = [];
+      if (ps.binance_enabled) {
+        const coins = Array.isArray(ps.binance_coins) ? ps.binance_coins.join(", ") : "USDT";
+        methods.push(
+          `BINANCE PAY (crypto):
+   • Open Binance app → Pay → Send → enter Pay ID: ${ps.binance_pay_id ?? "(contact admin)"}
+   • Supported coins: ${coins}
+   • Minimum deposit: $${ps.binance_min_amount}
+   • After paying, click "I have paid" on the Wallet → Top-up page; balance is credited automatically once confirmed${ps.binance_qr_url ? "\n   • QR code is also shown on the top-up page" : ""}`,
+        );
+      }
+      if (ps.cashfree_enabled) {
+        methods.push(
+          `CASHFREE (UPI / Cards / NetBanking — India):
+   • Go to Wallet → Top-up, choose Cashfree
+   • Minimum deposit: $${ps.cashfree_min_amount} (charged in INR at ~₹${ps.cashfree_usd_to_inr}/USD)
+   • Pay via UPI, debit/credit card, or net banking
+   • Balance is credited automatically after payment success`,
+        );
+      }
+      if (ps.ask_admin_enabled) {
+        methods.push(`ASK ADMIN: contact support on WhatsApp / Telegram for manual top-up.`);
+      }
+      const amounts = Array.isArray(ps.topup_amounts) ? ps.topup_amounts.join(", $") : "";
+      lines.push(
+        `Payment methods available:\n${methods.length ? methods.map((m, i) => `${i + 1}. ${m}`).join("\n") : "Currently no automatic methods are enabled — please contact support."}` +
+        (amounts ? `\nQuick top-up amounts: $${amounts}` : "") +
+        `\nTop-up page: /dashboard (Wallet section).`,
+      );
+    }
+  }
+
   // Service / pricing query — quick overview if user mentions pricing or a service keyword.
   if (/price|cost|how much|pricing|service|delivery|time|unlock|imei|icloud|frp|carrier/.test(lower)) {
     const { data: services } = await supabase
