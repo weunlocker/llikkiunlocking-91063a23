@@ -613,6 +613,15 @@ function AdminServices() {
                 <div><Label>Price (USD)</Label><Input type="number" step="0.01" value={editing.price ?? 0} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} /></div>
                 <div><Label>Delivery Time</Label><Input value={editing.delivery_time ?? ""} onChange={(e) => setEditing({ ...editing, delivery_time: e.target.value })} maxLength={50} /></div>
               </div>
+              <div className="rounded-lg border border-border/60 bg-secondary/20 p-3">
+                <div className="text-xs text-muted-foreground mb-2">Auto-calculated client group prices</div>
+                <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                  <div className="rounded bg-background/40 py-2"><div className="text-muted-foreground">Default</div><div className="font-mono font-bold">${Number(editing.price ?? 0).toFixed(2)}</div></div>
+                  <div className="rounded bg-background/40 py-2"><div className="text-slate-300">Silver −10%</div><div className="font-mono font-bold text-slate-200">${(Number(editing.price ?? 0) * 0.90).toFixed(2)}</div></div>
+                  <div className="rounded bg-background/40 py-2"><div className="text-yellow-400">Gold −30%</div><div className="font-mono font-bold text-yellow-300">${(Number(editing.price ?? 0) * 0.70).toFixed(2)}</div></div>
+                  <div className="rounded bg-background/40 py-2"><div className="text-cyan-300">Diamond −50%</div><div className="font-mono font-bold text-cyan-200">${(Number(editing.price ?? 0) * 0.50).toFixed(2)}</div></div>
+                </div>
+              </div>
               {/* Supplier picker */}
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
                 <Label className="text-sm font-bold text-primary">Supplier (optional)</Label>
