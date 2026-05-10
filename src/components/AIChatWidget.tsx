@@ -127,12 +127,15 @@ export default function AIChatWidget() {
     };
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const bearer = session?.access_token || PUBLISHABLE_KEY;
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${bearer}`,
+          apikey: PUBLISHABLE_KEY,
         },
         body: JSON.stringify({ messages: next }),
       });
