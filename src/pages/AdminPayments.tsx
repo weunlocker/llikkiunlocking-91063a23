@@ -21,6 +21,15 @@ type Settings = {
   topup_amounts: number[];
   ask_admin_enabled: boolean;
   order_expiry_minutes: number;
+  // Cashfree
+  cashfree_enabled: boolean;
+  cashfree_env: "sandbox" | "production";
+  cashfree_min_amount: number;
+  cashfree_usd_to_inr: number;
+  cashfree_sandbox_app_id: string | null;
+  cashfree_sandbox_secret_key: string | null;
+  cashfree_prod_app_id: string | null;
+  cashfree_prod_secret_key: string | null;
 };
 
 const DEFAULT: Settings = {
@@ -28,6 +37,9 @@ const DEFAULT: Settings = {
   binance_pay_id: "", binance_qr_url: "", binance_coins: ["USDT"],
   binance_min_amount: 1, binance_poll_enabled: true, binance_last_polled_at: null,
   topup_amounts: [5, 10, 20, 30], ask_admin_enabled: true, order_expiry_minutes: 30,
+  cashfree_enabled: false, cashfree_env: "sandbox", cashfree_min_amount: 1, cashfree_usd_to_inr: 85,
+  cashfree_sandbox_app_id: "", cashfree_sandbox_secret_key: "",
+  cashfree_prod_app_id: "", cashfree_prod_secret_key: "",
 };
 
 const PLACEHOLDERS = [
