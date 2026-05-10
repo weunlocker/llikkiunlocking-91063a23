@@ -6,6 +6,7 @@ import { ReactNode, useState } from "react";
 import defaultLogo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useTheme } from "@/hooks/useTheme";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, profile, isAdmin, signOut } = useAuth();
