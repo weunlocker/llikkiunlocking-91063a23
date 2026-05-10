@@ -161,6 +161,17 @@ export default function Dashboard() {
     setTopupOpen(false);
   };
 
+  const requestCashfreeTopup = async (overrideAmt?: number) => {
+    const amt = overrideAmt ?? Number(topupAmount);
+    if (!amt || amt < 1 || amt > 10000) { toast.error("Invalid amount"); return; }
+    if (!paySettings?.cashfree_enabled) { toast.error("Cashfree not available"); return; }
+    const { data, error } = await supabase.functions.invoke("cashfree-create-order", { body: { amount_usd: amt } });
+    if (error || !(data as any)?.ok) { toast.error(error?.message || (data as any)?.error || "Failed to create Cashfree order"); return; }
+    setTopupOpen(false);
+    // Redirect to Cashfree hosted checkout
+    window.location.href = (data as any).checkout_url;
+  };
+
   // Poll the pending payment_orders row every 5s while the dialog is open
   useEffect(() => {
     if (!pay) return;
