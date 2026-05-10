@@ -885,6 +885,10 @@ function AdminOrders() {
     });
   }, [orders, filter, fOrderId, fImei, fUser, fService, fDateFrom, fDateTo]);
 
+  useEffect(() => { setPage(1); }, [filter, fOrderId, fImei, fUser, fService, fDateFrom, fDateTo, pageSize]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageItems = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
+
   const userOptions = useMemo(() => {
     const set = new Set<string>();
     for (const o of orders) if (o.profiles?.email) set.add(o.profiles.email);
