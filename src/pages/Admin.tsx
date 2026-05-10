@@ -491,7 +491,7 @@ function AdminServices() {
               <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-5 py-3">Price</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
             </thead>
             <tbody>
-              {filtered.map((s) => (
+              {pageItems.map((s) => (
                 <tr
                   key={s.id}
                   draggable
