@@ -19,8 +19,8 @@ Deno.serve(async (req) => {
     const supa = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: auth } },
     });
-    const { data: claims } = await supa.auth.getClaims(token);
-    const uid = claims?.claims?.sub;
+    const { data: userData } = await supa.auth.getUser(token);
+    const uid = userData?.user?.id;
     if (!uid) return json(401, { error: "Unauthorized" });
 
     const admin = makeServiceClient();
