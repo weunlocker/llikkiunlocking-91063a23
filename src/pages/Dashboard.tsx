@@ -504,6 +504,7 @@ export default function Dashboard() {
 
           <TabsContent value="settings" className="mt-5">
             <div className="glass rounded-2xl p-6 space-y-6 max-w-2xl">
+              <TelegramPairCard />
               <div>
                 <h3 className="font-bold text-lg mb-1 flex items-center gap-2"><Send className="w-5 h-5 text-primary" /> Telegram Notifications</h3>
                 <p className="text-sm text-muted-foreground">Get instant order results and balance alerts on Telegram.</p>
