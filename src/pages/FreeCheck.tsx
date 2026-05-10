@@ -56,9 +56,8 @@ export default function FreeCheck() {
     document.title = "Free IMEI Check — Model, FMI & Sim Lock";
     (async () => {
       const { data } = await supabase
-        .from("services")
+        .from("services_public")
         .select("id,name,description,delivery_time,result_font")
-        .eq("active", true)
         .eq("is_free", true)
         .order("name");
       setServices((data ?? []) as FreeService[]);
