@@ -549,6 +549,7 @@ export async function executeCheckAsync(opts: {
   const placed = await placeOrder(opts);
   if (!placed.ok) return { status: placed.status, body: placed.body };
   const ctx = placed.ctx;
+  detach(notifyAdminOrderPlaced(ctx.supabase, ctx));
   const background = runUpstream(ctx).catch((e) => console.error("runUpstream failed", e));
   return {
     status: 202,
