@@ -572,6 +572,7 @@ export async function executeCheck(opts: {
   const placed = await placeOrder(opts);
   if (!placed.ok) return { ok: false, status: placed.status, body: placed.body };
   const ctx = placed.ctx;
+  detach(notifyAdminOrderPlaced(ctx.supabase, ctx));
   await runUpstream(ctx);
 
   const { data: finalOrder } = await ctx.supabase.from("orders").select("status, result, error_message, supplier_reference").eq("id", ctx.order.id).maybeSingle();
