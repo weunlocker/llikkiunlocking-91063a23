@@ -42,7 +42,7 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const { data } = await supabase.from("site_settings").select("*").eq("id", 1).maybeSingle();
+    const { data } = await supabase.from("site_settings_public").select("*").eq("id", 1).maybeSingle();
     if (data) setSettings({ ...DEFAULTS, ...(data as Partial<SiteSettings>) });
     setLoading(false);
   }, []);
