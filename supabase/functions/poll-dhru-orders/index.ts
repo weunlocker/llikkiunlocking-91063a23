@@ -62,7 +62,16 @@ function escapeXml(value: string): string {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+
+  // Restrict to service-role callers (pg_cron / internal). Reject all others.
+  const auth = req.headers.get("Authorization") || "";
+  const token = auth.replace(/^Bearer\s+/i, "");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  if (!token || token !== serviceKey) {
+    return json(401, { error: "Unauthorized" });
+  }
+
+  const sb = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey, { auth: { persistSession: false } });
 
   // Step 1: place any pending Dhru orders that don't yet have a supplier_reference
   const { data: toPlace } = await sb
