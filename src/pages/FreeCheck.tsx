@@ -147,6 +147,12 @@ export default function FreeCheck() {
 
   return (
     <Layout>
+      <Seo
+        title="Free IMEI Check Online — No Signup | LIKKI UNLOCKING"
+        description="Run a free IMEI check online with no registration. Verify your phone's model, warranty, carrier and blacklist status instantly. 100% free promotional service."
+        keywords="free IMEI check, free IMEI lookup, IMEI checker, free phone check, IMEI verify online"
+        path="/free-check"
+      />
       <section className="container py-10 md:py-16">
         <header className="text-center mb-8 md:mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4">
