@@ -69,7 +69,7 @@ export default function FreeCheck() {
     let cancelled = false;
     (async () => {
       const { data } = await supabase
-        .from("site_settings")
+        .from("site_settings_public")
         .select("turnstile_site_key, turnstile_enabled")
         .eq("id", 1)
         .maybeSingle();
