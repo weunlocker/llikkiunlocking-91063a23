@@ -1982,6 +1982,89 @@ function AdminTelegramBot() {
 }
 
 
+/* ---------- Groups ---------- */
+const GROUPS_META: { key: string; label: string; discount: number; tone: string }[] = [
+  { key: "standard", label: "Standard (Default)", discount: 0, tone: "text-foreground" },
+  { key: "silver", label: "Silver", discount: 0.10, tone: "text-slate-300" },
+  { key: "gold", label: "Gold", discount: 0.30, tone: "text-yellow-400" },
+  { key: "diamond", label: "Diamond", discount: 0.50, tone: "text-cyan-300" },
+];
+
+function AdminGroups() {
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [users, setUsers] = useState<{ id: string; email: string | null; display_name: string | null; user_group: string | null; balance: number }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>("all");
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("profiles").select("id,email,display_name,user_group,balance").order("created_at", { ascending: false }).limit(1000);
+    const list = (data ?? []) as typeof users;
+    setUsers(list);
+    const c: Record<string, number> = {};
+    for (const u of list) { const k = (u.user_group ?? "standard").toLowerCase(); c[k] = (c[k] ?? 0) + 1; }
+    setCounts(c);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const setUserGroup = async (uid: string, group: string) => {
+    const { error } = await supabase.from("profiles").update({ user_group: group }).eq("id", uid);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Group updated"); load();
+  };
+
+  const visible = users.filter((u) => filter === "all" || (u.user_group ?? "standard").toLowerCase() === filter);
+
+  return (
+    <AdminLayout title="Client Groups" subtitle="Pricing tiers — discounts apply automatically to base service prices">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        {GROUPS_META.map((g) => (
+          <button key={g.key} type="button" onClick={() => setFilter(g.key)}
+            className={`glass rounded-xl p-4 text-left transition-all hover:border-primary/40 ${filter === g.key ? "ring-2 ring-primary" : ""}`}>
+            <div className={`text-xs font-bold uppercase tracking-wider ${g.tone}`}>{g.label}</div>
+            <div className="text-2xl font-bold mt-1">{counts[g.key] ?? 0} <span className="text-xs text-muted-foreground font-normal">users</span></div>
+            <div className="text-xs text-muted-foreground mt-1">{g.discount > 0 ? `−${g.discount * 100}% on every service` : "Full price"}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm text-muted-foreground">{visible.length} user{visible.length === 1 ? "" : "s"}{filter !== "all" ? ` in ${filter}` : ""}</div>
+        {filter !== "all" && <Button size="sm" variant="ghost" onClick={() => setFilter("all")}>Show all</Button>}
+      </div>
+
+      {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> : (
+        <div className="glass rounded-2xl overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
+              <tr><th className="px-5 py-3">User</th><th className="px-5 py-3">Email</th><th className="px-5 py-3">Balance</th><th className="px-5 py-3">Group</th></tr>
+            </thead>
+            <tbody>
+              {visible.map((u) => (
+                <tr key={u.id} className="border-t border-border/50 hover:bg-secondary/20">
+                  <td className="px-5 py-2.5 font-medium">{u.display_name || "—"}</td>
+                  <td className="px-5 py-2.5 text-muted-foreground">{u.email}</td>
+                  <td className="px-5 py-2.5 font-mono">${Number(u.balance).toFixed(2)}</td>
+                  <td className="px-5 py-2.5">
+                    <Select value={(u.user_group ?? "standard").toLowerCase()} onValueChange={(v) => setUserGroup(u.id, v)}>
+                      <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {GROUPS_META.map((g) => <SelectItem key={g.key} value={g.key}>{g.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                </tr>
+              ))}
+              {visible.length === 0 && <tr><td colSpan={4} className="px-5 py-10 text-center text-muted-foreground">No users in this group.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </AdminLayout>
+  );
+}
+
 /* ---------- Router ---------- */
 import AdminEmailSettings from "./AdminEmailSettings";
 import AdminPayments from "./AdminPayments";
@@ -1992,6 +2075,7 @@ export default function Admin() {
       <Route index element={<AdminDashboard />} />
       <Route path="payments" element={<AdminPayments />} />
       <Route path="users" element={<AdminUsers />} />
+      <Route path="groups" element={<AdminGroups />} />
       <Route path="suppliers" element={<AdminSuppliers />} />
       <Route path="categories" element={<AdminCategories />} />
       <Route path="services" element={<AdminServices />} />
