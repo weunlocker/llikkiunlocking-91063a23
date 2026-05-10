@@ -1,7 +1,7 @@
 import Layout from "@/components/Layout";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, DollarSign } from "lucide-react";
+import { Clock, DollarSign, Tag } from "lucide-react";
 
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null };
 
@@ -13,12 +13,35 @@ export default function Pricing() {
 
   return (
     <Layout>
-      <div className="container py-12">
-        <div className="text-center mb-12 animate-fade-up">
-          <h1 className="text-4xl md:text-5xl font-bold mb-3">Pricing & <span className="glow-text">Delivery</span></h1>
-          <p className="text-muted-foreground text-lg">Pay only for what you check. Top up your wallet anytime.</p>
+      <div className="container py-8 md:py-12 px-4">
+        <div className="text-center mb-8 md:mb-12 animate-fade-up">
+          <h1 className="text-3xl md:text-5xl font-bold mb-3">Pricing & <span className="glow-text">Delivery</span></h1>
+          <p className="text-muted-foreground text-sm md:text-lg">Pay only for what you check. Top up your wallet anytime.</p>
         </div>
-        <div className="glass rounded-2xl overflow-hidden">
+
+        {/* Mobile: cards */}
+        <div className="grid gap-3 md:hidden">
+          {services.map((s) => (
+            <div key={s.id} className="glass rounded-xl p-4">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-base leading-tight break-words">{s.name}</div>
+                  {s.category && <div className="text-[10px] text-muted-foreground font-mono uppercase mt-0.5">{s.category}</div>}
+                </div>
+                <div className="font-mono font-bold text-primary text-lg whitespace-nowrap">${Number(s.price).toFixed(2)}</div>
+              </div>
+              {s.description && <p className="text-xs text-muted-foreground mb-2 line-clamp-3">{s.description}</p>}
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3.5 h-3.5" />
+                <span>{s.delivery_time}</span>
+              </div>
+            </div>
+          ))}
+          {services.length === 0 && <div className="glass rounded-xl p-6 text-center text-muted-foreground text-sm">No services available.</div>}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="glass rounded-2xl overflow-hidden hidden md:block">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40">
               <tr className="text-left">
