@@ -61,8 +61,13 @@ export default function Services() {
                     </div>
                     <h3 className="font-bold mb-2 hover:text-primary transition-colors">{s.name}</h3>
                     <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2">{s.description}</p>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-xl sm:text-2xl font-bold font-mono">${Number(s.price).toFixed(2)}</div>
+                    <div className="grid grid-cols-4 gap-1 mb-3 rounded-lg border border-border/40 bg-background/40 p-2 text-center">
+                      <div><div className="text-[9px] uppercase tracking-wider text-muted-foreground">Default</div><div className="font-mono font-bold text-xs">${Number(s.price).toFixed(2)}</div></div>
+                      <div><div className="text-[9px] uppercase tracking-wider text-slate-300">Silver</div><div className="font-mono font-bold text-xs text-slate-200">${(Number(s.price) * 0.90).toFixed(2)}</div></div>
+                      <div><div className="text-[9px] uppercase tracking-wider text-yellow-400">Gold</div><div className="font-mono font-bold text-xs text-yellow-300">${(Number(s.price) * 0.70).toFixed(2)}</div></div>
+                      <div><div className="text-[9px] uppercase tracking-wider text-cyan-300">Diamond</div><div className="font-mono font-bold text-xs text-cyan-200">${(Number(s.price) * 0.50).toFixed(2)}</div></div>
+                    </div>
+                    <div className="flex items-center justify-end">
                       <Button variant="neon" size="sm" asChild={false} onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
                     </div>
                   </button>

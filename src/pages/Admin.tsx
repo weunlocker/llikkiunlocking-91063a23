@@ -515,7 +515,7 @@ function AdminServices() {
         <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
-              <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-3 py-3 text-right">Default</th><th className="px-3 py-3 text-right text-slate-300">Silver −10%</th><th className="px-3 py-3 text-right text-yellow-400">Gold −30%</th><th className="px-3 py-3 text-right text-cyan-300">Diamond −50%</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
+              <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-3 py-3 text-right">Default</th><th className="px-3 py-3 text-right text-slate-300">Silver</th><th className="px-3 py-3 text-right text-yellow-400">Gold</th><th className="px-3 py-3 text-right text-cyan-300">Diamond</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
             </thead>
             <tbody>
               {pageItems.map((s) => (
@@ -617,9 +617,9 @@ function AdminServices() {
                 <div className="text-xs text-muted-foreground mb-2">Auto-calculated client group prices</div>
                 <div className="grid grid-cols-4 gap-2 text-center text-xs">
                   <div className="rounded bg-background/40 py-2"><div className="text-muted-foreground">Default</div><div className="font-mono font-bold">${Number(editing.price ?? 0).toFixed(2)}</div></div>
-                  <div className="rounded bg-background/40 py-2"><div className="text-slate-300">Silver −10%</div><div className="font-mono font-bold text-slate-200">${(Number(editing.price ?? 0) * 0.90).toFixed(2)}</div></div>
-                  <div className="rounded bg-background/40 py-2"><div className="text-yellow-400">Gold −30%</div><div className="font-mono font-bold text-yellow-300">${(Number(editing.price ?? 0) * 0.70).toFixed(2)}</div></div>
-                  <div className="rounded bg-background/40 py-2"><div className="text-cyan-300">Diamond −50%</div><div className="font-mono font-bold text-cyan-200">${(Number(editing.price ?? 0) * 0.50).toFixed(2)}</div></div>
+                  <div className="rounded bg-background/40 py-2"><div className="text-slate-300">Silver</div><div className="font-mono font-bold text-slate-200">${(Number(editing.price ?? 0) * 0.90).toFixed(2)}</div></div>
+                  <div className="rounded bg-background/40 py-2"><div className="text-yellow-400">Gold</div><div className="font-mono font-bold text-yellow-300">${(Number(editing.price ?? 0) * 0.70).toFixed(2)}</div></div>
+                  <div className="rounded bg-background/40 py-2"><div className="text-cyan-300">Diamond</div><div className="font-mono font-bold text-cyan-200">${(Number(editing.price ?? 0) * 0.50).toFixed(2)}</div></div>
                 </div>
               </div>
               {/* Supplier picker */}
@@ -2017,14 +2017,14 @@ function AdminGroups() {
   const visible = users.filter((u) => filter === "all" || (u.user_group ?? "standard").toLowerCase() === filter);
 
   return (
-    <AdminLayout title="Client Groups" subtitle="Pricing tiers — discounts apply automatically to base service prices">
+    <AdminLayout title="Client Groups" subtitle="Pricing tiers applied automatically to base service prices">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {GROUPS_META.map((g) => (
           <button key={g.key} type="button" onClick={() => setFilter(g.key)}
             className={`glass rounded-xl p-4 text-left transition-all hover:border-primary/40 ${filter === g.key ? "ring-2 ring-primary" : ""}`}>
             <div className={`text-xs font-bold uppercase tracking-wider ${g.tone}`}>{g.label}</div>
             <div className="text-2xl font-bold mt-1">{counts[g.key] ?? 0} <span className="text-xs text-muted-foreground font-normal">users</span></div>
-            <div className="text-xs text-muted-foreground mt-1">{g.discount > 0 ? `−${g.discount * 100}% on every service` : "Full price"}</div>
+            <div className="text-xs text-muted-foreground mt-1">{g.discount > 0 ? "Discounted tier" : "Full price"}</div>
           </button>
         ))}
       </div>
