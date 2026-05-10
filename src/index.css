@@ -181,3 +181,15 @@
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Hide Google Translate top banner and tooltip */
+.goog-te-banner-frame.skiptranslate,
+.goog-te-gadget,
+iframe.goog-te-banner-frame { display: none !important; }
+body { top: 0 !important; }
+.goog-tooltip, .goog-tooltip:hover, .goog-text-highlight {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+font[style] { background: transparent !important; box-shadow: none !important; }
