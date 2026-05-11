@@ -68,8 +68,10 @@ Deno.serve(async (req) => {
     const eventType = payload.type || payload.event || "";
     const order = payload.data?.order || {};
     const payment = payload.data?.payment || {};
-    const cfOrderId = order.order_id || payment.order_id;
-    if (!cfOrderId) return json(400, { error: "Missing order_id" });
+    const link = payload.data?.link || {};
+    // Support both order webhooks and payment-link webhooks. Our merchant_trade_no equals link_id.
+    const cfOrderId = link.link_id || order.order_id || payment.order_id;
+    if (!cfOrderId) return json(400, { error: "Missing order_id / link_id" });
 
     // Idempotency: find our payment_orders row
     const { data: po } = await admin
@@ -78,7 +80,10 @@ Deno.serve(async (req) => {
 
     if (po.status === "paid") return json(200, { ok: true, already: true });
 
-    const isSuccess = eventType.includes("PAYMENT_SUCCESS") || payment.payment_status === "SUCCESS";
+    const linkStatus = String(link.link_status || "").toUpperCase();
+    const isSuccess = eventType.includes("PAYMENT_SUCCESS")
+      || payment.payment_status === "SUCCESS"
+      || linkStatus === "PAID";
     if (!isSuccess) {
       // Log non-success events but don't credit
       await admin.from("payment_orders").update({
