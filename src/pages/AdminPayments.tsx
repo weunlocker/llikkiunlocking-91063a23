@@ -21,15 +21,6 @@ type Settings = {
   topup_amounts: number[];
   ask_admin_enabled: boolean;
   order_expiry_minutes: number;
-  // Cashfree
-  cashfree_enabled: boolean;
-  cashfree_env: "sandbox" | "production";
-  cashfree_min_amount: number;
-  cashfree_usd_to_inr: number;
-  cashfree_sandbox_app_id: string | null;
-  cashfree_sandbox_secret_key: string | null;
-  cashfree_prod_app_id: string | null;
-  cashfree_prod_secret_key: string | null;
 };
 
 const DEFAULT: Settings = {
@@ -37,9 +28,6 @@ const DEFAULT: Settings = {
   binance_pay_id: "", binance_qr_url: "", binance_coins: ["USDT"],
   binance_min_amount: 1, binance_poll_enabled: true, binance_last_polled_at: null,
   topup_amounts: [5, 10, 20, 30], ask_admin_enabled: true, order_expiry_minutes: 30,
-  cashfree_enabled: false, cashfree_env: "sandbox", cashfree_min_amount: 1, cashfree_usd_to_inr: 85,
-  cashfree_sandbox_app_id: "", cashfree_sandbox_secret_key: "",
-  cashfree_prod_app_id: "", cashfree_prod_secret_key: "",
 };
 
 const PLACEHOLDERS = [
@@ -75,14 +63,6 @@ export default function AdminPayments() {
           topup_amounts: Array.isArray(data.topup_amounts) ? (data.topup_amounts as number[]) : [5, 10, 20, 30],
           ask_admin_enabled: !!data.ask_admin_enabled,
           order_expiry_minutes: Number(data.order_expiry_minutes ?? 30),
-          cashfree_enabled: !!(data as any).cashfree_enabled,
-          cashfree_env: ((data as any).cashfree_env === "production" ? "production" : "sandbox"),
-          cashfree_min_amount: Number((data as any).cashfree_min_amount ?? 1),
-          cashfree_usd_to_inr: Number((data as any).cashfree_usd_to_inr ?? 85),
-          cashfree_sandbox_app_id: (data as any).cashfree_sandbox_app_id ?? "",
-          cashfree_sandbox_secret_key: (data as any).cashfree_sandbox_secret_key ?? "",
-          cashfree_prod_app_id: (data as any).cashfree_prod_app_id ?? "",
-          cashfree_prod_secret_key: (data as any).cashfree_prod_secret_key ?? "",
         });
       }
       setLoading(false);
@@ -104,14 +84,6 @@ export default function AdminPayments() {
       topup_amounts: s.topup_amounts,
       ask_admin_enabled: s.ask_admin_enabled,
       order_expiry_minutes: s.order_expiry_minutes,
-      cashfree_enabled: s.cashfree_enabled,
-      cashfree_env: s.cashfree_env,
-      cashfree_min_amount: s.cashfree_min_amount,
-      cashfree_usd_to_inr: s.cashfree_usd_to_inr,
-      cashfree_sandbox_app_id: s.cashfree_sandbox_app_id,
-      cashfree_sandbox_secret_key: s.cashfree_sandbox_secret_key,
-      cashfree_prod_app_id: s.cashfree_prod_app_id,
-      cashfree_prod_secret_key: s.cashfree_prod_secret_key,
     } as any);
     setSaving(false);
     if (error) toast.error(error.message); else toast.success("Saved");
