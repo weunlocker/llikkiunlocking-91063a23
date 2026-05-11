@@ -109,8 +109,9 @@ Deno.serve(async (req) => {
     }
 
     // Redirect via our own hosted page that loads Cashfree.js and calls checkout()
-    const supaUrl = Deno.env.get("SUPABASE_URL")!;
-    const checkoutUrl = `${supaUrl}/functions/v1/cashfree-checkout?sid=${encodeURIComponent(paymentSessionId)}&env=${env}`;
+    // Redirect via the app's own /cashfree-redirect page (loads Cashfree.js and triggers checkout)
+    const originBase = (req.headers.get("origin") || req.headers.get("referer") || "").replace(/\/$/, "");
+    const checkoutUrl = `${originBase}/cashfree-redirect?sid=${encodeURIComponent(paymentSessionId)}&env=${env}`;
 
     const expiresAt = new Date(Date.now() + Number(settings.order_expiry_minutes ?? 30) * 60_000).toISOString();
 
