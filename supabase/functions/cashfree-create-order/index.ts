@@ -16,6 +16,17 @@ function json(status: number, body: unknown) {
 }
 
 const Body = z.object({ amount_usd: z.number().min(1).max(10000) });
+const PROD_APP_BASE_URL = "https://www.likkiunlocking.com";
+
+function getRequestBaseUrl(req: Request) {
+  const origin = req.headers.get("origin");
+  if (origin) return origin.replace(/\/$/, "");
+
+  const referer = req.headers.get("referer");
+  if (referer) return new URL(referer).origin;
+
+  return PROD_APP_BASE_URL;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -65,9 +76,8 @@ Deno.serve(async (req) => {
     const orderId = `CF_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
     const cfBase = isProd ? "https://api.cashfree.com/pg" : "https://sandbox.cashfree.com/pg";
 
-    // Build return URL from request origin (where the user clicked Pay)
-    const origin = req.headers.get("origin") || req.headers.get("referer") || "";
-    const returnUrl = `${origin.replace(/\/$/, "")}/dashboard?cf_order={order_id}`;
+    const appBaseUrl = isProd ? PROD_APP_BASE_URL : getRequestBaseUrl(req);
+    const returnUrl = `${appBaseUrl}/dashboard?cf_order={order_id}`;
     const notifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/cashfree-webhook`;
 
     const cfBody = {
@@ -108,10 +118,7 @@ Deno.serve(async (req) => {
       return json(502, { error: "Cashfree did not return payment_session_id", detail: cfData });
     }
 
-    // Redirect via our own hosted page that loads Cashfree.js and calls checkout()
-    // Redirect via the app's own /cashfree-redirect page (loads Cashfree.js and triggers checkout)
-    const originBase = (req.headers.get("origin") || req.headers.get("referer") || "").replace(/\/$/, "");
-    const checkoutUrl = `${originBase}/cashfree-redirect?sid=${encodeURIComponent(paymentSessionId)}&env=${env}`;
+    const checkoutUrl = `${appBaseUrl}/cashfree-redirect?sid=${encodeURIComponent(paymentSessionId)}&env=${env}`;
 
     const expiresAt = new Date(Date.now() + Number(settings.order_expiry_minutes ?? 30) * 60_000).toISOString();
 
