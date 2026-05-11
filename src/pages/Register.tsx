@@ -82,12 +82,13 @@ export default function Register() {
         })
         .eq("id", userId);
 
-      // Fire-and-forget welcome email
-      supabase.functions.invoke("send-email", {
+      // Fire-and-forget LIKKIUNLOCKING welcome email
+      supabase.functions.invoke("send-transactional-email", {
         body: {
-          event: "welcome",
-          to: parsed.data.email,
-          data: { name: parsed.data.displayName },
+          templateName: "welcome",
+          recipientEmail: parsed.data.email,
+          idempotencyKey: `welcome-${userId}`,
+          templateData: { name: parsed.data.displayName },
         },
       }).catch(() => {});
     }
