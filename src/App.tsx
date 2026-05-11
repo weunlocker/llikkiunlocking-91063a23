@@ -44,6 +44,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/admin/*" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
+            <Route path="/cashfree-redirect" element={<CashfreeRedirect />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </ConfirmProvider>
