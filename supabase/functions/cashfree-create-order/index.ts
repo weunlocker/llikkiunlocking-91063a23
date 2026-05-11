@@ -70,29 +70,24 @@ Deno.serve(async (req) => {
     const returnUrl = `${origin.replace(/\/$/, "")}/dashboard?cf_order={order_id}`;
     const notifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/cashfree-webhook`;
 
-    // Use Cashfree Payment Links API — returns a hosted URL we can redirect to directly.
-    const expiryIso = new Date(Date.now() + Number(settings.order_expiry_minutes ?? 30) * 60_000).toISOString();
-    const linkBody = {
-      link_id: orderId,
-      link_amount: amount_inr,
-      link_currency: "INR",
-      link_purpose: `Wallet top-up $${amount_usd.toFixed(2)} (₹${amount_inr.toFixed(2)})`,
+    const cfBody = {
+      order_id: orderId,
+      order_amount: amount_inr,
+      order_currency: "INR",
       customer_details: {
-        customer_name: profile.display_name ?? "Customer",
+        customer_id: user.id,
         customer_email: profile.email ?? `${user.id}@noemail.local`,
         customer_phone: profile.phone || "9999999999",
+        customer_name: profile.display_name ?? "Customer",
       },
-      link_notify: { send_sms: false, send_email: false },
-      link_meta: {
+      order_meta: {
         return_url: returnUrl.replace("{order_id}", orderId),
         notify_url: notifyUrl,
       },
-      link_auto_reminders: false,
-      link_expiry_time: expiryIso,
-      link_partial_payments: false,
+      order_note: `Wallet top-up $${amount_usd.toFixed(2)} (₹${amount_inr.toFixed(2)})`,
     };
 
-    const cfResp = await fetch(`${cfBase}/links`, {
+    const cfResp = await fetch(`${cfBase}/orders`, {
       method: "POST",
       headers: {
         "x-api-version": "2023-08-01",
@@ -100,20 +95,22 @@ Deno.serve(async (req) => {
         "x-client-secret": secretKey,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(linkBody),
+      body: JSON.stringify(cfBody),
     });
     const cfData = await cfResp.json();
     if (!cfResp.ok) {
-      console.error("Cashfree create link failed", cfData);
+      console.error("Cashfree create order failed", cfData);
       return json(502, { error: cfData?.message || "Cashfree error", detail: cfData });
     }
 
-    const checkoutUrl = cfData.link_url;
-    const paymentSessionId = cfData.cf_link_id ? String(cfData.cf_link_id) : orderId;
-    if (!checkoutUrl) {
-      console.error("Cashfree response missing link_url", cfData);
-      return json(502, { error: "Cashfree did not return a checkout URL", detail: cfData });
+    const paymentSessionId = cfData.payment_session_id;
+    if (!paymentSessionId) {
+      return json(502, { error: "Cashfree did not return payment_session_id", detail: cfData });
     }
+
+    // Redirect via our own hosted page that loads Cashfree.js and calls checkout()
+    const supaUrl = Deno.env.get("SUPABASE_URL")!;
+    const checkoutUrl = `${supaUrl}/functions/v1/cashfree-checkout?sid=${encodeURIComponent(paymentSessionId)}&env=${env}`;
 
     const expiresAt = new Date(Date.now() + Number(settings.order_expiry_minutes ?? 30) * 60_000).toISOString();
 
