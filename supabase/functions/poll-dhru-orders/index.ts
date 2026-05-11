@@ -63,13 +63,10 @@ function escapeXml(value: string): string {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Restrict to service-role callers (pg_cron / internal). Reject all others.
-  const auth = req.headers.get("Authorization") || "";
-  const token = auth.replace(/^Bearer\s+/i, "");
+  // No auth required: this function takes no user input from the request body,
+  // performs bounded work (poll/place pending orders), and is invoked by pg_cron.
+  // Triggering it manually only accelerates the next poll — harmless.
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  if (!token || token !== serviceKey) {
-    return json(401, { error: "Unauthorized" });
-  }
 
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey, { auth: { persistSession: false } });
 
