@@ -73,13 +73,11 @@ export default function Dashboard() {
   const customMessage = (profile as unknown as { custom_message?: string } | null)?.custom_message ?? "";
   const [serviceView, setServiceView] = useState<"grid" | "list">(() => (localStorage.getItem("serviceView") as "grid" | "list") || "grid");
   useEffect(() => { localStorage.setItem("serviceView", serviceView); }, [serviceView]);
-  const [paySettings, setPaySettings] = useState<{ binance_enabled: boolean; cashfree_enabled: boolean; cashfree_usd_to_inr: number; topup_amounts: number[]; ask_admin_enabled: boolean } | null>(null);
+  const [paySettings, setPaySettings] = useState<{ binance_enabled: boolean; topup_amounts: number[]; ask_admin_enabled: boolean } | null>(null);
   useEffect(() => {
-    supabase.from("payment_settings").select("binance_enabled,cashfree_enabled,cashfree_usd_to_inr,topup_amounts,ask_admin_enabled").eq("id", 1).maybeSingle()
+    supabase.from("payment_settings").select("binance_enabled,topup_amounts,ask_admin_enabled").eq("id", 1).maybeSingle()
       .then(({ data }) => { if (data) setPaySettings({
         binance_enabled: !!data.binance_enabled,
-        cashfree_enabled: !!(data as any).cashfree_enabled,
-        cashfree_usd_to_inr: Number((data as any).cashfree_usd_to_inr ?? 85),
         topup_amounts: (data.topup_amounts as number[]) ?? [5,10,20,30],
         ask_admin_enabled: !!data.ask_admin_enabled,
       }); });
@@ -563,12 +561,7 @@ export default function Dashboard() {
                   Pay with Binance (USDT/Crypto)
                 </Button>
               )}
-              {paySettings?.cashfree_enabled && (
-                <Button variant="hero" className="w-full" onClick={() => requestCashfreeTopup()}>
-                  Pay with Cashfree (UPI / Cards / NetBanking) — ₹{(Number(topupAmount || 0) * (paySettings.cashfree_usd_to_inr || 85)).toFixed(0)}
-                </Button>
-              )}
-              {!paySettings?.binance_enabled && !paySettings?.cashfree_enabled && (
+              {!paySettings?.binance_enabled && (
                 <p className="text-xs text-muted-foreground text-center">No payment methods enabled — please contact admin.</p>
               )}
             </div>
