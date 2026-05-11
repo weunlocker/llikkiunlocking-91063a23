@@ -37,6 +37,20 @@ Deno.serve(async (req) => {
     const { data: order } = await sb.from("orders").select("*").eq("id", parsed.data.order_id).maybeSingle();
     if (!order) return json(404, { error: "Order not found" });
 
+    const isServiceSwitch = parsed.data.service_id && parsed.data.service_id !== order.service_id;
+    // If the order is already placed with the supplier and there's no error,
+    // do NOT re-send it. Just trigger the poller so the result is fetched
+    // immediately. Only re-place when there's an error_message OR the admin
+    // explicitly switched to a different service (which uses a different API).
+    if (order.supplier_reference && !order.error_message && !isServiceSwitch) {
+      sb.functions.invoke("poll-dhru-orders", {
+        headers: { Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}` },
+        body: {},
+      }).catch(() => {});
+      await sb.from("orders").update({ last_polled_at: null }).eq("id", order.id);
+      return json(200, { ok: true, supplier_reference: order.supplier_reference, polled: true });
+    }
+
     const serviceId = parsed.data.service_id ?? order.service_id;
     const { data: service } = await sb.from("services").select("*").eq("id", serviceId).maybeSingle();
     if (!service) return json(404, { error: "Service not found" });
