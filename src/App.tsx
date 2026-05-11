@@ -18,6 +18,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import Unsubscribe from "./pages/Unsubscribe";
+import CashfreeRedirect from "./pages/CashfreeRedirect";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
