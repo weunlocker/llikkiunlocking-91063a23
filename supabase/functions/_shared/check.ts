@@ -252,6 +252,15 @@ async function placeOrder(opts: {
     description: `Check: ${service.name}`, order_id: order.id,
   });
 
+  // Fire-and-forget "order received" email
+  detach(notifyUserEmail(supabase, opts.userId, "order_placed", {
+    order_number: order.order_number,
+    service: service.name,
+    imei: opts.imei,
+    charged: price,
+    balance: newBalance,
+  }));
+
   return {
     ok: true,
     ctx: { supabase, service, supplier, order, userId: opts.userId, imei: opts.imei, price, newBalance, prevBalance: balance },
