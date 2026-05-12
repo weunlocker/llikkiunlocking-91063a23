@@ -113,9 +113,9 @@ export default function FreeCheck() {
         theme: "auto",
         size: "invisible",
         execution: "execute",
-        callback: (token) => setTsToken(token),
-        "error-callback": () => setTsToken(""),
-        "expired-callback": () => setTsToken(""),
+        callback: (token: string) => { (window as any).__lastTsToken = token; setTsToken(token); },
+        "error-callback": () => { (window as any).__lastTsToken = ""; setTsToken(""); },
+        "expired-callback": () => { (window as any).__lastTsToken = ""; setTsToken(""); },
       } as any);
     });
     return () => { cancelled = true; };
