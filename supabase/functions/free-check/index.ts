@@ -197,12 +197,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Call upstream once. The provider normally responds in ~2s, but a 12s cap was
-    // creating false 504s during transient edge/provider network stalls.
+    // Call upstream once. If the provider socket hangs, return a normal app response
+    // instead of an HTTP 504 so the frontend never treats this as an edge crash.
     let resp: Response;
     const ac = new AbortController();
     const upstreamStartedAt = Date.now();
-    const t = setTimeout(() => ac.abort(), 30000);
+    const t = setTimeout(() => ac.abort(), 15000);
     try {
       resp = await fetch(url, { ...init, signal: ac.signal });
     } catch (err) {
@@ -214,11 +214,10 @@ Deno.serve(async (req) => {
         host: new URL(url).hostname,
         error: err instanceof Error ? err.message : String(err),
       });
-      return json(504, {
-        error: aborted
-          ? "Provider connection timed out. Please try again."
-          : `Network error: ${err instanceof Error ? err.message : String(err)}`,
-      });
+      if (aborted) {
+        return json(200, unavailableResult(service.name, imei));
+      }
+      return json(502, { error: `Network error: ${err instanceof Error ? err.message : String(err)}` });
     } finally {
       clearTimeout(t);
     }
@@ -232,10 +231,9 @@ Deno.serve(async (req) => {
     const raw = ct.includes("json") ? await resp.json() : await resp.text();
     if (!resp.ok) {
       const isTimeout = typeof raw === "string" && /timed?\s*out|timeout/i.test(raw);
+      if (isTimeout) return json(200, unavailableResult(service.name, imei));
       return json(isTimeout ? 504 : 502, {
-        error: isTimeout
-          ? "The provider took too long to respond. Please try again in a moment."
-          : `Provider returned ${resp.status}`,
+        error: `Provider returned ${resp.status}`,
       });
     }
 
@@ -261,4 +259,13 @@ function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function unavailableResult(service: string, imei: string) {
+  return {
+    status: "unavailable",
+    service,
+    imei,
+    result: "The free model-check provider is temporarily not responding. Please try again in a few minutes.",
+  };
 }
