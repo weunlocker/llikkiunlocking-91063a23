@@ -22,21 +22,34 @@ export default function Login() {
       return;
     }
     setLoading(true);
+    // Step 1: verify password
     const { error } = await supabase.auth.signInWithPassword({
       email: parsed.data.email,
       password: parsed.data.password,
     });
-    setLoading(false);
     // Fire-and-forget login event (admin notification + audit log)
     supabase.functions.invoke("auth-event", {
       body: { email: parsed.data.email, success: !error },
     }).catch(() => {});
     if (error) {
+      setLoading(false);
       toast.error(error.message);
       return;
     }
-    toast.success("Welcome back!");
-    navigate("/dashboard");
+    // Step 2: sign out (we still need OTP verification)
+    await supabase.auth.signOut();
+    // Step 3: send OTP code via email
+    const { error: otpErr } = await supabase.auth.signInWithOtp({
+      email: parsed.data.email,
+      options: { shouldCreateUser: false },
+    });
+    setLoading(false);
+    if (otpErr) {
+      toast.error(otpErr.message);
+      return;
+    }
+    toast.success("We sent a 6-digit code to your email.");
+    navigate(`/login-otp?email=${encodeURIComponent(parsed.data.email)}`);
   };
 
   return (
