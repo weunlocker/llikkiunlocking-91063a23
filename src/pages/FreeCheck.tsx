@@ -15,9 +15,10 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 declare global {
   interface Window {
     turnstile?: {
-      render: (el: HTMLElement, opts: { sitekey: string; callback: (token: string) => void; "error-callback"?: () => void; "expired-callback"?: () => void; theme?: string }) => string;
+      render: (el: HTMLElement, opts: Record<string, any>) => string;
       reset: (id?: string) => void;
       remove: (id?: string) => void;
+      execute: (id?: string | HTMLElement, opts?: Record<string, any>) => void;
     };
   }
 }
