@@ -15,10 +15,9 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 declare global {
   interface Window {
     turnstile?: {
-      render: (el: HTMLElement, opts: Record<string, any>) => string;
+      render: (el: HTMLElement, opts: { sitekey: string; callback: (token: string) => void; "error-callback"?: () => void; "expired-callback"?: () => void; theme?: string }) => string;
       reset: (id?: string) => void;
       remove: (id?: string) => void;
-      execute: (id?: string | HTMLElement, opts?: Record<string, any>) => void;
     };
   }
 }
@@ -111,12 +110,10 @@ export default function FreeCheck() {
       tsWidgetId.current = window.turnstile.render(tsRef.current, {
         sitekey: turnstileSiteKey,
         theme: "auto",
-        size: "invisible",
-        execution: "execute",
-        callback: (token: string) => { (window as any).__lastTsToken = token; setTsToken(token); },
-        "error-callback": () => { (window as any).__lastTsToken = ""; setTsToken(""); },
-        "expired-callback": () => { (window as any).__lastTsToken = ""; setTsToken(""); },
-      } as any);
+        callback: (token) => setTsToken(token),
+        "error-callback": () => setTsToken(""),
+        "expired-callback": () => setTsToken(""),
+      });
     });
     return () => { cancelled = true; };
   }, [turnstileEnabled, selected, turnstileSiteKey]);
@@ -126,24 +123,11 @@ export default function FreeCheck() {
     const v = imeiSchema.safeParse(imei.trim());
     if (!v.success) { toast.error("Enter a valid IMEI / serial (8–20 chars)"); return; }
     if (!turnstileConfig.loaded) { toast.error("Security check is still loading. Please wait."); return; }
+    if (turnstileEnabled && !tsToken) { toast.error("Please complete the CAPTCHA"); return; }
     setRunning(true); setResult("");
     try {
-      let token = tsToken;
-      if (turnstileEnabled && !token) {
-        if (!window.turnstile || !tsWidgetId.current) throw new Error("Security check not ready");
-        try { window.turnstile.reset(tsWidgetId.current); } catch { /* ignore */ }
-        (window as any).__lastTsToken = "";
-        window.turnstile.execute(tsWidgetId.current);
-        const start = Date.now();
-        while (Date.now() - start < 20000) {
-          await new Promise((r) => setTimeout(r, 200));
-          const t = (window as any).__lastTsToken;
-          if (t) { token = t; break; }
-        }
-        if (!token) throw new Error("Security check timed out, please try again");
-      }
       const { data, error } = await supabase.functions.invoke("free-check", {
-        body: { service_id: selected.id, imei: imei.trim(), turnstile_token: token || undefined },
+        body: { service_id: selected.id, imei: imei.trim(), turnstile_token: tsToken || undefined },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -153,10 +137,10 @@ export default function FreeCheck() {
       toast.error(e instanceof Error ? e.message : "Check failed");
     } finally {
       setRunning(false);
+      // Tokens are single-use — reset widget
       if (turnstileEnabled && window.turnstile && tsWidgetId.current) {
         try { window.turnstile.reset(tsWidgetId.current); } catch { /* ignore */ }
       }
-      (window as any).__lastTsToken = "";
       setTsToken("");
     }
   };
@@ -220,12 +204,12 @@ export default function FreeCheck() {
                 maxLength={20}
                 className="font-mono"
               />
-              <Button variant="hero" onClick={run} disabled={running || !imei.trim() || !turnstileConfig.loaded}>
+              <Button variant="hero" onClick={run} disabled={running || !imei.trim() || !turnstileConfig.loaded || (turnstileEnabled && !tsToken)}>
                 {running ? <Loader2 className="w-4 h-4 animate-spin" /> : "Check"}
               </Button>
             </div>
             {turnstileEnabled && (
-              <div ref={tsRef} className="hidden" aria-hidden="true" />
+              <div ref={tsRef} className="flex justify-center" />
             )}
           </Card>
         )}

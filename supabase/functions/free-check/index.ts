@@ -191,38 +191,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fetch with timeout + one retry on timeout/5xx
-    const fetchWithTimeout = async (ms: number) => {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), ms);
-      try { return await fetch(url, { ...init, signal: ctrl.signal }); }
-      finally { clearTimeout(t); }
-    };
-    let resp: Response;
-    try {
-      resp = await fetchWithTimeout(45000);
-      if (!resp.ok && resp.status >= 500) {
-        try { await resp.body?.cancel(); } catch { /* ignore */ }
-        await new Promise((r) => setTimeout(r, 1000));
-        resp = await fetchWithTimeout(45000);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const timedOut = /abort|timeout/i.test(msg);
-      return json(504, { error: timedOut
-        ? "The provider is taking too long to respond. Please try again in a moment."
-        : `Provider request failed: ${msg}` });
-    }
+    const resp = await fetch(url, init);
     const ct = resp.headers.get("content-type") || "";
     const raw = ct.includes("json") ? await resp.json() : await resp.text();
-    if (!resp.ok) {
-      const isTimeoutHtml = typeof raw === "string" && /request timeout/i.test(raw);
-      return json(502, {
-        error: isTimeoutHtml
-          ? "The provider timed out while processing this IMEI. Please try again shortly."
-          : `Provider returned ${resp.status}`,
-      });
-    }
+    if (!resp.ok) return json(502, { error: `Provider returned ${resp.status}`, raw });
 
     let parsedRaw: unknown = raw;
     if (typeof raw === "string") {
