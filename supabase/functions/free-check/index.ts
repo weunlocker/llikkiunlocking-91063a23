@@ -261,3 +261,12 @@ function json(status: number, body: unknown) {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
+
+function unavailableResult(service: string, imei: string) {
+  return {
+    status: "unavailable",
+    service,
+    imei,
+    result: "The free model-check provider is temporarily not responding. Please try again in a few minutes.",
+  };
+}
