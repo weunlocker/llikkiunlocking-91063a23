@@ -220,12 +220,12 @@ export default function FreeCheck() {
                 maxLength={20}
                 className="font-mono"
               />
-              <Button variant="hero" onClick={run} disabled={running || !imei.trim() || !turnstileConfig.loaded || (turnstileEnabled && !tsToken)}>
+              <Button variant="hero" onClick={run} disabled={running || !imei.trim() || !turnstileConfig.loaded}>
                 {running ? <Loader2 className="w-4 h-4 animate-spin" /> : "Check"}
               </Button>
             </div>
             {turnstileEnabled && (
-              <div ref={tsRef} className="flex justify-center" />
+              <div ref={tsRef} className="hidden" aria-hidden="true" />
             )}
           </Card>
         )}
