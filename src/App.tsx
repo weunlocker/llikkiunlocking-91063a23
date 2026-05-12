@@ -15,6 +15,8 @@ import FreeCheck from "./pages/FreeCheck";
 import ApiDocs from "./pages/ApiDocs";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import Unsubscribe from "./pages/Unsubscribe";
@@ -41,6 +43,8 @@ const App = () => (
             <Route path="/api-docs" element={<ApiDocs />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/admin/*" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
