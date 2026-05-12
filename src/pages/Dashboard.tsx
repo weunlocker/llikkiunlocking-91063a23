@@ -194,8 +194,10 @@ export default function Dashboard() {
   };
 
   const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground" } as Record<string, string>)[s] ?? "";
-  const StatusBadge = ({ status }: { status: string }) => {
-    const s = (status || "").toLowerCase();
+  const StatusBadge = ({ status, errorMessage }: { status: string; errorMessage?: string | null }) => {
+    let s = (status || "").toLowerCase();
+    // If supplier rejected but admin policy keeps it pending/in_process, show REJECTED visually.
+    if (errorMessage && (s === "pending" || s === "in_process" || s === "processing")) s = "rejected";
     const map: Record<string, string> = {
       completed: "bg-success/15 text-success border-success/40",
       success:   "bg-success/15 text-success border-success/40",
@@ -449,7 +451,7 @@ export default function Dashboard() {
                         <td className="px-5 py-3 font-mono text-xs">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
                         <td className="px-5 py-3 font-medium">{o.services?.name ?? "—"}</td>
                         <td className="px-5 py-3 font-mono text-xs">{o.imei}</td>
-                        <td className="px-5 py-3"><StatusBadge status={o.status} /></td>
+                        <td className="px-5 py-3"><StatusBadge status={o.status} errorMessage={o.error_message} /></td>
                         <td className="px-5 py-3 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
                         <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(o.created_at).toLocaleString()}</td>
                         <td className="px-5 py-3 text-[13px] leading-relaxed max-w-md" onClick={(e) => e.stopPropagation()}>
@@ -656,7 +658,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div><span className="text-muted-foreground">Order ID:</span> <span className="font-mono">#{String(orderDetail?.order_number ?? 0).padStart(4, "0")}</span></div>
               <div><span className="text-muted-foreground">IMEI:</span> <span className="font-mono">{orderDetail?.imei}</span></div>
-              <div><span className="text-muted-foreground">Status:</span> <StatusBadge status={orderDetail?.status ?? ""} /></div>
+              <div><span className="text-muted-foreground">Status:</span> <StatusBadge status={orderDetail?.status ?? ""} errorMessage={orderDetail?.error_message} /></div>
               <div><span className="text-muted-foreground">Charged:</span> <span className="font-mono">${Number(orderDetail?.price_charged ?? 0).toFixed(2)}</span></div>
               <div><span className="text-muted-foreground">Delivery Time:</span> <span>{orderDetail?.services?.delivery_time ?? "—"}</span></div>
               <div><span className="text-muted-foreground">Took:</span> <span>{orderDetail ? formatDuration(orderDetail.created_at, orderDetail.updated_at, orderDetail.status) : "—"}</span></div>
