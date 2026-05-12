@@ -140,7 +140,6 @@ Deno.serve(async (req) => {
     const headers: Record<string, string> = {
       "Accept": "application/json, text/plain, */*",
       "Accept-Language": "en-US,en;q=0.9",
-      "Connection": "close",
       // Some direct-check providers delay or drop Deno/default server fetches.
       // Send a normal browser UA so the provider handles this like the fast manual tests.
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
