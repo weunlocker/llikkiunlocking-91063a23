@@ -318,14 +318,24 @@ Deno.serve(async (req) => {
         completed++;
       } else if (isFailed) {
         // Supplier returned an error — keep order PENDING (admin can reprocess
-        // or switch supplier API). Just record the error message; do NOT refund.
-        const reason: string =
-          (resultBlob?.MESSAGE ?? resultBlob?.message ?? resultBlob?.REPLY ?? resultBlob?.reply ?? "Rejected by supplier")
-            .toString();
+        // or switch supplier API). Record a readable error + result; do NOT refund.
+        const reasonRaw: string =
+          (resultBlob?.MESSAGE ?? resultBlob?.message ?? resultBlob?.REPLY ?? resultBlob?.reply ??
+           resultBlob?.CODE ?? resultBlob?.code ?? "Rejected by supplier").toString();
+        const reason = normalizeHtml(reasonRaw) || "Rejected by supplier";
+        const replyText: string =
+          resultBlob?.REPLY ?? resultBlob?.reply ??
+          resultBlob?.CODE ?? resultBlob?.code ??
+          resultBlob?.MESSAGE ?? resultBlob?.message ??
+          (typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2));
+        const templated = svc.response_template
+          ? applyTemplate(svc.response_template, parsed)
+          : (typeof replyText === "string" ? replyText : JSON.stringify(replyText, null, 2));
+        const finalText = normalizeHtml(typeof templated === "string" ? templated : JSON.stringify(templated, null, 2)) || reason;
         await sb.from("orders").update({
           // status stays "pending" — admin must intervene
-          error_message: reason,
-          result: typeof parsed === "string" ? parsed.slice(0, 2000) : JSON.stringify(parsed).slice(0, 2000),
+          error_message: reason.slice(0, 500),
+          result: finalText.slice(0, 4000),
           last_polled_at: new Date().toISOString(),
           poll_attempts: newAttempts,
         }).eq("id", o.id);
