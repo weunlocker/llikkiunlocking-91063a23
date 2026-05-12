@@ -191,10 +191,41 @@ Deno.serve(async (req) => {
       }
     }
 
-    const resp = await fetch(url, init);
+    // Call upstream with timeout + 1 retry on timeout/5xx
+    async function callOnce(timeoutMs: number) {
+      const ac = new AbortController();
+      const t = setTimeout(() => ac.abort(), timeoutMs);
+      try {
+        return await fetch(url, { ...init, signal: ac.signal });
+      } finally {
+        clearTimeout(t);
+      }
+    }
+    let resp: Response;
+    try {
+      resp = await callOnce(25000);
+      if (!resp.ok && resp.status >= 500) {
+        // brief retry once
+        await new Promise((r) => setTimeout(r, 500));
+        resp = await callOnce(25000);
+      }
+    } catch (err) {
+      // timeout — retry once
+      try { resp = await callOnce(25000); }
+      catch {
+        return json(504, { error: "The provider took too long to respond. Please try again in a moment." });
+      }
+    }
     const ct = resp.headers.get("content-type") || "";
     const raw = ct.includes("json") ? await resp.json() : await resp.text();
-    if (!resp.ok) return json(502, { error: `Provider returned ${resp.status}`, raw });
+    if (!resp.ok) {
+      const isTimeout = typeof raw === "string" && /timed?\s*out|timeout/i.test(raw);
+      return json(isTimeout ? 504 : 502, {
+        error: isTimeout
+          ? "The provider took too long to respond. Please try again in a moment."
+          : `Provider returned ${resp.status}`,
+      });
+    }
 
     let parsedRaw: unknown = raw;
     if (typeof raw === "string") {
