@@ -191,30 +191,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Call upstream with timeout + 1 retry on timeout/5xx
-    async function callOnce(timeoutMs: number) {
-      const ac = new AbortController();
-      const t = setTimeout(() => ac.abort(), timeoutMs);
-      try {
-        return await fetch(url, { ...init, signal: ac.signal });
-      } finally {
-        clearTimeout(t);
-      }
-    }
+    // Call upstream once with a short timeout — fail fast so user can retry quickly.
     let resp: Response;
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 12000);
     try {
-      resp = await callOnce(25000);
-      if (!resp.ok && resp.status >= 500) {
-        // brief retry once
-        await new Promise((r) => setTimeout(r, 500));
-        resp = await callOnce(25000);
-      }
+      resp = await fetch(url, { ...init, signal: ac.signal });
     } catch (err) {
-      // timeout — retry once
-      try { resp = await callOnce(25000); }
-      catch {
-        return json(504, { error: "The provider took too long to respond. Please try again in a moment." });
-      }
+      const aborted = err instanceof Error && err.name === "AbortError";
+      return json(504, {
+        error: aborted
+          ? "Provider didn't respond in time. Please try again."
+          : `Network error: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    } finally {
+      clearTimeout(t);
     }
     const ct = resp.headers.get("content-type") || "";
     const raw = ct.includes("json") ? await resp.json() : await resp.text();
