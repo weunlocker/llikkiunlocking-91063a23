@@ -10,7 +10,7 @@ export const BRAND = {
   url: 'https://likkiunlocking.com',
   loginUrl: 'https://likkiunlocking.com/login',
   supportEmail: 'support@likkiunlocking.com',
-  logo: 'https://jhkumqyugvezfulkoine.supabase.co/storage/v1/object/public/email-assets/logo.png',
+  logo: 'https://jhkumqyugvezfulkoine.supabase.co/storage/v1/object/public/branding/logo-1777796494624.png',
   primary: '#00B7FF',
   primaryDark: '#0096D6',
   text: '#0B1220',
@@ -25,7 +25,7 @@ export const EmailShell: React.FC<{ preview: string; children: React.ReactNode }
       <Container style={outer}>
         {/* Header */}
         <Section style={headerBar}>
-          <Img src={BRAND.logo} alt={BRAND.name} width="48" height="48" style={logoImg} />
+          <Img src={BRAND.logo} alt={BRAND.name} height="56" style={logoImg} />
           <Text style={brandName}>{BRAND.name}</Text>
           <Text style={brandTag}>{BRAND.tagline}</Text>
         </Section>
