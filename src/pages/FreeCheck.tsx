@@ -110,10 +110,12 @@ export default function FreeCheck() {
       tsWidgetId.current = window.turnstile.render(tsRef.current, {
         sitekey: turnstileSiteKey,
         theme: "auto",
+        size: "invisible",
+        execution: "execute",
         callback: (token) => setTsToken(token),
         "error-callback": () => setTsToken(""),
         "expired-callback": () => setTsToken(""),
-      });
+      } as any);
     });
     return () => { cancelled = true; };
   }, [turnstileEnabled, selected, turnstileSiteKey]);
