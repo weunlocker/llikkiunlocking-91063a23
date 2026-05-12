@@ -658,7 +658,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div><span className="text-muted-foreground">Order ID:</span> <span className="font-mono">#{String(orderDetail?.order_number ?? 0).padStart(4, "0")}</span></div>
               <div><span className="text-muted-foreground">IMEI:</span> <span className="font-mono">{orderDetail?.imei}</span></div>
-              <div><span className="text-muted-foreground">Status:</span> <StatusBadge status={orderDetail?.status ?? ""} /></div>
+              <div><span className="text-muted-foreground">Status:</span> <StatusBadge status={orderDetail?.status ?? ""} errorMessage={orderDetail?.error_message} /></div>
               <div><span className="text-muted-foreground">Charged:</span> <span className="font-mono">${Number(orderDetail?.price_charged ?? 0).toFixed(2)}</span></div>
               <div><span className="text-muted-foreground">Delivery Time:</span> <span>{orderDetail?.services?.delivery_time ?? "—"}</span></div>
               <div><span className="text-muted-foreground">Took:</span> <span>{orderDetail ? formatDuration(orderDetail.created_at, orderDetail.updated_at, orderDetail.status) : "—"}</span></div>
