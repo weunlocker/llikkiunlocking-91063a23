@@ -194,6 +194,27 @@ export default function Dashboard() {
   };
 
   const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground" } as Record<string, string>)[s] ?? "";
+  const StatusBadge = ({ status }: { status: string }) => {
+    const s = (status || "").toLowerCase();
+    const map: Record<string, string> = {
+      completed: "bg-success/15 text-success border-success/40",
+      success:   "bg-success/15 text-success border-success/40",
+      failed:    "bg-destructive/15 text-destructive border-destructive/40",
+      rejected:  "bg-destructive/15 text-destructive border-destructive/40",
+      refunded:  "bg-warning/15 text-warning border-warning/40",
+      pending:   "bg-warning/15 text-warning border-warning/40",
+      in_process:"bg-primary/15 text-primary border-primary/40",
+      inprocess: "bg-primary/15 text-primary border-primary/40",
+      processing:"bg-primary/15 text-primary border-primary/40",
+    };
+    const cls = map[s] ?? "bg-secondary text-foreground border-border";
+    const label = s.replace(/_/g, " ").toUpperCase() || "—";
+    return (
+      <span className={`inline-flex items-center px-2.5 py-1 rounded-md border text-xs font-extrabold tracking-wider uppercase ${cls}`}>
+        {label}
+      </span>
+    );
+  };
 
   return (
     <Layout>
