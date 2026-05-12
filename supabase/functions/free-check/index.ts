@@ -137,7 +137,13 @@ Deno.serve(async (req) => {
     }
 
     let url: string;
-    const headers: Record<string, string> = { "Accept": "application/json, text/plain, */*" };
+    const headers: Record<string, string> = {
+      "Accept": "application/json, text/plain, */*",
+      "Accept-Language": "en-US,en;q=0.9",
+      // Some direct-check providers delay or drop Deno/default server fetches.
+      // Send a normal browser UA so the provider handles this like the fast manual tests.
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+    };
     const init: RequestInit = { method: "GET", headers };
 
     if (supplier) {
@@ -191,22 +197,37 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Call upstream once with a short timeout — fail fast so user can retry quickly.
+    // Call upstream once. The provider normally responds in ~2s, but a 12s cap was
+    // creating false 504s during transient edge/provider network stalls.
     let resp: Response;
     const ac = new AbortController();
-    const t = setTimeout(() => ac.abort(), 12000);
+    const upstreamStartedAt = Date.now();
+    const t = setTimeout(() => ac.abort(), 30000);
     try {
       resp = await fetch(url, { ...init, signal: ac.signal });
     } catch (err) {
       const aborted = err instanceof Error && err.name === "AbortError";
+      console.error("free-check upstream fetch failed", {
+        aborted,
+        elapsed_ms: Date.now() - upstreamStartedAt,
+        service_id: service.id,
+        host: new URL(url).hostname,
+        error: err instanceof Error ? err.message : String(err),
+      });
       return json(504, {
         error: aborted
-          ? "Provider didn't respond in time. Please try again."
+          ? "Provider connection timed out. Please try again."
           : `Network error: ${err instanceof Error ? err.message : String(err)}`,
       });
     } finally {
       clearTimeout(t);
     }
+    console.log("free-check upstream response", {
+      elapsed_ms: Date.now() - upstreamStartedAt,
+      status: resp.status,
+      service_id: service.id,
+      host: new URL(url).hostname,
+    });
     const ct = resp.headers.get("content-type") || "";
     const raw = ct.includes("json") ? await resp.json() : await resp.text();
     if (!resp.ok) {
