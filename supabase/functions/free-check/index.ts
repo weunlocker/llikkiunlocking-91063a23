@@ -140,6 +140,7 @@ Deno.serve(async (req) => {
     const headers: Record<string, string> = {
       "Accept": "application/json, text/plain, */*",
       "Accept-Language": "en-US,en;q=0.9",
+      "Connection": "close",
       // Some direct-check providers delay or drop Deno/default server fetches.
       // Send a normal browser UA so the provider handles this like the fast manual tests.
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
@@ -197,12 +198,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Call upstream once. The provider normally responds in ~2s, but a 12s cap was
-    // creating false 504s during transient edge/provider network stalls.
+    // Call upstream once. If the provider socket hangs, return a normal app response
+    // instead of an HTTP 504 so the frontend never treats this as an edge crash.
     let resp: Response;
     const ac = new AbortController();
     const upstreamStartedAt = Date.now();
-    const t = setTimeout(() => ac.abort(), 30000);
+    const t = setTimeout(() => ac.abort(), 15000);
     try {
       resp = await fetch(url, { ...init, signal: ac.signal });
     } catch (err) {
@@ -214,11 +215,10 @@ Deno.serve(async (req) => {
         host: new URL(url).hostname,
         error: err instanceof Error ? err.message : String(err),
       });
-      return json(504, {
-        error: aborted
-          ? "Provider connection timed out. Please try again."
-          : `Network error: ${err instanceof Error ? err.message : String(err)}`,
-      });
+      if (aborted) {
+        return json(200, unavailableResult(service.name, imei));
+      }
+      return json(502, { error: `Network error: ${err instanceof Error ? err.message : String(err)}` });
     } finally {
       clearTimeout(t);
     }
@@ -232,10 +232,9 @@ Deno.serve(async (req) => {
     const raw = ct.includes("json") ? await resp.json() : await resp.text();
     if (!resp.ok) {
       const isTimeout = typeof raw === "string" && /timed?\s*out|timeout/i.test(raw);
+      if (isTimeout) return json(200, unavailableResult(service.name, imei));
       return json(isTimeout ? 504 : 502, {
-        error: isTimeout
-          ? "The provider took too long to respond. Please try again in a moment."
-          : `Provider returned ${resp.status}`,
+        error: `Provider returned ${resp.status}`,
       });
     }
 
