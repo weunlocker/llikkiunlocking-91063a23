@@ -194,8 +194,10 @@ export default function Dashboard() {
   };
 
   const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground" } as Record<string, string>)[s] ?? "";
-  const StatusBadge = ({ status }: { status: string }) => {
-    const s = (status || "").toLowerCase();
+  const StatusBadge = ({ status, errorMessage }: { status: string; errorMessage?: string | null }) => {
+    let s = (status || "").toLowerCase();
+    // If supplier rejected but admin policy keeps it pending/in_process, show REJECTED visually.
+    if (errorMessage && (s === "pending" || s === "in_process" || s === "processing")) s = "rejected";
     const map: Record<string, string> = {
       completed: "bg-success/15 text-success border-success/40",
       success:   "bg-success/15 text-success border-success/40",
