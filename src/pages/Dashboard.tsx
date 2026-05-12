@@ -194,6 +194,27 @@ export default function Dashboard() {
   };
 
   const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground" } as Record<string, string>)[s] ?? "";
+  const StatusBadge = ({ status }: { status: string }) => {
+    const s = (status || "").toLowerCase();
+    const map: Record<string, string> = {
+      completed: "bg-success/15 text-success border-success/40",
+      success:   "bg-success/15 text-success border-success/40",
+      failed:    "bg-destructive/15 text-destructive border-destructive/40",
+      rejected:  "bg-destructive/15 text-destructive border-destructive/40",
+      refunded:  "bg-warning/15 text-warning border-warning/40",
+      pending:   "bg-warning/15 text-warning border-warning/40",
+      in_process:"bg-primary/15 text-primary border-primary/40",
+      inprocess: "bg-primary/15 text-primary border-primary/40",
+      processing:"bg-primary/15 text-primary border-primary/40",
+    };
+    const cls = map[s] ?? "bg-secondary text-foreground border-border";
+    const label = s.replace(/_/g, " ").toUpperCase() || "—";
+    return (
+      <span className={`inline-flex items-center px-2.5 py-1 rounded-md border text-xs font-extrabold tracking-wider uppercase ${cls}`}>
+        {label}
+      </span>
+    );
+  };
 
   return (
     <Layout>
@@ -428,7 +449,7 @@ export default function Dashboard() {
                         <td className="px-5 py-3 font-mono text-xs">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
                         <td className="px-5 py-3 font-medium">{o.services?.name ?? "—"}</td>
                         <td className="px-5 py-3 font-mono text-xs">{o.imei}</td>
-                        <td className={`px-5 py-3 capitalize font-medium ${statusColor(o.status)}`}>{o.status}</td>
+                        <td className="px-5 py-3"><StatusBadge status={o.status} /></td>
                         <td className="px-5 py-3 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
                         <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(o.created_at).toLocaleString()}</td>
                         <td className="px-5 py-3 text-[13px] leading-relaxed max-w-md" onClick={(e) => e.stopPropagation()}>
@@ -635,7 +656,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div><span className="text-muted-foreground">Order ID:</span> <span className="font-mono">#{String(orderDetail?.order_number ?? 0).padStart(4, "0")}</span></div>
               <div><span className="text-muted-foreground">IMEI:</span> <span className="font-mono">{orderDetail?.imei}</span></div>
-              <div><span className="text-muted-foreground">Status:</span> <span className={`capitalize ${statusColor(orderDetail?.status ?? "")}`}>{orderDetail?.status}</span></div>
+              <div><span className="text-muted-foreground">Status:</span> <StatusBadge status={orderDetail?.status ?? ""} /></div>
               <div><span className="text-muted-foreground">Charged:</span> <span className="font-mono">${Number(orderDetail?.price_charged ?? 0).toFixed(2)}</span></div>
               <div><span className="text-muted-foreground">Delivery Time:</span> <span>{orderDetail?.services?.delivery_time ?? "—"}</span></div>
               <div><span className="text-muted-foreground">Took:</span> <span>{orderDetail ? formatDuration(orderDetail.created_at, orderDetail.updated_at, orderDetail.status) : "—"}</span></div>
