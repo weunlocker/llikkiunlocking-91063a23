@@ -241,13 +241,19 @@ Deno.serve(async (req) => {
             stillPending++;
           }
         } else {
-          // status != success → record error but stay pending (admin policy)
+          // status != success → mark as failed (final, no auto-reprocess).
           const reason = String(respObj?.message ?? respObj?.error ?? parsed?.message ?? parsed?.error ?? "Rejected by supplier");
+          const finalText = normalizeHtml(reason) || reason;
           await sb.from("orders").update({
-            error_message: reason,
-            result: typeof parsed === "string" ? parsed.slice(0, 2000) : JSON.stringify(parsed).slice(0, 2000),
+            status: "failed",
+            error_message: reason.slice(0, 500),
+            result: finalText.slice(0, 4000),
             last_polled_at: new Date().toISOString(), poll_attempts: newAttempts,
           }).eq("id", o.id);
+          sb.functions.invoke("telegram-notify", { body: {
+            user_id: o.user_id, subject: `❌ ${o.imei}`,
+            body: `${finalText}\n\n${svc.name}`, format: "plain",
+          }}).catch(() => {});
           failed++;
         }
         continue;
@@ -333,12 +339,16 @@ Deno.serve(async (req) => {
           : (typeof replyText === "string" ? replyText : JSON.stringify(replyText, null, 2));
         const finalText = normalizeHtml(typeof templated === "string" ? templated : JSON.stringify(templated, null, 2)) || reason;
         await sb.from("orders").update({
-          // status stays "pending" — admin must intervene
+          status: "failed",
           error_message: reason.slice(0, 500),
           result: finalText.slice(0, 4000),
           last_polled_at: new Date().toISOString(),
           poll_attempts: newAttempts,
         }).eq("id", o.id);
+        sb.functions.invoke("telegram-notify", { body: {
+          user_id: o.user_id, subject: `❌ ${o.imei}`,
+          body: `${finalText}\n\n${svc.name}`, format: "plain",
+        }}).catch(() => {});
         failed++;
       } else {
         await sb.from("orders").update({
