@@ -126,11 +126,24 @@ export default function FreeCheck() {
     const v = imeiSchema.safeParse(imei.trim());
     if (!v.success) { toast.error("Enter a valid IMEI / serial (8–20 chars)"); return; }
     if (!turnstileConfig.loaded) { toast.error("Security check is still loading. Please wait."); return; }
-    if (turnstileEnabled && !tsToken) { toast.error("Please complete the CAPTCHA"); return; }
     setRunning(true); setResult("");
     try {
+      let token = tsToken;
+      if (turnstileEnabled && !token) {
+        if (!window.turnstile || !tsWidgetId.current) throw new Error("Security check not ready");
+        try { window.turnstile.reset(tsWidgetId.current); } catch { /* ignore */ }
+        (window as any).__lastTsToken = "";
+        window.turnstile.execute(tsWidgetId.current);
+        const start = Date.now();
+        while (Date.now() - start < 20000) {
+          await new Promise((r) => setTimeout(r, 200));
+          const t = (window as any).__lastTsToken;
+          if (t) { token = t; break; }
+        }
+        if (!token) throw new Error("Security check timed out, please try again");
+      }
       const { data, error } = await supabase.functions.invoke("free-check", {
-        body: { service_id: selected.id, imei: imei.trim(), turnstile_token: tsToken || undefined },
+        body: { service_id: selected.id, imei: imei.trim(), turnstile_token: token || undefined },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -140,10 +153,10 @@ export default function FreeCheck() {
       toast.error(e instanceof Error ? e.message : "Check failed");
     } finally {
       setRunning(false);
-      // Tokens are single-use — reset widget
       if (turnstileEnabled && window.turnstile && tsWidgetId.current) {
         try { window.turnstile.reset(tsWidgetId.current); } catch { /* ignore */ }
       }
+      (window as any).__lastTsToken = "";
       setTsToken("");
     }
   };
