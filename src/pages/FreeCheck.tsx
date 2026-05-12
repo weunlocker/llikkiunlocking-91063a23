@@ -112,6 +112,7 @@ export default function FreeCheck() {
         sitekey: turnstileSiteKey,
         theme: "auto",
         size: "invisible",
+        execution: "execute",
         callback: (token: string) => { (window as any).__lastTsToken = token; setTsToken(token); },
         "error-callback": () => { (window as any).__lastTsToken = ""; setTsToken(""); },
         "expired-callback": () => { (window as any).__lastTsToken = ""; setTsToken(""); },
