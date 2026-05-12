@@ -50,28 +50,14 @@ export default function Register() {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
+    const country = countries.find((c) => c.isoCode === form.countryCode);
+    const state = states.find((s) => s.isoCode === form.stateCode);
+    const { error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: { display_name: parsed.data.displayName },
-      },
-    });
-    if (error) {
-      setLoading(false);
-      toast.error(error.message);
-      return;
-    }
-
-    // Save extra profile fields (RLS: users can update own profile)
-    const userId = data.user?.id;
-    if (userId) {
-      const country = countries.find((c) => c.isoCode === form.countryCode);
-      const state = states.find((s) => s.isoCode === form.stateCode);
-      await supabase
-        .from("profiles")
-        .update({
+        emailRedirectTo: `${window.location.origin}/login`,
+        data: {
           display_name: parsed.data.displayName,
           phone: form.phone || null,
           address: form.address || null,
@@ -79,23 +65,16 @@ export default function Register() {
           state: state?.name || null,
           country: country?.name || null,
           pincode: form.pincode || null,
-        })
-        .eq("id", userId);
-
-      // Fire-and-forget LIKKIUNLOCKING welcome email
-      supabase.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "welcome",
-          recipientEmail: parsed.data.email,
-          idempotencyKey: `welcome-${userId}`,
-          templateData: { name: parsed.data.displayName },
         },
-      }).catch(() => {});
-    }
-
+      },
+    });
     setLoading(false);
-    toast.success("Account created — welcome aboard!");
-    navigate("/dashboard");
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Account created! Check your email to confirm before signing in.");
+    navigate("/login");
   };
 
   return (
