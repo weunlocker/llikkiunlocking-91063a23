@@ -25,7 +25,7 @@ export const EmailShell: React.FC<{ preview: string; children: React.ReactNode }
       <Container style={outer}>
         {/* Header */}
         <Section style={headerBar}>
-          <Img src={BRAND.logo} alt={BRAND.name} width="48" height="48" style={logoImg} />
+          <Img src={BRAND.logo} alt={BRAND.name} height="56" style={logoImg} />
           <Text style={brandName}>{BRAND.name}</Text>
           <Text style={brandTag}>{BRAND.tagline}</Text>
         </Section>
