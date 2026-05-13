@@ -19,6 +19,20 @@ import { extractResponse } from "@/lib/extractResponse";
 import { ColoredResult } from "@/components/ColoredResult";
 import ApiDocs from "@/pages/ApiDocs";
 
+function sanitizeError(msg: string | null | undefined): string {
+  if (!msg) return "";
+  let s = String(msg);
+  // Strip URLs
+  s = s.replace(/https?:\/\/\S+/gi, "");
+  // Strip "for url (...)" leftovers
+  s = s.replace(/for\s+url\s*\(?\s*\)?/gi, "");
+  // Common upstream technical patterns -> friendly text
+  if (/error sending request|connect error|connection timed out|os error|tcp connect|client error/i.test(msg)) {
+    return "Provider temporarily unavailable. Please try again later.";
+  }
+  return s.replace(/\s{2,}/g, " ").trim() || "Request failed. Please try again.";
+}
+
 function formatDuration(start: string, end: string, status: string): string {
   const s = new Date(start).getTime();
   const e = (status === "pending" || status === "processing") ? Date.now() : new Date(end).getTime();
