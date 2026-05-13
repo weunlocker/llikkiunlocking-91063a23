@@ -19,6 +19,20 @@ import { extractResponse } from "@/lib/extractResponse";
 import { ColoredResult } from "@/components/ColoredResult";
 import ApiDocs from "@/pages/ApiDocs";
 
+function sanitizeError(msg: string | null | undefined): string {
+  if (!msg) return "";
+  let s = String(msg);
+  // Strip URLs
+  s = s.replace(/https?:\/\/\S+/gi, "");
+  // Strip "for url (...)" leftovers
+  s = s.replace(/for\s+url\s*\(?\s*\)?/gi, "");
+  // Common upstream technical patterns -> friendly text
+  if (/error sending request|connect error|connection timed out|os error|tcp connect|client error/i.test(msg)) {
+    return "Provider temporarily unavailable. Please try again later.";
+  }
+  return s.replace(/\s{2,}/g, " ").trim() || "Request failed. Please try again.";
+}
+
 function formatDuration(start: string, end: string, status: string): string {
   const s = new Date(start).getTime();
   const e = (status === "pending" || status === "processing") ? Date.now() : new Date(end).getTime();
@@ -451,13 +465,13 @@ export default function Dashboard() {
                         <td className="px-5 py-3 font-mono text-xs">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
                         <td className="px-5 py-3 font-medium">{o.services?.name ?? "—"}</td>
                         <td className="px-5 py-3 font-mono text-xs">{o.imei}</td>
-                        <td className="px-5 py-3"><StatusBadge status={o.status} errorMessage={o.error_message} /></td>
+                        <td className="px-5 py-3"><StatusBadge status={o.status} errorMessage={sanitizeError(o.error_message)} /></td>
                         <td className="px-5 py-3 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
                         <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(o.created_at).toLocaleString()}</td>
                         <td className="px-5 py-3 text-[13px] leading-relaxed max-w-md" onClick={(e) => e.stopPropagation()}>
                           {o.result
                             ? <div className="max-h-40 overflow-auto"><ColoredResult text={extractResponse(o.result)} font={o.services?.result_font ?? undefined} /></div>
-                            : <span className="text-muted-foreground text-xs">{o.error_message || (o.status === "pending" ? "Waiting…" : "—")}</span>}
+                            : <span className="text-muted-foreground text-xs">{sanitizeError(o.error_message) || (o.status === "pending" ? "Waiting…" : "—")}</span>}
                         </td>
                       </tr>
                     ))}
@@ -658,7 +672,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div><span className="text-muted-foreground">Order ID:</span> <span className="font-mono">#{String(orderDetail?.order_number ?? 0).padStart(4, "0")}</span></div>
               <div><span className="text-muted-foreground">IMEI:</span> <span className="font-mono">{orderDetail?.imei}</span></div>
-              <div><span className="text-muted-foreground">Status:</span> <StatusBadge status={orderDetail?.status ?? ""} errorMessage={orderDetail?.error_message} /></div>
+              <div><span className="text-muted-foreground">Status:</span> <StatusBadge status={orderDetail?.status ?? ""} errorMessage={sanitizeError(orderDetail?.error_message)} /></div>
               <div><span className="text-muted-foreground">Charged:</span> <span className="font-mono">${Number(orderDetail?.price_charged ?? 0).toFixed(2)}</span></div>
               <div><span className="text-muted-foreground">Delivery Time:</span> <span>{orderDetail?.services?.delivery_time ?? "—"}</span></div>
               <div><span className="text-muted-foreground">Took:</span> <span>{orderDetail ? formatDuration(orderDetail.created_at, orderDetail.updated_at, orderDetail.status) : "—"}</span></div>
@@ -669,7 +683,7 @@ export default function Dashboard() {
                 <div className="text-sm text-muted-foreground">Result</div>
                 {(orderDetail?.result || orderDetail?.error_message) && (
                   <Button variant="outline" size="sm" onClick={async () => {
-                    const txt = orderDetail?.result ? extractResponse(orderDetail.result).replace(/\[\[\/?(c:[^\]]+|f:[^\]]+|c|f)\]\]/g, "") : (orderDetail?.error_message || "");
+                    const txt = orderDetail?.result ? extractResponse(orderDetail.result).replace(/\[\[\/?(c:[^\]]+|f:[^\]]+|c|f)\]\]/g, "") : sanitizeError(orderDetail?.error_message);
                     try {
                       await navigator.clipboard.writeText(txt);
                       toast.success("Copied!", { description: "Result copied to clipboard" });
@@ -686,7 +700,7 @@ export default function Dashboard() {
               <div className="glass rounded p-4 text-[15px] leading-relaxed max-h-96 overflow-auto">
                 {orderDetail?.result
                   ? <ColoredResult text={extractResponse(orderDetail.result)} font={orderDetail.services?.result_font ?? undefined} />
-                  : <pre className="font-mono text-sm whitespace-pre-wrap break-all">{orderDetail?.error_message || "No data"}</pre>}
+                  : <pre className="font-mono text-sm whitespace-pre-wrap break-all">{sanitizeError(orderDetail?.error_message) || "No data"}</pre>}
               </div>
             </div>
           </div>
