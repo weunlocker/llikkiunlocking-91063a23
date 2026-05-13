@@ -1,17 +1,22 @@
 /// <reference types="npm:@types/react@18.3.1" />
 import * as React from 'npm:react@18.3.1'
 import { Heading, Text } from 'npm:@react-email/components@0.0.22'
-import { EmailShell, ctaButton, styles, BRAND } from './_layout.tsx'
+import { EmailShell, styles, BRAND } from './_layout.tsx'
 
-interface Props { siteName: string; confirmationUrl: string }
+interface Props { siteName: string; confirmationUrl: string; token?: string }
 
-export const MagicLinkEmail = ({ confirmationUrl }: Props) => (
-  <EmailShell preview={`Your login link for ${BRAND.name}`}>
-    <Heading style={styles.h1}>✨ Your Login Link</Heading>
+export const MagicLinkEmail = ({ token }: Props) => (
+  <EmailShell preview={`Your login code for ${BRAND.name}`}>
+    <Heading style={styles.h1}>🔐 Your Login Code</Heading>
     <Text style={styles.text}>
-      Click the button below to sign in to your {BRAND.name} account. This link expires shortly.
+      Use the 6-digit code below to sign in to your {BRAND.name} account. This code expires shortly.
     </Text>
-    {ctaButton(confirmationUrl, 'Log In Securely')}
+    <div style={{
+      fontFamily: 'JetBrains Mono, Courier, monospace',
+      fontSize: '34px', fontWeight: 800, letterSpacing: '10px',
+      color: '#0066CC', background: '#E6F7FF', textAlign: 'center',
+      padding: '18px 12px', borderRadius: '12px', margin: '8px 0 24px',
+    }}>{token ?? '------'}</div>
     <Text style={styles.small}>
       If you didn't request this, you can safely ignore this email.
     </Text>
