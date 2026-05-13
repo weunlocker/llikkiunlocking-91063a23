@@ -700,7 +700,7 @@ export default function Dashboard() {
               <div className="glass rounded p-4 text-[15px] leading-relaxed max-h-96 overflow-auto">
                 {orderDetail?.result
                   ? <ColoredResult text={extractResponse(orderDetail.result)} font={orderDetail.services?.result_font ?? undefined} />
-                  : <pre className="font-mono text-sm whitespace-pre-wrap break-all">{orderDetail?.error_message || "No data"}</pre>}
+                  : <pre className="font-mono text-sm whitespace-pre-wrap break-all">{sanitizeError(orderDetail?.error_message) || "No data"}</pre>}
               </div>
             </div>
           </div>
