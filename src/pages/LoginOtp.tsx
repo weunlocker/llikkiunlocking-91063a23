@@ -65,13 +65,13 @@ export default function LoginOtp() {
         <div className="glass rounded-2xl p-8 shadow-card">
           <h1 className="text-2xl font-bold mb-1">Verify it's you</h1>
           <p className="text-muted-foreground text-sm mb-6">
-            Enter the 8-digit code we sent to <span className="font-medium">{email}</span>.
+            Enter the 6-digit code we sent to <span className="font-medium">{email}</span>.
           </p>
           <form onSubmit={verify} className="space-y-6">
             <div className="flex justify-center">
-              <InputOTP maxLength={8} value={code} onChange={setCode}>
+              <InputOTP maxLength={6} value={code} onChange={setCode}>
                 <InputOTPGroup>
-                  {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
                     <InputOTPSlot key={i} index={i} />
                   ))}
                 </InputOTPGroup>
