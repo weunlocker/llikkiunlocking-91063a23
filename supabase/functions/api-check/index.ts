@@ -19,23 +19,50 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    // Merge GET + POST form params so DHRU clients that POST also work
+    // Merge GET + POST body params so all DHRU client flavors work
     const params = new URLSearchParams(url.search);
+    let rawBody = "";
     if (req.method === "POST") {
-      const ct = req.headers.get("content-type") || "";
-      if (ct.includes("application/x-www-form-urlencoded")) {
-        const body = new URLSearchParams(await req.text());
-        body.forEach((v, k) => params.set(k, v));
-      } else if (ct.includes("application/json")) {
-        try {
-          const j = await req.json();
-          if (j && typeof j === "object") {
-            for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
-              if (v != null) params.set(k, String(v));
+      const ct = (req.headers.get("content-type") || "").toLowerCase();
+      try {
+        if (ct.includes("multipart/form-data")) {
+          const fd = await req.formData();
+          for (const [k, v] of fd.entries()) {
+            if (typeof v === "string") params.set(k, v);
+          }
+        } else if (ct.includes("application/json")) {
+          rawBody = await req.text();
+          try {
+            const j = JSON.parse(rawBody);
+            if (j && typeof j === "object") {
+              for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
+                if (v != null) params.set(k, String(v));
+              }
+            }
+          } catch { /* ignore */ }
+        } else {
+          // x-www-form-urlencoded OR text/plain OR no content-type
+          rawBody = await req.text();
+          try {
+            const body = new URLSearchParams(rawBody);
+            body.forEach((v, k) => params.set(k, v));
+          } catch { /* ignore */ }
+          // Some Dhru clients send raw JSON without setting content-type
+          if (!params.get("apikey") && !params.get("apiaccesskey") && !params.get("key") && !params.get("data")) {
+            const t = rawBody.trim();
+            if (t.startsWith("{") || t.startsWith("[")) {
+              try {
+                const j = JSON.parse(t);
+                if (j && typeof j === "object") {
+                  for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
+                    if (v != null) params.set(k, String(v));
+                  }
+                }
+              } catch { /* ignore */ }
             }
           }
-        } catch { /* ignore */ }
-      }
+        }
+      } catch { /* ignore body parse errors */ }
     }
 
     // Dhru Fusion bulk format: a single form field "data" containing JSON
@@ -52,8 +79,22 @@ Deno.serve(async (req) => {
       } catch { /* ignore */ }
     }
 
-    const key = params.get("key") || params.get("apikey") || params.get("apiaccesskey");
-    if (!key) return dhruError("Missing API key", 401);
+    // Accept many key field-name variants used by different Dhru clients
+    const key = params.get("key")
+      || params.get("apikey")
+      || params.get("api_key")
+      || params.get("apiaccesskey")
+      || params.get("api_access_key")
+      || params.get("APIKEY")
+      || (req.headers.get("x-api-key") ?? null)
+      || ((req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim() || null);
+
+    if (!key) {
+      const seen = Array.from(params.keys()).join(",") || "(none)";
+      console.log("api-check missing key. params=", seen, "ct=", req.headers.get("content-type"), "rawLen=", rawBody.length);
+      return dhruError(`Missing API key (received fields: ${seen})`, 401);
+    }
+
 
     const supabase = makeServiceClient();
     const { data: apiKey } = await supabase
