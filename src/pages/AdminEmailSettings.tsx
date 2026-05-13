@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Mail, Send } from "lucide-react";
+import { Loader2, Save, Mail, Send, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 type Tpl = { subject: string; html: string };
