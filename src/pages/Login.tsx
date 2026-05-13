@@ -23,13 +23,9 @@ export default function Login() {
     }
     setLoading(true);
 
-    // Check if OTP login is enabled globally
-    const { data: es } = await supabase
-      .from("email_settings")
-      .select("otp_login_enabled")
-      .eq("id", 1)
-      .maybeSingle();
-    const otpEnabled = (es as { otp_login_enabled?: boolean } | null)?.otp_login_enabled ?? true;
+    // Check if OTP login is enabled globally (via security-definer RPC, readable pre-login)
+    const { data: otpFlag } = await supabase.rpc("get_otp_login_enabled");
+    const otpEnabled = otpFlag !== false;
 
     if (!otpEnabled) {
       // Normal password-only login

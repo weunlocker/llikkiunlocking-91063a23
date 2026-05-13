@@ -21,15 +21,9 @@ export default function LoginOtp() {
       return;
     }
     // If OTP login is disabled, redirect away
-    supabase
-      .from("email_settings")
-      .select("otp_login_enabled")
-      .eq("id", 1)
-      .maybeSingle()
-      .then(({ data }) => {
-        const enabled = (data as { otp_login_enabled?: boolean } | null)?.otp_login_enabled ?? true;
-        if (!enabled) navigate("/login", { replace: true });
-      });
+    supabase.rpc("get_otp_login_enabled").then(({ data }) => {
+      if (data === false) navigate("/login", { replace: true });
+    });
   }, [email, navigate]);
 
   const verify = async (e: React.FormEvent) => {
