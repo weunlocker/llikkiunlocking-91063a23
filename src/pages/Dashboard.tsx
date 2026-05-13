@@ -465,13 +465,13 @@ export default function Dashboard() {
                         <td className="px-5 py-3 font-mono text-xs">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
                         <td className="px-5 py-3 font-medium">{o.services?.name ?? "—"}</td>
                         <td className="px-5 py-3 font-mono text-xs">{o.imei}</td>
-                        <td className="px-5 py-3"><StatusBadge status={o.status} errorMessage={o.error_message} /></td>
+                        <td className="px-5 py-3"><StatusBadge status={o.status} errorMessage={sanitizeError(o.error_message)} /></td>
                         <td className="px-5 py-3 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
                         <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(o.created_at).toLocaleString()}</td>
                         <td className="px-5 py-3 text-[13px] leading-relaxed max-w-md" onClick={(e) => e.stopPropagation()}>
                           {o.result
                             ? <div className="max-h-40 overflow-auto"><ColoredResult text={extractResponse(o.result)} font={o.services?.result_font ?? undefined} /></div>
-                            : <span className="text-muted-foreground text-xs">{o.error_message || (o.status === "pending" ? "Waiting…" : "—")}</span>}
+                            : <span className="text-muted-foreground text-xs">{sanitizeError(o.error_message) || (o.status === "pending" ? "Waiting…" : "—")}</span>}
                         </td>
                       </tr>
                     ))}
