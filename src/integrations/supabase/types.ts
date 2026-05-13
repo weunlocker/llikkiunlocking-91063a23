@@ -170,6 +170,7 @@ export type Database = {
           from_email: string | null
           from_name: string
           id: number
+          otp_login_enabled: boolean
           reply_to: string | null
           smtp_host: string | null
           smtp_password: string | null
@@ -187,6 +188,7 @@ export type Database = {
           from_email?: string | null
           from_name?: string
           id?: number
+          otp_login_enabled?: boolean
           reply_to?: string | null
           smtp_host?: string | null
           smtp_password?: string | null
@@ -204,6 +206,7 @@ export type Database = {
           from_email?: string | null
           from_name?: string
           id?: number
+          otp_login_enabled?: boolean
           reply_to?: string | null
           smtp_host?: string | null
           smtp_password?: string | null
