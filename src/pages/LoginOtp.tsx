@@ -21,8 +21,8 @@ export default function LoginOtp() {
 
   const verify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (code.length !== 6) {
-      toast.error("Enter the 6-digit code");
+    if (code.length !== 8) {
+      toast.error("Enter the 8-digit code");
       return;
     }
     setLoading(true);
