@@ -104,6 +104,14 @@ export default function AdminEmailSettings() {
           <Switch checked={s.enabled} onCheckedChange={(v) => set("enabled", v)} />
         </div>
 
+        <div className="glass rounded-2xl p-5 flex items-center justify-between">
+          <div>
+            <div className="font-bold flex items-center gap-2"><Lock className="w-4 h-4 text-primary" /> Gmail OTP login</div>
+            <p className="text-xs text-muted-foreground">When on, users must enter a 6-digit code sent to their email after password.</p>
+          </div>
+          <Switch checked={s.otp_login_enabled} onCheckedChange={(v) => set("otp_login_enabled", v)} />
+        </div>
+
         <Tabs defaultValue="smtp">
           <TabsList className="glass">
             <TabsTrigger value="smtp">SMTP</TabsTrigger>
