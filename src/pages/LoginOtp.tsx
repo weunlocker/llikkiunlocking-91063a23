@@ -16,7 +16,20 @@ export default function LoginOtp() {
   const [resending, setResending] = useState(false);
 
   useEffect(() => {
-    if (!email) navigate("/login", { replace: true });
+    if (!email) {
+      navigate("/login", { replace: true });
+      return;
+    }
+    // If OTP login is disabled, redirect away
+    supabase
+      .from("email_settings")
+      .select("otp_login_enabled")
+      .eq("id", 1)
+      .maybeSingle()
+      .then(({ data }) => {
+        const enabled = (data as { otp_login_enabled?: boolean } | null)?.otp_login_enabled ?? true;
+        if (!enabled) navigate("/login", { replace: true });
+      });
   }, [email, navigate]);
 
   const verify = async (e: React.FormEvent) => {

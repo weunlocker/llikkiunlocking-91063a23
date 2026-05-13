@@ -22,13 +22,43 @@ export default function Login() {
       return;
     }
     setLoading(true);
-    // Step 1: verify password
+
+    // Check if OTP login is enabled globally
+    const { data: es } = await supabase
+      .from("email_settings")
+      .select("otp_login_enabled")
+      .eq("id", 1)
+      .maybeSingle();
+    const otpEnabled = (es as { otp_login_enabled?: boolean } | null)?.otp_login_enabled ?? true;
+
+    if (!otpEnabled) {
+      // Normal password-only login
+      const { error } = await supabase.auth.signInWithPassword({
+        email: parsed.data.email,
+        password: parsed.data.password,
+      });
+      setLoading(false);
+      if (error) {
+        supabase.functions.invoke("auth-event", {
+          body: { email: parsed.data.email, success: false },
+        }).catch(() => {});
+        toast.error(error.message);
+        return;
+      }
+      supabase.functions.invoke("auth-event", {
+        body: { email: parsed.data.email, success: true },
+      }).catch(() => {});
+      toast.success("Welcome back!");
+      navigate("/dashboard");
+      return;
+    }
+
+    // OTP flow: verify password, sign out, send OTP
     const { error } = await supabase.auth.signInWithPassword({
       email: parsed.data.email,
       password: parsed.data.password,
     });
     if (error) {
-      // Only log failed attempts here; success is logged after OTP verification.
       supabase.functions.invoke("auth-event", {
         body: { email: parsed.data.email, success: false },
       }).catch(() => {});
@@ -36,9 +66,7 @@ export default function Login() {
       toast.error(error.message);
       return;
     }
-    // Step 2: sign out (we still need OTP verification)
     await supabase.auth.signOut();
-    // Step 3: send OTP code via email
     const { error: otpErr } = await supabase.auth.signInWithOtp({
       email: parsed.data.email,
       options: { shouldCreateUser: false },
