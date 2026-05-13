@@ -62,6 +62,7 @@ export default function AdminEmailSettings() {
     setSaving(true);
     const { error } = await supabase.from("email_settings").update({
       enabled: s.enabled,
+      otp_login_enabled: s.otp_login_enabled,
       smtp_host: s.smtp_host, smtp_port: s.smtp_port,
       smtp_user: s.smtp_user, smtp_password: s.smtp_password, smtp_secure: s.smtp_secure,
       from_email: s.from_email, from_name: s.from_name, reply_to: s.reply_to,
