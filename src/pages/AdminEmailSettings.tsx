@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Mail, Send } from "lucide-react";
+import { Loader2, Save, Mail, Send, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 type Tpl = { subject: string; html: string };
 type Settings = {
   id: number;
   enabled: boolean;
+  otp_login_enabled: boolean;
   smtp_host: string | null;
   smtp_port: number;
   smtp_user: string | null;
@@ -61,6 +62,7 @@ export default function AdminEmailSettings() {
     setSaving(true);
     const { error } = await supabase.from("email_settings").update({
       enabled: s.enabled,
+      otp_login_enabled: s.otp_login_enabled,
       smtp_host: s.smtp_host, smtp_port: s.smtp_port,
       smtp_user: s.smtp_user, smtp_password: s.smtp_password, smtp_secure: s.smtp_secure,
       from_email: s.from_email, from_name: s.from_name, reply_to: s.reply_to,
@@ -100,6 +102,14 @@ export default function AdminEmailSettings() {
             <p className="text-xs text-muted-foreground">Master switch. When off, no app emails are sent.</p>
           </div>
           <Switch checked={s.enabled} onCheckedChange={(v) => set("enabled", v)} />
+        </div>
+
+        <div className="glass rounded-2xl p-5 flex items-center justify-between">
+          <div>
+            <div className="font-bold flex items-center gap-2"><Lock className="w-4 h-4 text-primary" /> Gmail OTP login</div>
+            <p className="text-xs text-muted-foreground">When on, users must enter a 6-digit code sent to their email after password.</p>
+          </div>
+          <Switch checked={s.otp_login_enabled} onCheckedChange={(v) => set("otp_login_enabled", v)} />
         </div>
 
         <Tabs defaultValue="smtp">
