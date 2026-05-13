@@ -38,6 +38,20 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Dhru Fusion bulk format: a single form field "data" containing JSON
+    // {username, apikey, action, ...}. Unwrap it if present.
+    const dataField = params.get("data");
+    if (dataField) {
+      try {
+        const j = JSON.parse(dataField);
+        if (j && typeof j === "object") {
+          for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
+            if (v != null && !params.has(k)) params.set(k, String(v));
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
     const key = params.get("key") || params.get("apikey") || params.get("apiaccesskey");
     if (!key) return dhruError("Missing API key", 401);
 
