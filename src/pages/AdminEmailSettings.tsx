@@ -14,6 +14,7 @@ type Tpl = { subject: string; html: string };
 type Settings = {
   id: number;
   enabled: boolean;
+  otp_login_enabled: boolean;
   smtp_host: string | null;
   smtp_port: number;
   smtp_user: string | null;
