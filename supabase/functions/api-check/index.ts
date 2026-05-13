@@ -129,50 +129,67 @@ Deno.serve(async (req) => {
 
     // ---- Service list (DHRU: imeiservicelist) ----
     if (action === "imeiservicelist" || action === "servicelist") {
-      // Only instant (non-Dhru-supplier) services are usable through Simple Link.
       const { data: svc } = await supabase
         .from("services")
         .select("id, service_code, name, price, delivery_time, category, supplier_id, suppliers(type)")
         .eq("active", true)
         .order("service_code");
-      const list = (svc ?? []).filter((s: any) => {
-        const t = s.suppliers?.type;
-        return !s.supplier_id || (t && t !== "dhru");
-      });
       // Per-user overrides for this user
       const { data: overrides } = await supabase
         .from("user_service_overrides").select("service_id, enabled, custom_price").eq("user_id", apiKey.user_id);
       const ovMap = new Map((overrides ?? []).map((o: any) => [o.service_id, o]));
-      const SERVICES: Record<string, unknown> = {};
-      for (const s of list as any[]) {
+      const groups: Record<string, { GROUPNAME: string; GROUPTYPE: string; SERVICES: Record<string, unknown> }> = {};
+      for (const s of (svc ?? []) as any[]) {
         const ov = ovMap.get(s.id);
         if (ov && ov.enabled === false) continue;
         const effective = ov?.custom_price != null
           ? Number(ov.custom_price)
           : +(Number(s.price) * (1 - discount)).toFixed(2);
-        SERVICES[s.service_code ?? s.id] = {
-          SERVICEID: s.service_code ?? s.id,
+        const groupName = String(s.category || "IMEI").trim() || "IMEI";
+        const groupKey = groupName.toUpperCase().replace(/[^A-Z0-9]+/g, "_") || "IMEI";
+        if (!groups[groupKey]) {
+          groups[groupKey] = { GROUPNAME: groupName, GROUPTYPE: "IMEI", SERVICES: {} };
+        }
+        const serviceId = s.service_code ?? s.id;
+        groups[groupKey].SERVICES[serviceId] = {
+          SERVICEID: serviceId,
           SERVICENAME: s.name,
           CREDIT: effective.toFixed(2),
-          TIME: s.delivery_time,
-          GROUP: s.category ?? "general",
+          TIME: s.delivery_time ?? "Instant",
           QNT: 1,
           INFO: "",
         };
       }
-      return json(200, { SUCCESS: [{ LIST: { IMEI: SERVICES } }] });
+      return json(200, { SUCCESS: [{ MESSAGE: "IMEI Service List", LIST: groups }] });
     }
 
     // ---- Account info (DHRU: accountinfo) ----
     if (action === "accountinfo") {
       const { data: prof } = await supabase
         .from("profiles").select("email, balance, display_name").eq("id", apiKey.user_id).maybeSingle();
+      const email = prof?.email ?? "";
+      const credit = Number(prof?.balance ?? 0).toFixed(2);
+      const currency = "USD";
       return json(200, {
         SUCCESS: [{
-          USERNAME: prof?.email ?? "",
+          message: "Your Accout Info",
+          AccoutInfo: {
+            credit,
+            mail: email,
+            currency,
+          },
+          AccountInfo: {
+            credit,
+            mail: email,
+            email,
+            currency,
+          },
+          USERNAME: email,
+          EMAIL: email,
           NAME: prof?.display_name ?? "",
-          CREDIT: Number(prof?.balance ?? 0).toFixed(2),
-          CURRENCY: "USD",
+          CREDIT: credit,
+          BALANCE: credit,
+          CURRENCY: currency,
         }],
       });
     }
