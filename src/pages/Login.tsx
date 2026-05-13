@@ -27,11 +27,11 @@ export default function Login() {
       email: parsed.data.email,
       password: parsed.data.password,
     });
-    // Fire-and-forget login event (admin notification + audit log)
-    supabase.functions.invoke("auth-event", {
-      body: { email: parsed.data.email, success: !error },
-    }).catch(() => {});
     if (error) {
+      // Only log failed attempts here; success is logged after OTP verification.
+      supabase.functions.invoke("auth-event", {
+        body: { email: parsed.data.email, success: false },
+      }).catch(() => {});
       setLoading(false);
       toast.error(error.message);
       return;

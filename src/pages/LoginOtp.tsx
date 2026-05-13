@@ -33,9 +33,16 @@ export default function LoginOtp() {
     });
     setLoading(false);
     if (error) {
+      supabase.functions.invoke("auth-event", {
+        body: { email, success: false },
+      }).catch(() => {});
       toast.error(error.message);
       return;
     }
+    // Login fully complete — fire admin + user telegram/email notifications.
+    supabase.functions.invoke("auth-event", {
+      body: { email, success: true },
+    }).catch(() => {});
     toast.success("Welcome back!");
     navigate("/dashboard");
   };
