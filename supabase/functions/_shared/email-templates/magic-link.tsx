@@ -9,14 +9,14 @@ export const MagicLinkEmail = ({ token }: Props) => (
   <EmailShell preview={`Your login code for ${BRAND.name}`}>
     <Heading style={styles.h1}>🔐 Your Login Code</Heading>
     <Text style={styles.text}>
-      Use the 6-digit code below to sign in to your {BRAND.name} account. This code expires shortly.
+      Use the code below to sign in to your {BRAND.name} account. This code expires shortly.
     </Text>
     <div style={{
       fontFamily: 'JetBrains Mono, Courier, monospace',
-      fontSize: '34px', fontWeight: 800, letterSpacing: '10px',
+      fontSize: '32px', fontWeight: 800, letterSpacing: '8px',
       color: '#0066CC', background: '#E6F7FF', textAlign: 'center',
       padding: '18px 12px', borderRadius: '12px', margin: '8px 0 24px',
-    }}>{token ?? '------'}</div>
+    }}>{token ?? '--------'}</div>
     <Text style={styles.small}>
       If you didn't request this, you can safely ignore this email.
     </Text>
