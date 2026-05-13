@@ -16,7 +16,7 @@ export const MagicLinkEmail = ({ token }: Props) => (
       fontSize: '34px', fontWeight: 800, letterSpacing: '10px',
       color: '#0066CC', background: '#E6F7FF', textAlign: 'center',
       padding: '18px 12px', borderRadius: '12px', margin: '8px 0 24px',
-    }}>{(token ?? '------').slice(0, 6)}</div>
+    }}>{token ?? '------'}</div>
     <Text style={styles.small}>
       If you didn't request this, you can safely ignore this email.
     </Text>
