@@ -249,7 +249,6 @@ function AdminUsers() {
                     <Button size="sm" variant="neon" onClick={() => setEditUser(u)}>Edit</Button>
                     <Button size="sm" variant="ghost" onClick={() => { setCreditUser(u); setCreditAmount("10"); }}>Refill</Button>
                     <Button size="sm" variant="ghost" onClick={() => toggleBan(u)}>{u.banned ? "Unban" : "Ban"}</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setMakeAdminUser(u)}>Admin</Button>
                   </td>
                 </tr>
               ))}
