@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 import { useConfirm } from "@/components/ConfirmDialog";
 import AdminUserEditDialog, { type EditableUser } from "@/components/AdminUserEditDialog";
+import AdminAdministrators from "@/components/AdminAdministrators";
 import { ColoredResult } from "@/components/ColoredResult";
 import { extractResponse } from "@/lib/extractResponse";
 
@@ -175,7 +176,6 @@ function AdminUsers() {
   const [q, setQ] = useState("");
   const [creditUser, setCreditUser] = useState<ProfileRow | null>(null);
   const [creditAmount, setCreditAmount] = useState("10");
-  const [makeAdminUser, setMakeAdminUser] = useState<ProfileRow | null>(null);
   const [editUser, setEditUser] = useState<ProfileRow | null>(null);
 
   const load = async () => {
@@ -201,11 +201,7 @@ function AdminUsers() {
     if (error) { toast.error(error.message); return; }
     toast.success(u.banned ? "Unbanned" : "Banned"); load();
   };
-  const grantAdmin = async (u: ProfileRow) => {
-    const { error } = await supabase.from("user_roles").insert({ user_id: u.id, role: "admin" });
-    if (error) { toast.error(error.message); return; }
-    toast.success(`${u.email} is now admin`); setMakeAdminUser(null);
-  };
+
 
   const groupBadge = (g?: string | null) => {
     const k = String(g ?? "standard").toLowerCase();
@@ -249,7 +245,6 @@ function AdminUsers() {
                     <Button size="sm" variant="neon" onClick={() => setEditUser(u)}>Edit</Button>
                     <Button size="sm" variant="ghost" onClick={() => { setCreditUser(u); setCreditAmount("10"); }}>Refill</Button>
                     <Button size="sm" variant="ghost" onClick={() => toggleBan(u)}>{u.banned ? "Unban" : "Ban"}</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setMakeAdminUser(u)}>Admin</Button>
                   </td>
                 </tr>
               ))}
@@ -279,16 +274,6 @@ function AdminUsers() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!makeAdminUser} onOpenChange={(o) => !o && setMakeAdminUser(null)}>
-        <DialogContent className="glass">
-          <DialogHeader><DialogTitle>Grant admin access?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">User <span className="font-mono">{makeAdminUser?.email}</span> will get full admin powers.</p>
-          <div className="flex gap-2 justify-end">
-            <Button variant="ghost" onClick={() => setMakeAdminUser(null)}>Cancel</Button>
-            <Button variant="hero" onClick={() => makeAdminUser && grantAdmin(makeAdminUser)}>Grant Admin</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </AdminLayout>
   );
 }
@@ -2075,6 +2060,7 @@ export default function Admin() {
       <Route index element={<AdminDashboard />} />
       <Route path="payments" element={<AdminPayments />} />
       <Route path="users" element={<AdminUsers />} />
+      <Route path="administrators" element={<AdminLayout title="Administrators" subtitle="Manage admin access and roles"><AdminAdministrators /></AdminLayout>} />
       <Route path="groups" element={<AdminGroups />} />
       <Route path="suppliers" element={<AdminSuppliers />} />
       <Route path="categories" element={<AdminCategories />} />

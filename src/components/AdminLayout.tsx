@@ -12,6 +12,7 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 const navItems = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/administrators", label: "Administrators", icon: ShieldCheck },
   { to: "/admin/groups", label: "Client Groups", icon: Crown },
   { to: "/admin/categories", label: "Categories", icon: Tags },
   { to: "/admin/services", label: "Services", icon: Briefcase },
