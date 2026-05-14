@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 import { useConfirm } from "@/components/ConfirmDialog";
 import AdminUserEditDialog, { type EditableUser } from "@/components/AdminUserEditDialog";
+import AdminAdministrators from "@/components/AdminAdministrators";
 import { ColoredResult } from "@/components/ColoredResult";
 import { extractResponse } from "@/lib/extractResponse";
 
@@ -2074,6 +2075,7 @@ export default function Admin() {
       <Route index element={<AdminDashboard />} />
       <Route path="payments" element={<AdminPayments />} />
       <Route path="users" element={<AdminUsers />} />
+      <Route path="administrators" element={<AdminLayout title="Administrators" subtitle="Manage admin access and roles"><AdminAdministrators /></AdminLayout>} />
       <Route path="groups" element={<AdminGroups />} />
       <Route path="suppliers" element={<AdminSuppliers />} />
       <Route path="categories" element={<AdminCategories />} />
