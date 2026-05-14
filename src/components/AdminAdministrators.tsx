@@ -35,7 +35,8 @@ export default function AdminAdministrators() {
     setLoading(true);
     const { data: roles } = await supabase
       .from("user_roles")
-      .select("user_id, role");
+      .select("user_id, role")
+      .eq("role", "admin");
     const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
     let profMap = new Map<string, Profile>();
     if (ids.length) {
