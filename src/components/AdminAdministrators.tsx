@@ -97,7 +97,7 @@ export default function AdminAdministrators() {
       title: "Remove administrator?",
       description: `Revoke ${row.role} from ${row.email ?? row.user_id}.`,
       confirmText: "Remove",
-      destructive: true,
+      tone: "danger",
     });
     if (!ok) return;
     const { error } = await supabase
