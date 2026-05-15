@@ -32,13 +32,35 @@ export default function Services() {
     setSelected(s);
   };
 
+  const collectionJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "IMEI Check & Unlock Services",
+    description: "Catalog of wholesale IMEI check and phone unlocking services.",
+    url: "https://likkiunlocking.com/services",
+    hasPart: services.slice(0, 30).map((s) => ({
+      "@type": "Service",
+      name: s.name,
+      description: s.description ?? undefined,
+      category: s.category ?? undefined,
+      provider: { "@type": "Organization", name: "LIKKI UNLOCKING" },
+      offers: {
+        "@type": "Offer",
+        price: Number(s.price).toFixed(2),
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
+      },
+    })),
+  };
+
   return (
     <Layout>
       <Seo
-        title="All IMEI Check & Unlock Services | LIKKI UNLOCKING"
-        description="Browse 100+ wholesale IMEI check and phone unlocking services. iCloud, carrier, blacklist, FMI, MDM and more. Instant results with full API access."
+        title="IMEI Check & Unlock Services | LIKKI UNLOCKING"
+        description="Browse 100+ wholesale IMEI check and unlock services — iCloud, carrier, blacklist, FMI, MDM. Instant results with full API."
         keywords="IMEI services, iCloud check, carrier check, blacklist check, FMI status, MDM removal, phone unlock services"
         path="/services"
+        jsonLd={collectionJsonLd}
       />
       <div className="container py-12">
         <div className="text-center mb-12 animate-fade-up">

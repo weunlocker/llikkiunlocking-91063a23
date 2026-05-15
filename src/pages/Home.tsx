@@ -44,6 +44,12 @@ export default function Home() {
     logo: "https://likkiunlocking.com/favicon.png",
     description: "Wholesale IMEI checks, carrier lookup, iCloud, blacklist & device unlocking with instant results and full API access.",
     sameAs: [],
+    contactPoint: [{
+      "@type": "ContactPoint",
+      contactType: "customer support",
+      email: "support@likkiunlocking.com",
+      availableLanguage: ["English"],
+    }],
   };
   const websiteJsonLd = {
     "@context": "https://schema.org",
@@ -68,8 +74,8 @@ export default function Home() {
   return (
     <Layout>
       <Seo
-        title="LIKKI UNLOCKING — #1 Wholesale IMEI Check & Phone Unlocking Supplier"
-        description="Direct supplier for IMEI checks, iCloud, carrier lookup, blacklist & phone unlocking. Instant results, wholesale pricing, full API. Trusted by 10,000+ resellers worldwide."
+        title="LIKKI UNLOCKING — Wholesale IMEI Check & Phone Unlock"
+        description="Direct supplier for IMEI checks, iCloud, carrier, blacklist & phone unlocking. Instant results, wholesale pricing, full API."
         keywords="IMEI check, phone unlock, iCloud unlock, carrier check, blacklist check, wholesale IMEI, IMEI API, GSM unlock"
         path="/"
         jsonLd={[orgJsonLd, websiteJsonLd, aggregateJsonLd]}

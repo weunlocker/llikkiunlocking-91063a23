@@ -68,12 +68,12 @@ export default function Layout({ children }: { children: ReactNode }) {
                   <span className="hidden md:inline ml-2">Dashboard</span>
                 </Button>
                 {isAdmin && (
-                  <Button variant="neon" size="sm" className="hidden sm:inline-flex" onClick={() => navigate("/admin")}>
+                  <Button variant="neon" size="sm" className="hidden sm:inline-flex" aria-label="Admin dashboard" onClick={() => navigate("/admin")}>
                     <Zap className="w-4 h-4" />
                     <span className="hidden md:inline ml-2">Admin</span>
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" className="hidden sm:inline-flex" onClick={signOut} title="Sign out">
+                <Button variant="ghost" size="icon" className="hidden sm:inline-flex" onClick={signOut} title="Sign out" aria-label="Sign out">
                   <LogOut className="w-4 h-4" />
                 </Button>
               </>

@@ -198,6 +198,7 @@ export default function FreeCheck() {
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <Input
+                aria-label="IMEI or serial number"
                 value={imei}
                 onChange={(e) => setImei(e.target.value)}
                 placeholder="IMEI / Serial"
