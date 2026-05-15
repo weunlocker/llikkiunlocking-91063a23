@@ -1,0 +1,20 @@
+# LIKKI UNLOCKING
+
+> Wholesale IMEI checks, carrier lookup, iCloud, blacklist & device unlocking with instant results and a developer-first API. Trusted by 10,000+ resellers since 2018.
+
+LIKKI UNLOCKING is a direct wholesale supplier for the mobile repair industry. Resellers, repair shops and developers use the platform to verify any IMEI (iCloud / FMI status, carrier, blacklist, model, warranty) and submit phone unlock orders. Pricing is wallet-based — no subscriptions, pay per check. A simple HTTP API is available for integration.
+
+## Pages
+
+- [Home](/): Overview, services, pricing and trust signals.
+- [Services](/services): Full catalog of IMEI check and unlock services with pricing and delivery times.
+- [Pricing](/pricing): Wholesale pricing tiers and wallet top-up information.
+- [Free Check](/free-check): Free IMEI checks for first-time visitors.
+- [API Docs](/api-docs): REST API reference for integrating IMEI checks into your platform.
+- [Register](/register): Create a wholesale account.
+- [Login](/login): Sign in to your account.
+
+## Optional
+
+- [Forgot password](/forgot-password)
+- [Unsubscribe](/unsubscribe)
