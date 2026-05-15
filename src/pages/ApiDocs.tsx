@@ -135,7 +135,7 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 {keys[0] && (
-                  <Button size="icon" variant="ghost" onClick={() => copy(keys[0].key)}><Copy className="w-4 h-4" /></Button>
+                  <Button size="icon" variant="ghost" aria-label="Copy API key" onClick={() => copy(keys[0].key)}><Copy className="w-4 h-4" /></Button>
                 )}
                 <Button variant="hero" size="sm" onClick={generateKey} disabled={generating}>
                   {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Generate"}
@@ -273,7 +273,7 @@ function Field({ label, value, onCopy, mono }: { label: string; value: string; o
       <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
       <div className="font-mono text-sm bg-background/60 rounded-lg p-3 flex items-center justify-between gap-2 border border-border">
         <span className={`truncate ${mono ? "" : ""}`}>{value}</span>
-        <Button size="icon" variant="ghost" onClick={() => onCopy(value)}><Copy className="w-4 h-4" /></Button>
+        <Button size="icon" variant="ghost" aria-label="Copy" onClick={() => onCopy(value)}><Copy className="w-4 h-4" /></Button>
       </div>
     </div>
   );
@@ -283,7 +283,7 @@ function CodeBlock({ value, onCopy }: { value: string; onCopy: (v: string) => vo
   return (
     <div className="font-mono text-xs bg-background/60 rounded-lg p-3 flex items-start justify-between gap-2 border border-border">
       <span className="break-all">{value}</span>
-      <Button size="icon" variant="ghost" onClick={() => onCopy(value)}><Copy className="w-4 h-4" /></Button>
+      <Button size="icon" variant="ghost" aria-label="Copy" onClick={() => onCopy(value)}><Copy className="w-4 h-4" /></Button>
     </div>
   );
 }
@@ -338,7 +338,7 @@ function ServiceIdTable({ title, hint, services, onCopy, instant, loading }: {
                   <td className="px-5 py-3 text-xs text-muted-foreground capitalize">{s.category ?? "—"}</td>
                   <td className="px-5 py-3 text-xs text-muted-foreground">{s.delivery_time}</td>
                   <td className="px-5 py-3 text-right font-mono">${Number(s.price).toFixed(2)}</td>
-                  <td className="px-5 py-3"><Button size="icon" variant="ghost" onClick={() => onCopy(code)}><Copy className="w-4 h-4" /></Button></td>
+                  <td className="px-5 py-3"><Button size="icon" variant="ghost" aria-label="Copy code" onClick={() => onCopy(code)}><Copy className="w-4 h-4" /></Button></td>
                 </tr>
               );
             })}
