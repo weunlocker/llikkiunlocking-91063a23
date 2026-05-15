@@ -235,6 +235,7 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="container py-10">
+        <h1 className="sr-only">Customer Dashboard</h1>
         {customMessage && !msgDismissed && localStorage.getItem("seenAdminMsg") !== customMessage && (
           <button
             type="button"
@@ -300,6 +301,7 @@ export default function Dashboard() {
               <div className="relative flex-1">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  aria-label="Search services"
                   placeholder="Search services..."
                   value={serviceQuery}
                   onChange={(e) => setServiceQuery(e.target.value)}

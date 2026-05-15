@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import BrandHeader from "@/components/BrandHeader";
+import Seo from "@/components/Seo";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -38,6 +39,12 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen grid-bg flex items-center justify-center p-6">
+      <Seo
+        title="Forgot password | LIKKI UNLOCKING"
+        description="Reset your LIKKI UNLOCKING account password by email."
+        path="/forgot-password"
+        noindex
+      />
       <div className="w-full max-w-md animate-fade-up">
         <BrandHeader />
         <div className="glass rounded-2xl p-8 shadow-card">

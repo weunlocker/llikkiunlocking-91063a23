@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import BrandHeader from "@/components/BrandHeader";
+import Seo from "@/components/Seo";
 import { toast } from "sonner";
 import { loginSchema } from "@/lib/validation";
 
@@ -78,6 +79,12 @@ export default function Login() {
 
   return (
     <div className="min-h-screen grid-bg flex items-center justify-center p-6">
+      <Seo
+        title="Sign in | LIKKI UNLOCKING"
+        description="Sign in to your LIKKI UNLOCKING account to run IMEI checks, manage your wallet, and view orders."
+        path="/login"
+        noindex
+      />
       <div className="w-full max-w-md animate-fade-up">
         <BrandHeader />
 

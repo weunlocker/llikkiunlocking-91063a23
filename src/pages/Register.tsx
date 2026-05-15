@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Loader2, Check, ChevronsUpDown } from "lucide-react";
 import BrandHeader from "@/components/BrandHeader";
+import Seo from "@/components/Seo";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { registerSchema } from "@/lib/validation";
@@ -79,6 +80,11 @@ export default function Register() {
 
   return (
     <div className="min-h-screen grid-bg flex items-center justify-center p-6">
+      <Seo
+        title="Create your wholesale account | LIKKI UNLOCKING"
+        description="Register for a free LIKKI UNLOCKING account to access wholesale IMEI checks, phone unlock services and the full API."
+        path="/register"
+      />
       <div className="w-full max-w-2xl animate-fade-up">
         <BrandHeader />
 

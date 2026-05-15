@@ -296,6 +296,7 @@ export default function AIChatWidget() {
                 </div>
                 <input
                   required
+                  aria-label="Your name"
                   value={guestName}
                   onChange={(e) => setGuestName(e.target.value)}
                   placeholder="Your name *"
@@ -304,6 +305,7 @@ export default function AIChatWidget() {
                 />
                 <input
                   type="email"
+                  aria-label="Email"
                   value={guestEmail}
                   onChange={(e) => setGuestEmail(e.target.value)}
                   placeholder="Email"
@@ -312,6 +314,7 @@ export default function AIChatWidget() {
                 />
                 <input
                   type="tel"
+                  aria-label="Phone number"
                   value={guestPhone}
                   onChange={(e) => setGuestPhone(e.target.value)}
                   placeholder="Phone (with country code)"
@@ -344,6 +347,7 @@ export default function AIChatWidget() {
             className="flex items-center gap-2 p-2 border-t border-border/60 bg-background/80"
           >
             <input
+              aria-label="Type your message"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about unlocks, pricing, IMEI…"
