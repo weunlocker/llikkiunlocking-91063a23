@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Loader2, CheckCircle2, XCircle, MailX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
+import Seo from "@/components/Seo";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
@@ -54,6 +55,12 @@ export default function Unsubscribe() {
 
   return (
     <Layout>
+      <Seo
+        title="Unsubscribe from emails | LIKKI UNLOCKING"
+        description="Manage your LIKKI UNLOCKING email preferences and unsubscribe from notifications."
+        path="/unsubscribe"
+        noindex
+      />
       <div className="min-h-[60vh] flex items-center justify-center px-4 py-16">
         <div className="glass max-w-md w-full rounded-2xl p-8 text-center space-y-4">
           {state === "loading" && (

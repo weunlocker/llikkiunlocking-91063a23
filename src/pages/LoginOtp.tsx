@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Loader2 } from "lucide-react";
 import BrandHeader from "@/components/BrandHeader";
+import Seo from "@/components/Seo";
 import { toast } from "sonner";
 
 export default function LoginOtp() {
@@ -67,6 +68,12 @@ export default function LoginOtp() {
 
   return (
     <div className="min-h-screen grid-bg flex items-center justify-center p-6">
+      <Seo
+        title="Verify your email code | LIKKI UNLOCKING"
+        description="Enter the 6-digit code sent to your email to finish signing in."
+        path="/login-otp"
+        noindex
+      />
       <div className="w-full max-w-md animate-fade-up">
         <BrandHeader />
         <div className="glass rounded-2xl p-8 shadow-card">
