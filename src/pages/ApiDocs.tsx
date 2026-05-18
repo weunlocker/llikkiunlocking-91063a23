@@ -300,6 +300,33 @@ function Param({ name, desc }: { name: string; desc: string }) {
 function ServiceIdTable({ title, hint, services, onCopy, instant, loading }: {
   title: string; hint: string; services: SimpleService[]; onCopy: (v: string) => void; instant: boolean; loading: boolean;
 }) {
+  const [category, setCategory] = useState<string>("all");
+  const [query, setQuery] = useState("");
+
+  const categories = Array.from(
+    new Set(services.map((s) => (s.category ?? "Uncategorized").trim() || "Uncategorized"))
+  ).sort();
+
+  const q = query.trim().toLowerCase();
+  const filtered = services.filter((s) => {
+    const cat = (s.category ?? "Uncategorized").trim() || "Uncategorized";
+    if (category !== "all" && cat !== category) return false;
+    if (!q) return true;
+    return (
+      s.name.toLowerCase().includes(q) ||
+      (s.service_code ?? "").toLowerCase().includes(q) ||
+      cat.toLowerCase().includes(q)
+    );
+  });
+
+  // Group filtered services by category for display
+  const grouped = filtered.reduce<Record<string, SimpleService[]>>((acc, s) => {
+    const cat = (s.category ?? "Uncategorized").trim() || "Uncategorized";
+    (acc[cat] ||= []).push(s);
+    return acc;
+  }, {});
+  const groupNames = Object.keys(grouped).sort();
+
   return (
     <div className="glass rounded-2xl overflow-hidden">
       <div className="p-5 border-b border-border/50">
@@ -308,42 +335,70 @@ function ServiceIdTable({ title, hint, services, onCopy, instant, loading }: {
           <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded ${instant ? "bg-success/20 text-success" : "bg-warning/20 text-warning"}`}>
             {instant ? "Instant" : "Async (Dhru)"}
           </span>
+          <span className="ml-auto text-xs text-muted-foreground">{filtered.length} of {services.length}</span>
         </div>
-        <p className="text-xs text-muted-foreground">{hint}</p>
+        <p className="text-xs text-muted-foreground mb-3">{hint}</p>
+
+        <div className="grid sm:grid-cols-[1fr_220px] gap-2">
+          <Input
+            placeholder="Search by name or service ID…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="bg-background/60"
+          />
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="h-10 rounded-md border border-input bg-background/60 px-3 text-sm"
+          >
+            <option value="all">All categories ({services.length})</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>{c} ({services.filter((s) => ((s.category ?? "Uncategorized").trim() || "Uncategorized") === c).length})</option>
+            ))}
+          </select>
+        </div>
       </div>
+
       {loading ? (
         <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>
-      ) : services.length === 0 ? (
-        <div className="p-10 text-center text-sm text-muted-foreground">No services in this group.</div>
+      ) : filtered.length === 0 ? (
+        <div className="p-10 text-center text-sm text-muted-foreground">No services match your filters.</div>
       ) : (
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary/40 text-left">
-            <tr>
-              <th className="px-5 py-3 w-24">Service ID</th>
-              <th className="px-5 py-3">Name</th>
-              <th className="px-5 py-3">Category</th>
-              <th className="px-5 py-3">Delivery</th>
-              <th className="px-5 py-3 text-right">Price</th>
-              <th className="px-5 py-3 w-12"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {services.map((s) => {
-              const code = s.service_code ?? "—";
-              return (
-                <tr key={s.id} className="border-t border-border/50 hover:bg-secondary/20">
-                  <td className="px-5 py-3 font-mono font-semibold text-primary">{code}</td>
-                  <td className="px-5 py-3">{s.name}</td>
-                  <td className="px-5 py-3 text-xs text-muted-foreground capitalize">{s.category ?? "—"}</td>
-                  <td className="px-5 py-3 text-xs text-muted-foreground">{s.delivery_time}</td>
-                  <td className="px-5 py-3 text-right font-mono">${Number(s.price).toFixed(2)}</td>
-                  <td className="px-5 py-3"><Button size="icon" variant="ghost" aria-label="Copy code" onClick={() => onCopy(code)}><Copy className="w-4 h-4" /></Button></td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/40 text-left sticky top-0 z-10">
+              <tr>
+                <th className="px-5 py-3 w-24">ID</th>
+                <th className="px-5 py-3">Name</th>
+                <th className="px-5 py-3">Delivery</th>
+                <th className="px-5 py-3 text-right">Price</th>
+                <th className="px-5 py-3 w-12"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {groupNames.map((g) => (
+                <>
+                  <tr key={`h-${g}`} className="bg-secondary/30">
+                    <td colSpan={5} className="px-5 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {g} <span className="text-muted-foreground/70 normal-case font-normal">· {grouped[g].length}</span>
+                    </td>
+                  </tr>
+                  {grouped[g].map((s) => {
+                    const code = s.service_code ?? "—";
+                    return (
+                      <tr key={s.id} className="border-t border-border/50 hover:bg-secondary/20">
+                        <td className="px-5 py-3 font-mono font-semibold text-primary">{code}</td>
+                        <td className="px-5 py-3">{s.name}</td>
+                        <td className="px-5 py-3 text-xs text-muted-foreground">{s.delivery_time}</td>
+                        <td className="px-5 py-3 text-right font-mono">${Number(s.price).toFixed(2)}</td>
+                        <td className="px-5 py-3"><Button size="icon" variant="ghost" aria-label="Copy code" onClick={() => onCopy(code)}><Copy className="w-4 h-4" /></Button></td>
+                      </tr>
+                    );
+                  })}
+                </>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
