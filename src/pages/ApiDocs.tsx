@@ -32,8 +32,8 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-    setBase(`https://${projectId}.supabase.co/functions/v1/api-check`);
+    // Use custom DHRU-style domain (Cloudflare Worker proxies to Supabase edge function)
+    setBase("https://api.likkiunlocking.com");
   }, []);
 
   useEffect(() => {
