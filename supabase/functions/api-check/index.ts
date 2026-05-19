@@ -199,9 +199,18 @@ Deno.serve(async (req) => {
       return dhruError(`Unknown action: ${action}`, 400);
     }
 
-    const serviceParam = params.get("service");
-    const imei = params.get("imei");
-    if (!serviceParam) return dhruError("Missing service id (service=...)", 400);
+    const serviceParam = params.get("service")
+      || params.get("SERVICE")
+      || params.get("serviceid")
+      || params.get("SERVICEID")
+      || params.get("service_id")
+      || params.get("ServiceID");
+    const imei = params.get("imei") || params.get("IMEI") || params.get("Imei");
+    if (!serviceParam) {
+      const seen = Array.from(params.keys()).join(",") || "(none)";
+      console.log("api-check missing service. params=", seen);
+      return dhruError(`Missing service id (received fields: ${seen})`, 400);
+    }
     if (!imei || !/^[A-Za-z0-9]{8,20}$/.test(imei)) return dhruError("Invalid IMEI (8-20 alphanumeric)", 400);
 
     // Resolve service: accept UUID or service_code (e.g. "001")
