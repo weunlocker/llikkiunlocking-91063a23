@@ -72,11 +72,24 @@ Deno.serve(async (req) => {
     for (const wrapper of ["data", "parameters", "PARAMETERS", "Parameters", "params"]) {
       const raw = params.get(wrapper);
       if (!raw) continue;
+      const variants = payloadVariants(raw);
+      let parsed = false;
+      for (const candidate of variants) {
+        if (mergeJsonPayload(candidate, params)) {
+          parsed = true;
+          break;
+        }
+        if (candidate.trim().startsWith("<") && mergeXmlPayload(candidate, params)) {
+          parsed = true;
+          break;
+        }
+      }
+      if (parsed) continue;
       try {
         const j = JSON.parse(raw);
         if (j && typeof j === "object") {
           for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
-            if (v != null && !params.has(k)) params.set(k, String(v));
+            if (v != null && !params.has(k)) params.set(k, paramValue(v));
           }
         }
       } catch {
@@ -84,7 +97,10 @@ Deno.serve(async (req) => {
         if (trimmed.startsWith("<")) {
           for (const [, tag, value] of trimmed.matchAll(/<([A-Za-z0-9_:-]+)\b[^>]*>([\s\S]*?)<\/\1>/g)) {
             const cleanTag = tag.replace(/^.*:/, "");
-            if (cleanTag.toUpperCase() === "PARAMETERS") continue;
+            if (cleanTag.toUpperCase() === "PARAMETERS") {
+              mergeXmlPayload(value, params);
+              continue;
+            }
             if (!params.has(cleanTag)) params.set(cleanTag, decodeXml(value.trim()));
           }
         } else {
