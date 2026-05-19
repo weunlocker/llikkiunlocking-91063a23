@@ -228,8 +228,61 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Detect Dhru-style client so we wrap responses in DHRU envelope.
+    const isDhruClient = !!(
+      params.get("apiaccesskey") ||
+      params.get("parameters") ||
+      params.get("PARAMETERS") ||
+      params.get("data") ||
+      action === "placeimeiorder" ||
+      action === "getimeiorder" ||
+      action === "placeorder" ||
+      action === "getorder"
+    );
+
+    // ---- Get IMEI order status (DHRU: getimeiorder) ----
+    if (action === "getimeiorder" || action === "getorder") {
+      const refParam = params.get("ID") || params.get("id") || params.get("REFERENCEID") || params.get("referenceid") || params.get("reference");
+      if (!refParam) return dhruError("Missing ID", 400);
+      const { data: ord } = await supabase
+        .from("orders")
+        .select("id, order_number, status, result, error_message, imei, service_id, services(name)")
+        .eq("user_id", apiKey.user_id)
+        .or(`order_number.eq.${refParam},id.eq.${/^[0-9a-f-]{36}$/i.test(refParam) ? refParam : "00000000-0000-0000-0000-000000000000"}`)
+        .maybeSingle();
+      if (!ord) return dhruError(`Order not found: ${refParam}`, 404);
+      const statusMap: Record<string, { code: string; label: string }> = {
+        pending: { code: "1", label: "Pending" },
+        in_process: { code: "1", label: "Processing" },
+        completed: { code: "4", label: "Success" },
+        failed: { code: "3", label: "Rejected" },
+      };
+      const m = statusMap[String(ord.status)] ?? { code: "1", label: "Pending" };
+      const reply = ord.status === "completed"
+        ? (ord.result ?? "")
+        : ord.status === "failed"
+          ? (ord.error_message ?? ord.result ?? "Rejected")
+          : "Pending";
+      return json(200, {
+        SUCCESS: [{
+          MESSAGE: m.label,
+          LIST: {
+            [String(ord.order_number)]: {
+              REFERENCEID: String(ord.order_number),
+              ID: String(ord.order_number),
+              IMEI: ord.imei,
+              STATUS: m.label,
+              CODE: m.code,
+              REPLY: reply,
+              RESULT: reply,
+            },
+          },
+        }],
+      });
+    }
+
     // ---- Place IMEI check ----
-    if (action !== "imeicheck" && action !== "placeimeiorder") {
+    if (action !== "imeicheck" && action !== "placeimeiorder" && action !== "placeorder") {
       return dhruError(`Unknown action: ${action}`, 400);
     }
 
@@ -264,6 +317,41 @@ Deno.serve(async (req) => {
       imei,
       source: "api",
     });
+
+    // Wrap response in DHRU envelope when caller uses Dhru-style fields
+    if (isDhruClient) {
+      const body: any = result.body || {};
+      const orderId = body.order_id;
+      let orderNumber: string | null = null;
+      if (orderId) {
+        const { data: ord } = await supabase
+          .from("orders").select("order_number").eq("id", orderId).maybeSingle();
+        if (ord?.order_number != null) orderNumber = String(ord.order_number);
+      }
+      const refId = orderNumber ?? (orderId ? String(orderId) : "");
+      if (body.status === "failed") {
+        return json(200, {
+          ID: serviceParam,
+          IMEI: imei,
+          ERROR: [{ MESSAGE: body.error || "Rejected", FULL_DESCRIPTION: body.error || "Rejected" }],
+          apiversion: "2.0.0",
+        });
+      }
+      return json(200, {
+        ID: serviceParam,
+        IMEI: imei,
+        SUCCESS: [{
+          MESSAGE: body.status === "completed" ? "Order completed" : "Order received",
+          REFERENCEID: refId,
+          ID: refId,
+          STATUS: body.status === "completed" ? "Success" : "Pending",
+          CODE: body.status === "completed" ? "4" : "1",
+          ...(body.result ? { REPLY: body.result, RESULT: body.result } : {}),
+        }],
+        apiversion: "2.0.0",
+      });
+    }
+
     return json(result.status, result.body);
   } catch (e) {
     console.error("api-check error:", e);
