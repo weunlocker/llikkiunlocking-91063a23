@@ -277,6 +277,75 @@ function json(status: number, body: unknown) {
   });
 }
 
+function paramValue(value: unknown): string {
+  return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+function payloadVariants(raw: string): string[] {
+  const out = new Set<string>();
+  const add = (v: string) => {
+    const t = v.trim();
+    if (t) out.add(t);
+  };
+  add(raw);
+  add(decodeXml(raw));
+  try { add(decodeURIComponent(raw.replace(/\+/g, "%20"))); } catch { /* ignore */ }
+  for (const candidate of [...out]) {
+    if (/^[A-Za-z0-9+/=_-]{8,}$/.test(candidate)) {
+      try { add(atob(candidate.replace(/-/g, "+").replace(/_/g, "/"))); } catch { /* ignore */ }
+    }
+  }
+  return [...out];
+}
+
+function mergeJsonPayload(raw: string, params: URLSearchParams): boolean {
+  try {
+    const parsed = JSON.parse(raw);
+    return mergePayloadObject(parsed, params);
+  } catch {
+    return false;
+  }
+}
+
+function mergePayloadObject(value: unknown, params: URLSearchParams): boolean {
+  let merged = false;
+  if (Array.isArray(value)) {
+    for (const item of value) merged = mergePayloadObject(item, params) || merged;
+    return merged;
+  }
+  if (!value || typeof value !== "object") return false;
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (v == null) continue;
+    if (typeof v === "object") {
+      merged = mergePayloadObject(v, params) || merged;
+      continue;
+    }
+    if (!params.has(k)) {
+      params.set(k, String(v));
+      merged = true;
+    }
+  }
+  return merged;
+}
+
+function mergeXmlPayload(raw: string, params: URLSearchParams): boolean {
+  let merged = false;
+  const decoded = decodeXml(raw);
+  for (const [, tag, value] of decoded.matchAll(/<([A-Za-z0-9_:-]+)\b[^>]*>([\s\S]*?)<\/\1>/g)) {
+    const cleanTag = tag.replace(/^.*:/, "");
+    const cleanValue = decodeXml(value.trim());
+    if (cleanTag.toUpperCase() === "PARAMETERS") {
+      merged = mergeXmlPayload(cleanValue, params) || merged;
+      continue;
+    }
+    if (!params.has(cleanTag)) {
+      params.set(cleanTag, cleanValue);
+      merged = true;
+    }
+  }
+  return merged;
+}
+
 function decodeXml(value: string): string {
   return value
     .replace(/&lt;/g, "<")
