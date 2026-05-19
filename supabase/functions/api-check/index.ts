@@ -244,12 +244,13 @@ Deno.serve(async (req) => {
     if (action === "getimeiorder" || action === "getorder") {
       const refParam = params.get("ID") || params.get("id") || params.get("REFERENCEID") || params.get("referenceid") || params.get("reference");
       if (!refParam) return dhruError("Missing ID", 400);
-      const { data: ord } = await supabase
+      let ordQuery = supabase
         .from("orders")
         .select("id, order_number, status, result, error_message, imei, service_id, services(name)")
-        .eq("user_id", apiKey.user_id)
-        .or(`order_number.eq.${refParam},id.eq.${/^[0-9a-f-]{36}$/i.test(refParam) ? refParam : "00000000-0000-0000-0000-000000000000"}`)
-        .maybeSingle();
+        .eq("user_id", apiKey.user_id);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(refParam);
+      ordQuery = isUuid ? ordQuery.eq("id", refParam) : ordQuery.eq("order_number", refParam);
+      const { data: ord } = await ordQuery.maybeSingle();
       if (!ord) return dhruError(`Order not found: ${refParam}`, 404);
       const statusMap: Record<string, { code: string; label: string }> = {
         pending: { code: "1", label: "Pending" },
