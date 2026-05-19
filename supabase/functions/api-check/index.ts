@@ -253,12 +253,12 @@ Deno.serve(async (req) => {
       const { data: ord } = await ordQuery.maybeSingle();
       if (!ord) return dhruError(`Order not found: ${refParam}`, 404);
       const statusMap: Record<string, { code: string; label: string }> = {
-        pending: { code: "1", label: "Pending" },
+        pending: { code: "0", label: "Pending" },
         in_process: { code: "1", label: "Processing" },
         completed: { code: "4", label: "Success" },
         failed: { code: "3", label: "Rejected" },
       };
-      const m = statusMap[String(ord.status)] ?? { code: "1", label: "Pending" };
+      const m = statusMap[String(ord.status)] ?? { code: "0", label: "Pending" };
       const reply = ord.status === "completed"
         ? (ord.result ?? "")
         : ord.status === "failed"
@@ -346,7 +346,7 @@ Deno.serve(async (req) => {
           REFERENCEID: refId,
           ID: refId,
           STATUS: body.status === "completed" ? "Success" : "Pending",
-          CODE: body.status === "completed" ? "4" : "1",
+          CODE: body.status === "completed" ? "4" : "0",
           ...(body.result ? { REPLY: body.result, RESULT: body.result } : {}),
         }],
         apiversion: "2.0.0",
