@@ -66,7 +66,8 @@ Deno.serve(async (req) => {
     }
 
     // Dhru Fusion bulk format: a single form field "data" or "parameters"
-    // containing JSON like {username, apikey, action, ...} or service args.
+    // containing JSON, query-string args, or XML like:
+    // <PARAMETERS><ID>123</ID><IMEI>...</IMEI><CUSTOMFIELD>...</CUSTOMFIELD></PARAMETERS>
     // Unwrap any such wrapper fields.
     for (const wrapper of ["data", "parameters", "PARAMETERS", "Parameters", "params"]) {
       const raw = params.get(wrapper);
@@ -79,11 +80,20 @@ Deno.serve(async (req) => {
           }
         }
       } catch {
-        // Some Dhru clients send parameters as "service=001&imei=..." string
-        try {
-          const sp = new URLSearchParams(raw);
-          sp.forEach((v, k) => { if (!params.has(k)) params.set(k, v); });
-        } catch { /* ignore */ }
+        const trimmed = raw.trim();
+        if (trimmed.startsWith("<")) {
+          for (const [, tag, value] of trimmed.matchAll(/<([A-Za-z0-9_:-]+)\b[^>]*>([\s\S]*?)<\/\1>/g)) {
+            const cleanTag = tag.replace(/^.*:/, "");
+            if (cleanTag.toUpperCase() === "PARAMETERS") continue;
+            if (!params.has(cleanTag)) params.set(cleanTag, decodeXml(value.trim()));
+          }
+        } else {
+          // Some Dhru clients send parameters as "service=001&imei=..." string
+          try {
+            const sp = new URLSearchParams(raw);
+            sp.forEach((v, k) => { if (!params.has(k)) params.set(k, v); });
+          } catch { /* ignore */ }
+        }
       }
     }
 
@@ -212,7 +222,9 @@ Deno.serve(async (req) => {
       || params.get("serviceid")
       || params.get("SERVICEID")
       || params.get("service_id")
-      || params.get("ServiceID");
+      || params.get("ServiceID")
+      || params.get("ID")
+      || params.get("id");
     const imei = params.get("imei") || params.get("IMEI") || params.get("Imei");
     if (!serviceParam) {
       const seen = Array.from(params.keys()).join(",") || "(none)";
@@ -247,6 +259,16 @@ function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function decodeXml(value: string): string {
+  return value
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
 }
 
 function dhruError(message: string, status: number) {
