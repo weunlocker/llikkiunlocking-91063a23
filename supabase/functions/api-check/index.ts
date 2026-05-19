@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
             const j = JSON.parse(rawBody);
             if (j && typeof j === "object") {
               for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
-                if (v != null) params.set(k, String(v));
+                if (v != null) params.set(k, paramValue(v));
               }
             }
           } catch { /* ignore */ }
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
                 const j = JSON.parse(t);
                 if (j && typeof j === "object") {
                   for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
-                    if (v != null) params.set(k, String(v));
+                    if (v != null) params.set(k, paramValue(v));
                   }
                 }
               } catch { /* ignore */ }
