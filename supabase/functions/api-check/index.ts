@@ -264,19 +264,22 @@ Deno.serve(async (req) => {
         : ord.status === "failed"
           ? (ord.error_message ?? ord.result ?? "Rejected")
           : "Pending";
+      const dhruOrder = {
+        REFERENCEID: String(ord.order_number),
+        ID: String(ord.order_number),
+        IMEI: ord.imei,
+        STATUS: m.code,
+        STATUS_TEXT: m.label,
+        CODE: reply,
+        REPLY: reply,
+        RESULT: reply,
+      };
       return json(200, {
         SUCCESS: [{
           MESSAGE: m.label,
+          ...dhruOrder,
           LIST: {
-            [String(ord.order_number)]: {
-              REFERENCEID: String(ord.order_number),
-              ID: String(ord.order_number),
-              IMEI: ord.imei,
-              STATUS: m.label,
-              CODE: m.code,
-              REPLY: reply,
-              RESULT: reply,
-            },
+            [String(ord.order_number)]: dhruOrder,
           },
         }],
       });
@@ -345,8 +348,9 @@ Deno.serve(async (req) => {
           MESSAGE: body.status === "completed" ? "Order completed" : "Order received",
           REFERENCEID: refId,
           ID: refId,
-          STATUS: body.status === "completed" ? "Success" : "Pending",
-          CODE: body.status === "completed" ? "4" : "0",
+          STATUS: body.status === "completed" ? "4" : "0",
+          STATUS_TEXT: body.status === "completed" ? "Success" : "Pending",
+          CODE: body.status === "completed" ? (body.result || "Order completed") : "Pending",
           ...(body.result ? { REPLY: body.result, RESULT: body.result } : {}),
         }],
         apiversion: "2.0.0",
