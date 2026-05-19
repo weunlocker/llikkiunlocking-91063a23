@@ -259,11 +259,14 @@ Deno.serve(async (req) => {
         failed: { code: "3", label: "Rejected" },
       };
       const m = statusMap[String(ord.status)] ?? { code: "0", label: "Pending" };
-      const reply = ord.status === "completed"
+      const rawReply = ord.status === "completed"
         ? (ord.result ?? "")
         : ord.status === "failed"
           ? (ord.error_message ?? ord.result ?? "Rejected")
           : "Pending";
+      // Dhru panels render REPLY as HTML — convert newlines to <br /> so the
+      // result is shown line by line instead of one collapsed string.
+      const reply = String(rawReply).replace(/\r\n?/g, "\n").replace(/\n/g, "<br />");
       const dhruOrder = {
         REFERENCEID: String(ord.order_number),
         ID: String(ord.order_number),
