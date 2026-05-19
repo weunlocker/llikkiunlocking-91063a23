@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
             const j = JSON.parse(rawBody);
             if (j && typeof j === "object") {
               for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
-                if (v != null) params.set(k, String(v));
+                if (v != null) params.set(k, paramValue(v));
               }
             }
           } catch { /* ignore */ }
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
                 const j = JSON.parse(t);
                 if (j && typeof j === "object") {
                   for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
-                    if (v != null) params.set(k, String(v));
+                    if (v != null) params.set(k, paramValue(v));
                   }
                 }
               } catch { /* ignore */ }
@@ -72,11 +72,24 @@ Deno.serve(async (req) => {
     for (const wrapper of ["data", "parameters", "PARAMETERS", "Parameters", "params"]) {
       const raw = params.get(wrapper);
       if (!raw) continue;
+      const variants = payloadVariants(raw);
+      let parsed = false;
+      for (const candidate of variants) {
+        if (mergeJsonPayload(candidate, params)) {
+          parsed = true;
+          break;
+        }
+        if (candidate.trim().startsWith("<") && mergeXmlPayload(candidate, params)) {
+          parsed = true;
+          break;
+        }
+      }
+      if (parsed) continue;
       try {
         const j = JSON.parse(raw);
         if (j && typeof j === "object") {
           for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
-            if (v != null && !params.has(k)) params.set(k, String(v));
+            if (v != null && !params.has(k)) params.set(k, paramValue(v));
           }
         }
       } catch {
@@ -84,7 +97,10 @@ Deno.serve(async (req) => {
         if (trimmed.startsWith("<")) {
           for (const [, tag, value] of trimmed.matchAll(/<([A-Za-z0-9_:-]+)\b[^>]*>([\s\S]*?)<\/\1>/g)) {
             const cleanTag = tag.replace(/^.*:/, "");
-            if (cleanTag.toUpperCase() === "PARAMETERS") continue;
+            if (cleanTag.toUpperCase() === "PARAMETERS") {
+              mergeXmlPayload(value, params);
+              continue;
+            }
             if (!params.has(cleanTag)) params.set(cleanTag, decodeXml(value.trim()));
           }
         } else {
@@ -259,6 +275,75 @@ function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function paramValue(value: unknown): string {
+  return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+function payloadVariants(raw: string): string[] {
+  const out = new Set<string>();
+  const add = (v: string) => {
+    const t = v.trim();
+    if (t) out.add(t);
+  };
+  add(raw);
+  add(decodeXml(raw));
+  try { add(decodeURIComponent(raw.replace(/\+/g, "%20"))); } catch { /* ignore */ }
+  for (const candidate of [...out]) {
+    if (/^[A-Za-z0-9+/=_-]{8,}$/.test(candidate)) {
+      try { add(atob(candidate.replace(/-/g, "+").replace(/_/g, "/"))); } catch { /* ignore */ }
+    }
+  }
+  return [...out];
+}
+
+function mergeJsonPayload(raw: string, params: URLSearchParams): boolean {
+  try {
+    const parsed = JSON.parse(raw);
+    return mergePayloadObject(parsed, params);
+  } catch {
+    return false;
+  }
+}
+
+function mergePayloadObject(value: unknown, params: URLSearchParams): boolean {
+  let merged = false;
+  if (Array.isArray(value)) {
+    for (const item of value) merged = mergePayloadObject(item, params) || merged;
+    return merged;
+  }
+  if (!value || typeof value !== "object") return false;
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (v == null) continue;
+    if (typeof v === "object") {
+      merged = mergePayloadObject(v, params) || merged;
+      continue;
+    }
+    if (!params.has(k)) {
+      params.set(k, String(v));
+      merged = true;
+    }
+  }
+  return merged;
+}
+
+function mergeXmlPayload(raw: string, params: URLSearchParams): boolean {
+  let merged = false;
+  const decoded = decodeXml(raw);
+  for (const [, tag, value] of decoded.matchAll(/<([A-Za-z0-9_:-]+)\b[^>]*>([\s\S]*?)<\/\1>/g)) {
+    const cleanTag = tag.replace(/^.*:/, "");
+    const cleanValue = decodeXml(value.trim());
+    if (cleanTag.toUpperCase() === "PARAMETERS") {
+      merged = mergeXmlPayload(cleanValue, params) || merged;
+      continue;
+    }
+    if (!params.has(cleanTag)) {
+      params.set(cleanTag, cleanValue);
+      merged = true;
+    }
+  }
+  return merged;
 }
 
 function decodeXml(value: string): string {
