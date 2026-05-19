@@ -354,7 +354,7 @@ Deno.serve(async (req) => {
           STATUS: body.status === "completed" ? "4" : "0",
           STATUS_TEXT: body.status === "completed" ? "Success" : "Pending",
           CODE: body.status === "completed" ? (body.result || "Order completed") : "Pending",
-          ...(body.result ? { REPLY: body.result, RESULT: body.result } : {}),
+          ...(body.result ? { REPLY: String(body.result).replace(/\r\n?/g, "\n").replace(/\n/g, "<br />"), RESULT: String(body.result).replace(/\r\n?/g, "\n").replace(/\n/g, "<br />") } : {}),
         }],
         apiversion: "2.0.0",
       });
