@@ -65,18 +65,26 @@ Deno.serve(async (req) => {
       } catch { /* ignore body parse errors */ }
     }
 
-    // Dhru Fusion bulk format: a single form field "data" containing JSON
-    // {username, apikey, action, ...}. Unwrap it if present.
-    const dataField = params.get("data");
-    if (dataField) {
+    // Dhru Fusion bulk format: a single form field "data" or "parameters"
+    // containing JSON like {username, apikey, action, ...} or service args.
+    // Unwrap any such wrapper fields.
+    for (const wrapper of ["data", "parameters", "PARAMETERS", "Parameters", "params"]) {
+      const raw = params.get(wrapper);
+      if (!raw) continue;
       try {
-        const j = JSON.parse(dataField);
+        const j = JSON.parse(raw);
         if (j && typeof j === "object") {
           for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
             if (v != null && !params.has(k)) params.set(k, String(v));
           }
         }
-      } catch { /* ignore */ }
+      } catch {
+        // Some Dhru clients send parameters as "service=001&imei=..." string
+        try {
+          const sp = new URLSearchParams(raw);
+          sp.forEach((v, k) => { if (!params.has(k)) params.set(k, v); });
+        } catch { /* ignore */ }
+      }
     }
 
     // Accept many key field-name variants used by different Dhru clients
