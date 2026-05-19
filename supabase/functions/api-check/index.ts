@@ -346,7 +346,7 @@ Deno.serve(async (req) => {
           REFERENCEID: refId,
           ID: refId,
           STATUS: body.status === "completed" ? "Success" : "Pending",
-          CODE: body.status === "completed" ? "4" : "1",
+          CODE: body.status === "completed" ? "4" : "0",
           ...(body.result ? { REPLY: body.result, RESULT: body.result } : {}),
         }],
         apiversion: "2.0.0",
