@@ -34,7 +34,9 @@ export default function ReferralsPanel() {
   }, [user]);
 
   const code = profile?.referral_code as string | undefined;
-  const link = code ? `${window.location.origin}/register?ref=${code}` : "";
+  // Always use the production custom domain for shareable referral links
+  const PUBLIC_ORIGIN = "https://likkiunlocking.com";
+  const link = code ? `${PUBLIC_ORIGIN}/register?ref=${code}` : "";
   const totalEarned = bonuses.reduce((s, b) => s + Number(b.bonus_amount), 0);
 
   const copy = (text: string, label: string) => {
