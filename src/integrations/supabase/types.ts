@@ -488,6 +488,9 @@ export type Database = {
           notify_telegram: boolean
           phone: string | null
           pincode: string | null
+          referral_code: string | null
+          referred_at: string | null
+          referred_by: string | null
           state: string | null
           telegram_chat_id: string | null
           updated_at: string
@@ -510,6 +513,9 @@ export type Database = {
           notify_telegram?: boolean
           phone?: string | null
           pincode?: string | null
+          referral_code?: string | null
+          referred_at?: string | null
+          referred_by?: string | null
           state?: string | null
           telegram_chat_id?: string | null
           updated_at?: string
@@ -532,10 +538,70 @@ export type Database = {
           notify_telegram?: boolean
           phone?: string | null
           pincode?: string | null
+          referral_code?: string | null
+          referred_at?: string | null
+          referred_by?: string | null
           state?: string | null
           telegram_chat_id?: string | null
           updated_at?: string
           user_group?: string
+        }
+        Relationships: []
+      }
+      referral_bonuses: {
+        Row: {
+          bonus_amount: number
+          created_at: string
+          id: string
+          payment_order_id: string | null
+          referred_user_id: string
+          referrer_id: string
+          topup_amount: number
+        }
+        Insert: {
+          bonus_amount: number
+          created_at?: string
+          id?: string
+          payment_order_id?: string | null
+          referred_user_id: string
+          referrer_id: string
+          topup_amount: number
+        }
+        Update: {
+          bonus_amount?: number
+          created_at?: string
+          id?: string
+          payment_order_id?: string | null
+          referred_user_id?: string
+          referrer_id?: string
+          topup_amount?: number
+        }
+        Relationships: []
+      }
+      referral_settings: {
+        Row: {
+          enabled: boolean
+          id: number
+          min_topup: number
+          percent: number
+          updated_at: string
+          window_days: number
+        }
+        Insert: {
+          enabled?: boolean
+          id?: number
+          min_topup?: number
+          percent?: number
+          updated_at?: string
+          window_days?: number
+        }
+        Update: {
+          enabled?: boolean
+          id?: number
+          min_topup?: number
+          percent?: number
+          updated_at?: string
+          window_days?: number
         }
         Relationships: []
       }
@@ -1095,6 +1161,14 @@ export type Database = {
       }
     }
     Functions: {
+      award_referral_bonus: {
+        Args: {
+          p_payment_order_id?: string
+          p_referred_user_id: string
+          p_topup_amount: number
+        }
+        Returns: Json
+      }
       deduct_balance: {
         Args: { p_amount: number; p_user_id: string }
         Returns: number
@@ -1107,6 +1181,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      gen_referral_code: { Args: never; Returns: string }
       get_otp_login_enabled: { Args: never; Returns: boolean }
       has_role: {
         Args: {
