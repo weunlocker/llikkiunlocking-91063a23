@@ -676,7 +676,7 @@ export default function Dashboard() {
       </Dialog>
 
       <Dialog open={!!orderDetail} onOpenChange={(o) => !o && setOrderDetail(null)}>
-        <DialogContent className="glass max-w-2xl">
+        <DialogContent className="glass max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{orderDetail?.services?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2 text-sm">
