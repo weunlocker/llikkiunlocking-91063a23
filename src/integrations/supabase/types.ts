@@ -1183,6 +1183,22 @@ export type Database = {
       }
       gen_referral_code: { Args: never; Returns: string }
       get_otp_login_enabled: { Args: never; Returns: boolean }
+      get_public_payment_settings: {
+        Args: never
+        Returns: {
+          ask_admin_enabled: boolean
+          binance_coins: Json
+          binance_enabled: boolean
+          binance_min_amount: number
+          binance_pay_id: string
+          binance_qr_url: string
+          cashfree_enabled: boolean
+          cashfree_min_amount: number
+          cashfree_usd_to_inr: number
+          order_expiry_minutes: number
+          topup_amounts: Json
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
