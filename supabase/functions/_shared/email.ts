@@ -45,6 +45,13 @@ export async function notifyUserEmail(
       if (data.balance !== undefined) templateData.balance = data.balance;
       if (data.error !== undefined) templateData.error = data.error;
       if (data.refund !== undefined) templateData.refund = data.refund;
+      if (data.amount !== undefined) templateData.amount = data.amount;
+      if (data.method !== undefined) templateData.method = data.method;
+      if (data.reference !== undefined) templateData.reference = data.reference;
+      if (data.bonus !== undefined) templateData.bonus = data.bonus;
+      if (data.percent !== undefined) templateData.percent = data.percent;
+      if (data.topup_amount !== undefined) templateData.topupAmount = data.topup_amount;
+      if (data.referred_name !== undefined) templateData.referredName = data.referred_name;
 
       await sb.functions.invoke("send-transactional-email", {
         body: {
