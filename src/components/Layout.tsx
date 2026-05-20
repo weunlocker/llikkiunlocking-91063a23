@@ -1,12 +1,20 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { LogOut, LayoutDashboard, Wallet, Zap, Menu, X, Sun, Moon } from "lucide-react";
+import { LogOut, LayoutDashboard, Wallet, Zap, Menu, X, Sun, Moon, User as UserIcon, Shield } from "lucide-react";
 import { ReactNode, useState } from "react";
 import defaultLogo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useTheme } from "@/hooks/useTheme";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, profile, isAdmin, signOut } = useAuth();
