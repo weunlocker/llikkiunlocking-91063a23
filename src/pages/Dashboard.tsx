@@ -612,7 +612,7 @@ export default function Dashboard() {
       </Dialog>
 
       <Dialog open={!!pay} onOpenChange={(o) => !o && setPay(null)}>
-        <DialogContent className="glass max-w-md">
+        <DialogContent className="glass max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Pay with Binance</DialogTitle>
             <DialogDescription>
