@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,9 @@ import { Country, State } from "country-state-city";
 
 export default function Register() {
   const navigate = useNavigate();
+  const [search] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [refCode, setRefCode] = useState<string>("");
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -29,6 +31,14 @@ export default function Register() {
     stateCode: "",
     pincode: "",
   });
+
+  useEffect(() => {
+    const r = (search.get("ref") || localStorage.getItem("ref_code") || "").trim().toUpperCase();
+    if (r) {
+      setRefCode(r);
+      localStorage.setItem("ref_code", r);
+    }
+  }, [search]);
 
   const countries = useMemo(() => Country.getAllCountries(), []);
   const states = useMemo(
@@ -66,6 +76,7 @@ export default function Register() {
           state: state?.name || null,
           country: country?.name || null,
           pincode: form.pincode || null,
+          ref: refCode || null,
         },
       },
     });
@@ -74,6 +85,7 @@ export default function Register() {
       toast.error(error.message);
       return;
     }
+    localStorage.removeItem("ref_code");
     toast.success("Account created! Check your email to confirm before signing in.");
     navigate("/login");
   };
@@ -91,6 +103,11 @@ export default function Register() {
         <div className="glass rounded-2xl p-8 shadow-card">
           <h1 className="text-2xl font-bold mb-1">Create your account</h1>
           <p className="text-muted-foreground text-sm mb-6">Start checking IMEIs in seconds.</p>
+          {refCode && (
+            <div className="mb-4 rounded-md border border-success/40 bg-success/10 px-3 py-2 text-sm">
+              🎁 You were referred by <span className="font-mono font-semibold">{refCode}</span>. They'll earn a bonus when you top up.
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
