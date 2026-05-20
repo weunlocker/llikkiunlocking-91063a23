@@ -2054,11 +2054,13 @@ function AdminGroups() {
 import AdminEmailSettings from "./AdminEmailSettings";
 import AdminPayments from "./AdminPayments";
 import AdminTurnstile from "./AdminTurnstile";
+import AdminReferrals from "./AdminReferrals";
 export default function Admin() {
   return (
     <Routes>
       <Route index element={<AdminDashboard />} />
       <Route path="payments" element={<AdminPayments />} />
+      <Route path="referrals" element={<AdminReferrals />} />
       <Route path="users" element={<AdminUsers />} />
       <Route path="administrators" element={<AdminLayout title="Administrators" subtitle="Manage admin access and roles"><AdminAdministrators /></AdminLayout>} />
       <Route path="groups" element={<AdminGroups />} />

@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, Briefcase, ListOrdered, Wallet, Settings,
-  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, Menu, X, Send, Network, CreditCard, Shield, Crown,
+  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, Menu, X, Send, Network, CreditCard, Shield, Crown, Gift,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -19,6 +19,7 @@ const navItems = [
   { to: "/admin/orders", label: "Orders", icon: ListOrdered },
   { to: "/admin/transactions", label: "Transactions", icon: Wallet },
   { to: "/admin/payments", label: "Payments", icon: CreditCard },
+  { to: "/admin/referrals", label: "Referrals", icon: Gift },
   { to: "/admin/notifications", label: "Notifications", icon: Bell },
   { to: "/admin/telegram-bot", label: "Telegram Bot", icon: Send },
   { to: "/admin/api-providers", label: "API Providers", icon: Network },

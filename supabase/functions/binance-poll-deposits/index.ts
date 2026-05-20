@@ -3,6 +3,7 @@
 // Triggered by pg_cron every minute. Public (no JWT) — protected by being
 // service-role only and read-only on Binance.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { notifyUserEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,6 +126,37 @@ Deno.serve(async (req) => {
         credited: true,
         raw: d as unknown as Record<string, unknown>,
       }).eq("id", found.id);
+
+      // Notify user about the top-up
+      try {
+        await notifyUserEmail(admin, found.user_id, "balance_topup", {
+          amount: depAmount.toFixed(2),
+          balance: newBal.toFixed(2),
+          method: `Binance Pay (${d.coin ?? "USDT"})`,
+          reference: found.memo ?? "",
+        });
+      } catch (e) { console.error("topup email", e); }
+
+      // Award referral bonus (if applicable)
+      try {
+        const { data: ref } = await admin.rpc("award_referral_bonus", {
+          p_referred_user_id: found.user_id,
+          p_topup_amount: depAmount,
+          p_payment_order_id: found.id,
+        });
+        const r = ref as { ok?: boolean; referrer_id?: string; bonus?: number; new_balance?: number } | null;
+        if (r?.ok && r.referrer_id) {
+          const { data: refee } = await admin.from("profiles").select("display_name,email").eq("id", found.user_id).maybeSingle();
+          const { data: rs } = await admin.from("referral_settings").select("percent").eq("id", 1).maybeSingle();
+          await notifyUserEmail(admin, r.referrer_id, "referral_bonus", {
+            bonus: Number(r.bonus ?? 0).toFixed(2),
+            topup_amount: depAmount.toFixed(2),
+            percent: Number(rs?.percent ?? 10),
+            balance: Number(r.new_balance ?? 0).toFixed(2),
+            referred_name: refee?.display_name ?? refee?.email ?? "your referral",
+          });
+        }
+      } catch (e) { console.error("referral bonus", e); }
 
       pendingByMemo.delete(found.memo!.toUpperCase());
       matched.push({ memo: found.memo!, user_id: found.user_id, amount: depAmount, tx: d.txId ?? "" });
