@@ -100,7 +100,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate("/dashboard?tab=profile")} className="cursor-pointer">
+                    <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">
                       <UserIcon className="w-4 h-4 mr-2" /> Profile
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate("/dashboard")} className="cursor-pointer">
