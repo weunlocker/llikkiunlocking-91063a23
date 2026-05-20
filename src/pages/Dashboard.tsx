@@ -90,12 +90,14 @@ export default function Dashboard() {
   useEffect(() => { localStorage.setItem("serviceView", serviceView); }, [serviceView]);
   const [paySettings, setPaySettings] = useState<{ binance_enabled: boolean; topup_amounts: number[]; ask_admin_enabled: boolean } | null>(null);
   useEffect(() => {
-    supabase.from("payment_settings").select("binance_enabled,topup_amounts,ask_admin_enabled").eq("id", 1).maybeSingle()
-      .then(({ data }) => { if (data) setPaySettings({
-        binance_enabled: !!data.binance_enabled,
-        topup_amounts: (data.topup_amounts as number[]) ?? [5,10,20,30],
-        ask_admin_enabled: !!data.ask_admin_enabled,
-      }); });
+    supabase.rpc("get_public_payment_settings").then(({ data }) => {
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) setPaySettings({
+        binance_enabled: !!row.binance_enabled,
+        topup_amounts: (row.topup_amounts as number[]) ?? [5,10,20,30],
+        ask_admin_enabled: !!row.ask_admin_enabled,
+      });
+    });
   }, []);
 
   useEffect(() => {
