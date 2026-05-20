@@ -574,7 +574,7 @@ export default function Dashboard() {
       </div>
 
       <Dialog open={topupOpen} onOpenChange={setTopupOpen}>
-        <DialogContent className="glass">
+        <DialogContent className="glass max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Top Up Wallet</DialogTitle></DialogHeader>
           <div className="space-y-5">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
