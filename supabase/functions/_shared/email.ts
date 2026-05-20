@@ -4,13 +4,15 @@
 // Lovable template (e.g. balance_update).
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-export type EmailEvent = "welcome" | "order_placed" | "order_success" | "order_rejected" | "balance_update";
+export type EmailEvent = "welcome" | "order_placed" | "order_success" | "order_rejected" | "balance_update" | "balance_topup" | "referral_bonus";
 
 const LOVABLE_TEMPLATE_MAP: Partial<Record<EmailEvent, string>> = {
   welcome: "welcome",
   order_placed: "order-placed",
   order_success: "order-success",
   order_rejected: "order-rejected",
+  balance_topup: "balance-topup",
+  referral_bonus: "referral-bonus",
 };
 
 export async function notifyUserEmail(
