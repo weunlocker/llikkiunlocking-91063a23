@@ -19,6 +19,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import LoginOtp from "./pages/LoginOtp";
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import Unsubscribe from "./pages/Unsubscribe";
 
