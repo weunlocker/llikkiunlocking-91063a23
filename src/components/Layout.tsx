@@ -21,6 +21,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { settings } = useSiteSettings();
   const { theme, toggle: toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const logoSrc = settings.logo_url || defaultLogo;
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -30,7 +31,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     { to: "/free-check", label: "Free Check" },
     { to: "/pricing", label: "Pricing" },
   ];
-  const navLinks = user ? allNavLinks.filter((l) => l.to === "/") : allNavLinks;
+  const isDashboardArea = location.pathname.startsWith("/dashboard") || location.pathname.startsWith("/admin") || location.pathname.startsWith("/profile");
+  const navLinks = isDashboardArea ? allNavLinks.filter((l) => l.to === "/") : allNavLinks;
 
   return (
     <div className="min-h-screen flex flex-col">
