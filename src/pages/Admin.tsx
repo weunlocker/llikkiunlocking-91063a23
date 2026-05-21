@@ -506,7 +506,7 @@ function AdminServices() {
             <SelectContent>
               <SelectItem value="all">All groups</SelectItem>
               {groupOptions.map((g) => (
-                <SelectItem key={g} value={g}>{g}</SelectItem>
+                <SelectItem key={g} value={g}>{catNames.get(g) ?? g}</SelectItem>
               ))}
             </SelectContent>
           </Select>
