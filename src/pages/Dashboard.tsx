@@ -69,6 +69,8 @@ export default function Dashboard() {
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [serviceQuery, setServiceQuery] = useState("");
+  const [svcGroup, setSvcGroup] = useState("all");
+  const [svcName, setSvcName] = useState("all");
   const [tgChatId, setTgChatId] = useState("");
   const [tgEnabled, setTgEnabled] = useState(false);
   const [emailEnabled, setEmailEnabled] = useState(true);
@@ -301,8 +303,8 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="services" className="mt-5">
-            <div className="glass rounded-2xl p-4 mb-4 flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
+            <div className="glass rounded-2xl p-4 mb-4 flex flex-col lg:flex-row gap-3">
+              <div className="relative flex-1 min-w-0">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   aria-label="Search services"
@@ -311,6 +313,26 @@ export default function Dashboard() {
                   onChange={(e) => setServiceQuery(e.target.value)}
                   className="pl-9"
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-3 lg:flex lg:gap-3">
+                <Select value={svcGroup} onValueChange={(v) => { setSvcGroup(v); setSvcName("all"); }}>
+                  <SelectTrigger className="lg:w-48"><SelectValue placeholder="All groups" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All groups</SelectItem>
+                    {Array.from(new Set(services.map((s) => (s.category ?? "general").trim() || "general"))).sort().map((g) => (
+                      <SelectItem key={g} value={g} className="capitalize">{g}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={svcName} onValueChange={setSvcName}>
+                  <SelectTrigger className="lg:w-56"><SelectValue placeholder="All services" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All services</SelectItem>
+                    {Array.from(new Set(services.filter((s) => svcGroup === "all" || ((s.category ?? "general").trim() || "general") === svcGroup).map((s) => s.name))).sort().map((n) => (
+                      <SelectItem key={n} value={n}>{n}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex gap-1 glass rounded-md p-1 self-start">
                 <Button size="sm" variant={serviceView === "grid" ? "neon" : "ghost"} onClick={() => setServiceView("grid")} title="Grid view"><LayoutGrid className="w-4 h-4" /></Button>
@@ -323,10 +345,16 @@ export default function Dashboard() {
               <div className="glass rounded-2xl p-12 text-center text-muted-foreground">No services available yet.</div>
             ) : (() => {
               const filtered = services.filter((s) => {
+                const cat = (s.category ?? "general").trim() || "general";
+                if (svcGroup !== "all" && cat !== svcGroup) return false;
+                if (svcName !== "all" && s.name !== svcName) return false;
                 const q = serviceQuery.toLowerCase().trim();
                 if (!q) return true;
                 return s.name.toLowerCase().includes(q) || (s.description ?? "").toLowerCase().includes(q) || (s.category ?? "").toLowerCase().includes(q);
               });
+              if (filtered.length === 0) {
+                return <div className="glass rounded-2xl p-12 text-center text-muted-foreground">No services match your filters.</div>;
+              }
               const groups = new Map<string, Service[]>();
               for (const s of filtered) {
                 const k = (s.category ?? "general").trim() || "general";
@@ -394,6 +422,7 @@ export default function Dashboard() {
               );
             })()}
           </TabsContent>
+
 
           <TabsContent value="orders" className="mt-5">
             <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2 items-end">
