@@ -325,7 +325,14 @@ export default function Dashboard() {
                   <SelectTrigger className="lg:w-48"><SelectValue placeholder="All groups" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All groups</SelectItem>
-                    {Array.from(new Set(services.map((s) => (s.category ?? "general").trim() || "general"))).sort().map((g) => (
+                    {Array.from(new Set(services.map((s) => (s.category ?? "general").trim() || "general"))).sort((a, b) => {
+                      if (a === "free") return -1;
+                      if (b === "free") return 1;
+                      const ao = categoryOrder[a] ?? 9999;
+                      const bo = categoryOrder[b] ?? 9999;
+                      if (ao !== bo) return ao - bo;
+                      return (categoryNames[a] ?? a).localeCompare(categoryNames[b] ?? b);
+                    }).map((g) => (
                       <SelectItem key={g} value={g}>{groupLabel(g)}</SelectItem>
                     ))}
                   </SelectContent>
