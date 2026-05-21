@@ -89,10 +89,13 @@ export default function Services() {
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
         ) : (
-          Object.entries(grouped).map(([cat, items]) => (
+          groupKeys.map((cat) => {
+            const items = grouped[cat];
+            const label = catMap[cat]?.name ?? cat;
+            return (
             <div key={cat} className="mb-10">
               <h2 className="text-xl font-bold mb-4 capitalize flex items-center gap-2">
-                <span className="w-1 h-6 bg-gradient-primary rounded-full" /> {cat}
+                <span className="w-1 h-6 bg-gradient-primary rounded-full" /> {label}
               </h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                 {items.map((s) => (
@@ -116,7 +119,8 @@ export default function Services() {
                 ))}
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 
