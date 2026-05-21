@@ -24,12 +24,13 @@ export default function Layout({ children }: { children: ReactNode }) {
   const logoSrc = settings.logo_url || defaultLogo;
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const navLinks = [
+  const allNavLinks = [
     { to: "/", label: "Home" },
     { to: "/services", label: "Services" },
     { to: "/free-check", label: "Free Check" },
     { to: "/pricing", label: "Pricing" },
   ];
+  const navLinks = user ? allNavLinks.filter((l) => l.to === "/") : allNavLinks;
 
   return (
     <div className="min-h-screen flex flex-col">
