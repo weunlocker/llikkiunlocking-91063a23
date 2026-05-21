@@ -60,6 +60,8 @@ export default function Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
+  const groupLabel = (slug: string) => categoryNames[slug] ?? slug;
   const [topupOpen, setTopupOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState("10");
   const [topupSuccess, setTopupSuccess] = useState<{ amount: number; newBalance: number } | null>(null);
