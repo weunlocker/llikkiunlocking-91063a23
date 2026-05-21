@@ -44,24 +44,39 @@ export default function Layout({ children }: { children: ReactNode }) {
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((l) => (
+          {!isDashboardArea && (
+            <nav className="hidden md:flex items-center gap-1">
+              {navLinks.map((l) => (
+                <NavLink
+                  key={l.to}
+                  to={l.to}
+                  end={l.to === "/"}
+                  className={({ isActive }) =>
+                    `px-4 py-2 text-sm rounded-md transition-colors ${
+                      isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`
+                  }
+                >
+                  {l.label}
+                </NavLink>
+              ))}
+            </nav>
+          )}
+
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {isDashboardArea && (
               <NavLink
-                key={l.to}
-                to={l.to}
-                end={l.to === "/"}
+                to="/"
+                end
                 className={({ isActive }) =>
-                  `px-4 py-2 text-sm rounded-md transition-colors ${
+                  `hidden sm:inline-flex px-3 py-1.5 text-sm rounded-md transition-colors ${
                     isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                   }`
                 }
               >
-                {l.label}
+                Home
               </NavLink>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            )}
             <LanguageSwitcher />
             <Button variant="ghost" size="icon" onClick={toggleTheme} title={theme === "dark" ? "Light mode" : "Dark mode"} aria-label="Toggle theme">
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
