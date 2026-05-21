@@ -69,6 +69,8 @@ export default function Dashboard() {
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [serviceQuery, setServiceQuery] = useState("");
+  const [svcGroup, setSvcGroup] = useState("all");
+  const [svcName, setSvcName] = useState("all");
   const [tgChatId, setTgChatId] = useState("");
   const [tgEnabled, setTgEnabled] = useState(false);
   const [emailEnabled, setEmailEnabled] = useState(true);
