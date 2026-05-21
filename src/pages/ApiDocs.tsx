@@ -17,6 +17,7 @@ type SimpleService = {
   delivery_time: string;
   category: string | null;
   is_async: boolean | null;
+  is_free?: boolean | null;
 };
 
 type ApiKeyRow = { id: string; name: string; key: string };
