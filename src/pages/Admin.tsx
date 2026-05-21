@@ -354,12 +354,34 @@ function AdminServices() {
     });
   }, [editing?.supplier_id]);
 
+  const catOrder = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of categories) m.set(c.slug, c.sort_order ?? 0);
+    return m;
+  }, [categories]);
+  const catNames = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of categories) m.set(c.slug, c.name);
+    return m;
+  }, [categories]);
+  const sortByCategoryOrder = (a: Service, b: Service) => {
+    const ac = a.category ?? "";
+    const bc = b.category ?? "";
+    if (ac === "free" && bc !== "free") return -1;
+    if (bc === "free" && ac !== "free") return 1;
+    const ao = catOrder.get(ac) ?? 9999;
+    const bo = catOrder.get(bc) ?? 9999;
+    if (ao !== bo) return ao - bo;
+    if (ac !== bc) return ac.localeCompare(bc);
+    return ((a.sort_order ?? 0) - (b.sort_order ?? 0)) || a.name.localeCompare(b.name);
+  };
+
   const filtered = useMemo(() => services.filter((s) => {
     if (fGroup !== "all" && (s.category ?? "") !== fGroup) return false;
     if (fSvcId !== "all" && s.id !== fSvcId) return false;
     if (q && !(s.name.toLowerCase().includes(q.toLowerCase()) || s.category?.toLowerCase().includes(q.toLowerCase()))) return false;
     return true;
-  }), [services, q, fGroup, fSvcId]);
+  }).sort(sortByCategoryOrder), [services, q, fGroup, fSvcId, catOrder]);
 
   useEffect(() => { setPage(1); }, [q, fGroup, fSvcId, pageSize]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -368,11 +390,18 @@ function AdminServices() {
   const groupOptions = useMemo(() => {
     const set = new Set<string>();
     for (const s of services) if (s.category) set.add(s.category);
-    return Array.from(set).sort();
-  }, [services]);
+    return Array.from(set).sort((a, b) => {
+      if (a === "free") return -1;
+      if (b === "free") return 1;
+      const ao = catOrder.get(a) ?? 9999;
+      const bo = catOrder.get(b) ?? 9999;
+      if (ao !== bo) return ao - bo;
+      return (catNames.get(a) ?? a).localeCompare(catNames.get(b) ?? b);
+    });
+  }, [services, catOrder, catNames]);
   const serviceOptionsForGroup = useMemo(() => {
-    return services.filter((s) => fGroup === "all" || (s.category ?? "") === fGroup);
-  }, [services, fGroup]);
+    return services.filter((s) => fGroup === "all" || (s.category ?? "") === fGroup).sort(sortByCategoryOrder);
+  }, [services, fGroup, catOrder]);
 
   const saveService = async () => {
     if (!editing) return;
@@ -477,7 +506,7 @@ function AdminServices() {
             <SelectContent>
               <SelectItem value="all">All groups</SelectItem>
               {groupOptions.map((g) => (
-                <SelectItem key={g} value={g}>{g}</SelectItem>
+                <SelectItem key={g} value={g}>{catNames.get(g) ?? g}</SelectItem>
               ))}
             </SelectContent>
           </Select>
