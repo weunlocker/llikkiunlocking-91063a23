@@ -167,6 +167,7 @@ Deno.serve(async (req) => {
         .from("services")
         .select("id, service_code, name, price, delivery_time, category, supplier_id, suppliers(type)")
         .eq("active", true)
+        .eq("is_free", false)
         .order("service_code");
       // Per-user overrides for this user
       const { data: overrides } = await supabase
@@ -311,11 +312,20 @@ Deno.serve(async (req) => {
 
     // Resolve service: accept UUID or service_code (e.g. "001")
     let serviceId = serviceParam;
+    let resolvedIsFree = false;
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(serviceParam)) {
       const { data: s } = await supabase
-        .from("services").select("id").eq("service_code", serviceParam).maybeSingle();
+        .from("services").select("id, is_free").eq("service_code", serviceParam).maybeSingle();
       if (!s) return dhruError(`Unknown service code: ${serviceParam}`, 404);
       serviceId = s.id;
+      resolvedIsFree = !!s.is_free;
+    } else {
+      const { data: s } = await supabase
+        .from("services").select("is_free").eq("id", serviceParam).maybeSingle();
+      resolvedIsFree = !!s?.is_free;
+    }
+    if (resolvedIsFree) {
+      return dhruError("This service is only available on the Free Check page and cannot be used via API or Simple Link.", 403);
     }
 
     const result = await executeCheck({

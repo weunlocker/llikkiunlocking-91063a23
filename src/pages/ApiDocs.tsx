@@ -17,6 +17,7 @@ type SimpleService = {
   delivery_time: string;
   category: string | null;
   is_async: boolean | null;
+  is_free?: boolean | null;
 };
 
 type ApiKeyRow = { id: string; name: string; key: string };
@@ -41,7 +42,8 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
       const [{ data: svc }, { data: k }] = await Promise.all([
         supabase
           .from("services_public")
-          .select("id, service_code, name, price, delivery_time, category, is_async")
+          .select("id, service_code, name, price, delivery_time, category, is_async, is_free")
+          .eq("is_free", false)
           .order("service_code"),
         user
           ? supabase.from("api_keys").select("id, name, key").eq("user_id", user.id).order("created_at", { ascending: false })

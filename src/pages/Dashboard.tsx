@@ -48,7 +48,7 @@ function formatDuration(start: string, end: string, status: string): string {
 
 type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; updated_at: string; services: { name: string; category: string | null; delivery_time: string | null; result_font: string | null; result_color: string | null } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
-type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null };
+type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; is_free?: boolean | null };
 
 export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
@@ -61,6 +61,7 @@ export default function Dashboard() {
   const [txs, setTxs] = useState<Tx[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
+  const [categoryOrder, setCategoryOrder] = useState<Record<string, number>>({});
   const groupLabel = (slug: string) => categoryNames[slug] ?? slug;
   const [topupOpen, setTopupOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState("10");
@@ -146,15 +147,17 @@ export default function Dashboard() {
     const [{ data: o }, { data: t }, { data: svc }, { data: ovs }, { data: cats }] = await Promise.all([
       supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,updated_at,services(name,category,delivery_time,result_font,result_color)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1000),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
-      supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color").order("category").order("sort_order").order("price"),
+      supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color,is_free").order("category").order("sort_order").order("price"),
       supabase.from("user_service_overrides").select("service_id,enabled,custom_price").eq("user_id", user.id),
-      supabase.from("categories").select("slug,name"),
+      supabase.from("categories").select("slug,name,sort_order"),
     ]);
     setCategoryNames(Object.fromEntries((cats ?? []).map((c: { slug: string; name: string }) => [c.slug, c.name])));
+    setCategoryOrder(Object.fromEntries((cats ?? []).map((c: { slug: string; sort_order: number }) => [c.slug, c.sort_order ?? 0])));
     const groupDiscount: Record<string, number> = { silver: 0.10, gold: 0.30, diamond: 0.50 };
     const discount = groupDiscount[String((profile as unknown as { user_group?: string })?.user_group ?? "").toLowerCase()] ?? 0;
     const ovMap = new Map((ovs ?? []).map((o: { service_id: string; enabled: boolean; custom_price: number | null }) => [o.service_id, o]));
-    const visibleSvcs = (svc ?? []).filter((s: { id: string }) => {
+    const visibleSvcs = (svc ?? []).filter((s: { id: string; is_free?: boolean | null }) => {
+      if (s.is_free) return false; // Free services are only usable on the Free Check page
       const ov = ovMap.get(s.id);
       return !(ov && ov.enabled === false);
     }).map((s: { id: string; price: number } & Record<string, unknown>) => {
@@ -365,7 +368,14 @@ export default function Dashboard() {
                 if (!groups.has(k)) groups.set(k, []);
                 groups.get(k)!.push(s);
               }
-              const groupKeys = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b));
+              const groupKeys = Array.from(groups.keys()).sort((a, b) => {
+                if (a === "free") return -1;
+                if (b === "free") return 1;
+                const ao = categoryOrder[a] ?? 9999;
+                const bo = categoryOrder[b] ?? 9999;
+                if (ao !== bo) return ao - bo;
+                return (categoryNames[a] ?? a).localeCompare(categoryNames[b] ?? b);
+              });
               return (
                 <div className="space-y-6">
                   {groupKeys.map((g) => {

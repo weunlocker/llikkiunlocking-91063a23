@@ -9,23 +9,41 @@ import { useNavigate } from "react-router-dom";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
 
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null };
+type Category = { slug: string; name: string; sort_order: number };
 
 export default function Services() {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Service | null>(null);
 
   useEffect(() => {
-    supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color").order("category").order("sort_order").order("price")
-      .then(({ data }) => { setServices(data ?? []); setLoading(false); });
+    (async () => {
+      const [{ data: svc }, { data: cats }] = await Promise.all([
+        supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color,is_free").order("category").order("sort_order").order("price"),
+        supabase.from("categories").select("slug,name,sort_order"),
+      ]);
+      setServices(((svc ?? []) as (Service & { is_free?: boolean })[]).filter((s) => !s.is_free));
+      setCategories((cats ?? []) as Category[]);
+      setLoading(false);
+    })();
   }, []);
 
+  const catMap = Object.fromEntries(categories.map((c) => [c.slug, c]));
   const grouped = services.reduce<Record<string, Service[]>>((acc, s) => {
     const k = s.category ?? "general";
     (acc[k] ||= []).push(s); return acc;
   }, {});
+  const groupKeys = Object.keys(grouped).sort((a, b) => {
+    if (a === "free") return -1;
+    if (b === "free") return 1;
+    const ao = catMap[a]?.sort_order ?? 9999;
+    const bo = catMap[b]?.sort_order ?? 9999;
+    if (ao !== bo) return ao - bo;
+    return (catMap[a]?.name ?? a).localeCompare(catMap[b]?.name ?? b);
+  });
 
   const openCheck = (s: Service) => {
     if (!user) { navigate("/login"); return; }
@@ -71,10 +89,13 @@ export default function Services() {
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
         ) : (
-          Object.entries(grouped).map(([cat, items]) => (
+          groupKeys.map((cat) => {
+            const items = grouped[cat];
+            const label = catMap[cat]?.name ?? cat;
+            return (
             <div key={cat} className="mb-10">
               <h2 className="text-xl font-bold mb-4 capitalize flex items-center gap-2">
-                <span className="w-1 h-6 bg-gradient-primary rounded-full" /> {cat}
+                <span className="w-1 h-6 bg-gradient-primary rounded-full" /> {label}
               </h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                 {items.map((s) => (
@@ -98,7 +119,8 @@ export default function Services() {
                 ))}
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 
