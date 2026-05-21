@@ -324,7 +324,7 @@ export default function Dashboard() {
                   <SelectContent>
                     <SelectItem value="all">All groups</SelectItem>
                     {Array.from(new Set(services.map((s) => (s.category ?? "general").trim() || "general"))).sort().map((g) => (
-                      <SelectItem key={g} value={g} className="capitalize">{g}</SelectItem>
+                      <SelectItem key={g} value={g}>{groupLabel(g)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
