@@ -60,6 +60,8 @@ export default function Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
+  const groupLabel = (slug: string) => categoryNames[slug] ?? slug;
   const [topupOpen, setTopupOpen] = useState(false);
   const [topupAmount, setTopupAmount] = useState("10");
   const [topupSuccess, setTopupSuccess] = useState<{ amount: number; newBalance: number } | null>(null);
@@ -141,12 +143,14 @@ export default function Dashboard() {
 
   const load = async () => {
     if (!user) return;
-    const [{ data: o }, { data: t }, { data: svc }, { data: ovs }] = await Promise.all([
+    const [{ data: o }, { data: t }, { data: svc }, { data: ovs }, { data: cats }] = await Promise.all([
       supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,updated_at,services(name,category,delivery_time,result_font,result_color)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1000),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color").order("category").order("sort_order").order("price"),
       supabase.from("user_service_overrides").select("service_id,enabled,custom_price").eq("user_id", user.id),
+      supabase.from("categories").select("slug,name"),
     ]);
+    setCategoryNames(Object.fromEntries((cats ?? []).map((c: { slug: string; name: string }) => [c.slug, c.name])));
     const groupDiscount: Record<string, number> = { silver: 0.10, gold: 0.30, diamond: 0.50 };
     const discount = groupDiscount[String((profile as unknown as { user_group?: string })?.user_group ?? "").toLowerCase()] ?? 0;
     const ovMap = new Map((ovs ?? []).map((o: { service_id: string; enabled: boolean; custom_price: number | null }) => [o.service_id, o]));
@@ -320,7 +324,7 @@ export default function Dashboard() {
                   <SelectContent>
                     <SelectItem value="all">All groups</SelectItem>
                     {Array.from(new Set(services.map((s) => (s.category ?? "general").trim() || "general"))).sort().map((g) => (
-                      <SelectItem key={g} value={g} className="capitalize">{g}</SelectItem>
+                      <SelectItem key={g} value={g}>{groupLabel(g)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -369,7 +373,7 @@ export default function Dashboard() {
                     return (
                       <div key={g}>
                         <div className="flex items-center gap-3 mb-3">
-                          <h2 className="text-sm uppercase tracking-wider text-primary font-bold capitalize">{g}</h2>
+                          <h2 className="text-sm uppercase tracking-wider text-primary font-bold">{groupLabel(g)}</h2>
                           <div className="flex-1 h-px bg-border/50" />
                         </div>
                         {serviceView === "list" ? (
@@ -435,7 +439,7 @@ export default function Dashboard() {
                   <SelectContent>
                     <SelectItem value="all">All groups</SelectItem>
                     {Array.from(new Set(orders.map((o) => o.services?.category).filter(Boolean) as string[])).sort().map((g) => (
-                      <SelectItem key={g} value={g}>{g}</SelectItem>
+                      <SelectItem key={g} value={g}>{groupLabel(g)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
