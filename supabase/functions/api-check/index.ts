@@ -167,6 +167,7 @@ Deno.serve(async (req) => {
         .from("services")
         .select("id, service_code, name, price, delivery_time, category, supplier_id, suppliers(type)")
         .eq("active", true)
+        .eq("is_free", false)
         .order("service_code");
       // Per-user overrides for this user
       const { data: overrides } = await supabase
