@@ -156,8 +156,7 @@ export default function Dashboard() {
     const groupDiscount: Record<string, number> = { silver: 0.10, gold: 0.30, diamond: 0.50 };
     const discount = groupDiscount[String((profile as unknown as { user_group?: string })?.user_group ?? "").toLowerCase()] ?? 0;
     const ovMap = new Map((ovs ?? []).map((o: { service_id: string; enabled: boolean; custom_price: number | null }) => [o.service_id, o]));
-    const visibleSvcs = (svc ?? []).filter((s: { id: string; is_free?: boolean | null }) => {
-      if (s.is_free) return false; // Free services are only usable on the Free Check page
+    const visibleSvcs = (svc ?? []).filter((s: { id: string }) => {
       const ov = ovMap.get(s.id);
       return !(ov && ov.enabled === false);
     }).map((s: { id: string; price: number } & Record<string, unknown>) => {
