@@ -368,7 +368,14 @@ export default function Dashboard() {
                 if (!groups.has(k)) groups.set(k, []);
                 groups.get(k)!.push(s);
               }
-              const groupKeys = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b));
+              const groupKeys = Array.from(groups.keys()).sort((a, b) => {
+                if (a === "free") return -1;
+                if (b === "free") return 1;
+                const ao = categoryOrder[a] ?? 9999;
+                const bo = categoryOrder[b] ?? 9999;
+                if (ao !== bo) return ao - bo;
+                return (categoryNames[a] ?? a).localeCompare(categoryNames[b] ?? b);
+              });
               return (
                 <div className="space-y-6">
                   {groupKeys.map((g) => {
