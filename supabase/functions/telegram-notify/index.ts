@@ -37,8 +37,10 @@ Deno.serve(async (req) => {
 
     const p = await req.json();
     const subject = p.subject as string | undefined;
-    const body = (p.body ?? p.message ?? p.text) as string | undefined;
+    let body = (p.body ?? p.message ?? p.text) as string | undefined;
     if (!body) return json(400, { error: "body required" });
+    // Strip color/font markup ([[c:#hex]]..[[/c]], [[f:name]]..[[/f]]) — Telegram doesn't render it.
+    body = body.replace(/\[\[\/?(?:c:[^\]]+|f:[^\]]+|c|f)\]\]/g, "");
     // format: 'plain' = bold subject + plain escaped body (no <pre> code block)
     // format: 'html'  = caller-provided HTML, sent as-is (no escaping)
     // default         = bold subject + <pre>body</pre>
