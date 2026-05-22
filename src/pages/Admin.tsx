@@ -1033,7 +1033,8 @@ function AdminOrders() {
               <SelectItem value="failed">Rejected</SelectItem>
               <SelectItem value="refunded">Refunded</SelectItem>
             </SelectContent>
-        </Select>
+          </Select>
+        </div>
       }
     >
       <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
