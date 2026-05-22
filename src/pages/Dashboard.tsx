@@ -425,8 +425,8 @@ export default function Dashboard() {
                                   <Smartphone className="w-5 h-5 text-primary" />
                                   <div className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
                                 </div>
-                                <h3 className="font-bold mb-1 hover:text-primary transition-colors">{s.name}</h3>
-                                <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2">{s.description}</p>
+                                <h3 className="font-bold mb-1 hover:text-primary transition-colors line-clamp-2" title={s.name}>{s.name}</h3>
+                                <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2" title={s.description ?? undefined}>{s.description}</p>
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="text-xl font-bold font-mono">${Number(s.price).toFixed(2)}</div>
                                   <Button variant="neon" size="sm" onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
