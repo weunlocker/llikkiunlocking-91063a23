@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Loader2, RotateCcw, Search, TrendingUp, Users as UsersIcon, Briefcase, ListOrdered, DollarSign, AlertCircle, RefreshCw, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, RotateCcw, Search, TrendingUp, Users as UsersIcon, Briefcase, ListOrdered, DollarSign, AlertCircle, RefreshCw, ArrowUp, ArrowDown, GripVertical, Download } from "lucide-react";
+import { exportRowsCsv } from "@/lib/invoice";
 import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -1003,16 +1004,35 @@ function AdminOrders() {
       title="Orders"
       subtitle={`${orders.length} total orders`}
       actions={
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All status</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in_process">In process</SelectItem>
-            <SelectItem value="completed">Success</SelectItem>
-            <SelectItem value="failed">Rejected</SelectItem>
-            <SelectItem value="refunded">Refunded</SelectItem>
-          </SelectContent>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => {
+            const rows = orders.map((o) => ({
+              order_number: `#${String(o.order_number ?? 0).padStart(4, "0")}`,
+              user_email: o.profiles?.email ?? "",
+              service: o.services?.name ?? "",
+              imei: o.imei,
+              status: o.status,
+              price: Number(o.price_charged).toFixed(2),
+              created_at: new Date(o.created_at).toISOString(),
+              result: o.result ?? "",
+              error: o.error_message ?? "",
+            }));
+            if (rows.length === 0) { toast.error("No orders to export"); return; }
+            exportRowsCsv(rows, `admin-orders-${new Date().toISOString().slice(0,10)}.csv`);
+            toast.success(`Exported ${rows.length} orders`);
+          }}>
+            <Download className="w-4 h-4 mr-2" /> Export CSV
+          </Button>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All status</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="in_process">In process</SelectItem>
+              <SelectItem value="completed">Success</SelectItem>
+              <SelectItem value="failed">Rejected</SelectItem>
+              <SelectItem value="refunded">Refunded</SelectItem>
+            </SelectContent>
         </Select>
       }
     >
