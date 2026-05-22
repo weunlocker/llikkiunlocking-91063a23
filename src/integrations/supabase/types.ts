@@ -873,6 +873,80 @@ export type Database = {
         }
         Relationships: []
       }
+      support_ticket_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          sender_id: string
+          sender_type: Database["public"]["Enums"]["support_sender_type"]
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          sender_id: string
+          sender_type: Database["public"]["Enums"]["support_sender_type"]
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          sender_id?: string
+          sender_type?: Database["public"]["Enums"]["support_sender_type"]
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string
+          priority: Database["public"]["Enums"]["support_ticket_priority"]
+          status: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          unread_for_admin: boolean
+          unread_for_user: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          priority?: Database["public"]["Enums"]["support_ticket_priority"]
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject: string
+          unread_for_admin?: boolean
+          unread_for_user?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          priority?: Database["public"]["Enums"]["support_ticket_priority"]
+          status?: Database["public"]["Enums"]["support_ticket_status"]
+          subject?: string
+          unread_for_admin?: boolean
+          unread_for_user?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -1232,6 +1306,9 @@ export type Database = {
         | "failed"
         | "refunded"
         | "in_process"
+      support_sender_type: "user" | "admin"
+      support_ticket_priority: "low" | "normal" | "high" | "urgent"
+      support_ticket_status: "open" | "pending" | "closed"
       tx_type: "topup" | "charge" | "refund" | "admin_credit" | "admin_debit"
     }
     CompositeTypes: {
@@ -1368,6 +1445,9 @@ export const Constants = {
         "refunded",
         "in_process",
       ],
+      support_sender_type: ["user", "admin"],
+      support_ticket_priority: ["low", "normal", "high", "urgent"],
+      support_ticket_status: ["open", "pending", "closed"],
       tx_type: ["topup", "charge", "refund", "admin_credit", "admin_debit"],
     },
   },
