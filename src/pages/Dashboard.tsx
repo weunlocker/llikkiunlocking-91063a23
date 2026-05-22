@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, History, Plus, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings, Code2, LayoutGrid, List, Gift } from "lucide-react";
+import { Wallet, History, Plus, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings, Code2, LayoutGrid, List, Gift, Download, FileText } from "lucide-react";
+import { downloadOrderInvoice, exportOrdersCsv } from "@/lib/invoice";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
@@ -445,6 +446,30 @@ export default function Dashboard() {
 
 
           <TabsContent value="orders" className="mt-5">
+            <div className="flex items-center justify-end mb-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const rows = orders.filter((o) => {
+                    if (orderStatus !== "all" && o.status !== orderStatus) return false;
+                    const oid = String(o.order_number ?? "").padStart(4, "0");
+                    if (oqOrderId.trim() && !oid.includes(oqOrderId.trim().replace(/^#/, ""))) return false;
+                    if (oqImei.trim() && !o.imei.toLowerCase().includes(oqImei.trim().toLowerCase())) return false;
+                    if (oqGroup !== "all" && (o.services?.category ?? "") !== oqGroup) return false;
+                    if (oqService !== "all" && (o.services?.name ?? "") !== oqService) return false;
+                    if (oqFrom && new Date(o.created_at) < new Date(oqFrom)) return false;
+                    if (oqTo && new Date(o.created_at) > new Date(oqTo + "T23:59:59")) return false;
+                    return true;
+                  });
+                  if (rows.length === 0) { toast.error("No orders to export"); return; }
+                  exportOrdersCsv(rows, `orders-${new Date().toISOString().slice(0,10)}.csv`);
+                  toast.success(`Exported ${rows.length} orders`);
+                }}
+              >
+                <Download className="w-4 h-4 mr-2" /> Export CSV
+              </Button>
+            </div>
             <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2 items-end">
               <div><Label className="text-xs text-muted-foreground">Order ID</Label><Input value={oqOrderId} onChange={(e) => setOqOrderId(e.target.value)} placeholder="#0001" /></div>
               <div><Label className="text-xs text-muted-foreground">IMEI/SN</Label><Input value={oqImei} onChange={(e) => setOqImei(e.target.value)} placeholder="IMEI" /></div>
@@ -733,7 +758,37 @@ export default function Dashboard() {
 
       <Dialog open={!!orderDetail} onOpenChange={(o) => !o && setOrderDetail(null)}>
         <DialogContent className="glass max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{orderDetail?.services?.name}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <div className="flex items-start justify-between gap-3">
+              <DialogTitle>{orderDetail?.services?.name}</DialogTitle>
+              {orderDetail && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      await downloadOrderInvoice(
+                        orderDetail,
+                        {
+                          brand_name: settings.brand_name,
+                          tagline: settings.tagline,
+                          logo_url: settings.logo_url,
+                          contact_email: settings.contact_email,
+                          contact_phone: settings.contact_phone,
+                          address: settings.address,
+                        },
+                        { display_name: profile?.display_name ?? null, email: profile?.email ?? user?.email ?? null },
+                      );
+                    } catch (e) {
+                      toast.error("Failed to generate invoice");
+                    }
+                  }}
+                >
+                  <FileText className="w-4 h-4 mr-2" /> Invoice
+                </Button>
+              )}
+            </div>
+          </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div><span className="text-muted-foreground">Order ID:</span> <span className="font-mono">#{String(orderDetail?.order_number ?? 0).padStart(4, "0")}</span></div>
