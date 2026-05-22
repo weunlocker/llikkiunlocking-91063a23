@@ -625,7 +625,44 @@ function AdminServices() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Price (USD)</Label><Input type="number" step="0.01" value={editing.price ?? 0} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} /></div>
-                <div><Label>Delivery Time</Label><Input value={editing.delivery_time ?? ""} onChange={(e) => setEditing({ ...editing, delivery_time: e.target.value })} maxLength={50} /></div>
+                <div>
+                  <Label>Delivery Time</Label>
+                  {(() => {
+                    const raw = (editing.delivery_time ?? "").trim();
+                    const units = ["Minutes", "Hours", "days", "Weeks", "Months", "Instant"];
+                    const isInstant = raw.toLowerCase() === "instant" || raw === "";
+                    let qty = "";
+                    let unit = "Instant";
+                    if (!isInstant) {
+                      const m = raw.match(/^(\S+)\s+(.+)$/);
+                      if (m) { qty = m[1]; unit = units.find(u => u.toLowerCase() === m[2].toLowerCase()) ?? m[2]; }
+                      else { unit = units.find(u => u.toLowerCase() === raw.toLowerCase()) ?? "Minutes"; qty = ""; }
+                    }
+                    const commit = (q: string, u: string) => {
+                      const v = u === "Instant" ? "Instant" : (q ? `${q} ${u}` : u);
+                      setEditing({ ...editing, delivery_time: v });
+                    };
+                    return (
+                      <div className="flex gap-2">
+                        <Input
+                          className="w-24"
+                          placeholder="1-5"
+                          value={qty}
+                          disabled={unit === "Instant"}
+                          onChange={(e) => commit(e.target.value, unit)}
+                          maxLength={20}
+                        />
+                        <select
+                          className="flex-1 h-10 rounded-md border border-input bg-background px-3 text-sm"
+                          value={unit}
+                          onChange={(e) => commit(qty, e.target.value)}
+                        >
+                          {units.map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
               <div className="rounded-lg border border-border/60 bg-secondary/20 p-3">
                 <div className="text-xs text-muted-foreground mb-2">Auto-calculated client group prices</div>
