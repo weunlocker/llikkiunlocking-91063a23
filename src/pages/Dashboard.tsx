@@ -20,6 +20,7 @@ import { extractResponse } from "@/lib/extractResponse";
 import { ColoredResult } from "@/components/ColoredResult";
 import ApiDocs from "@/pages/ApiDocs";
 import ReferralsPanel from "@/components/ReferralsPanel";
+import SupportPanel from "@/components/SupportPanel";
 
 function sanitizeError(msg: string | null | undefined): string {
   if (!msg) return "";
@@ -616,6 +617,10 @@ export default function Dashboard() {
 
           <TabsContent value="referrals" className="mt-5">
             <ReferralsPanel />
+          </TabsContent>
+
+          <TabsContent value="support" className="mt-5">
+            <SupportPanel />
           </TabsContent>
 
           <TabsContent value="settings" className="mt-5">
