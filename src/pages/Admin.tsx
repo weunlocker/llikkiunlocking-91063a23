@@ -1266,9 +1266,26 @@ function AdminTransactions() {
 
   return (
     <AdminLayout title="Transactions" subtitle={`${tx.length} ledger entries`} actions={
-      <div className="relative w-72">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input className="pl-9" placeholder="Email or description…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={() => {
+          const rows = filtered.map((t) => ({
+            user_email: t.profiles?.email ?? "",
+            type: t.type,
+            amount: Number(t.amount).toFixed(2),
+            balance_after: Number(t.balance_after).toFixed(2),
+            description: t.description ?? "",
+            created_at: new Date(t.created_at).toISOString(),
+          }));
+          if (rows.length === 0) { toast.error("Nothing to export"); return; }
+          exportRowsCsv(rows, `admin-transactions-${new Date().toISOString().slice(0,10)}.csv`);
+          toast.success(`Exported ${rows.length} entries`);
+        }}>
+          <Download className="w-4 h-4 mr-2" /> Export CSV
+        </Button>
+        <div className="relative w-72">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Email or description…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
       </div>
     }>
       {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
