@@ -1054,7 +1054,7 @@ function AdminOrders() {
                 <tr key={o.id} className="border-t border-border/50 hover:bg-secondary/20 cursor-pointer" onClick={() => setView(o)}>
                   <td className="px-5 py-3 font-mono text-xs">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
                   <td className="px-5 py-3 text-xs">{o.profiles?.email}</td>
-                  <td className="px-5 py-3">{o.services?.name}</td>
+                  <td className="px-5 py-3 max-w-[260px] truncate" title={o.services?.name ?? undefined}>{o.services?.name}</td>
                   <td className="px-5 py-3 font-mono text-xs">{o.imei}</td>
                   <td className={`px-5 py-3 capitalize ${statusColor(o.status)}`}>{o.status}</td>
                   <td className="px-5 py-3 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
