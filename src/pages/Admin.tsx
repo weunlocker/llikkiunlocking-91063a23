@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Edit, Trash2, Loader2, RotateCcw, Search, TrendingUp, Users as UsersIcon, Briefcase, ListOrdered, DollarSign, AlertCircle, RefreshCw, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, RotateCcw, Search, TrendingUp, Users as UsersIcon, Briefcase, ListOrdered, DollarSign, AlertCircle, RefreshCw, ArrowUp, ArrowDown, GripVertical, Download } from "lucide-react";
+import { exportRowsCsv } from "@/lib/invoice";
 import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -1003,17 +1004,37 @@ function AdminOrders() {
       title="Orders"
       subtitle={`${orders.length} total orders`}
       actions={
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All status</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in_process">In process</SelectItem>
-            <SelectItem value="completed">Success</SelectItem>
-            <SelectItem value="failed">Rejected</SelectItem>
-            <SelectItem value="refunded">Refunded</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => {
+            const rows = orders.map((o) => ({
+              order_number: `#${String(o.order_number ?? 0).padStart(4, "0")}`,
+              user_email: o.profiles?.email ?? "",
+              service: o.services?.name ?? "",
+              imei: o.imei,
+              status: o.status,
+              price: Number(o.price_charged).toFixed(2),
+              created_at: new Date(o.created_at).toISOString(),
+              result: o.result ?? "",
+              error: o.error_message ?? "",
+            }));
+            if (rows.length === 0) { toast.error("No orders to export"); return; }
+            exportRowsCsv(rows, `admin-orders-${new Date().toISOString().slice(0,10)}.csv`);
+            toast.success(`Exported ${rows.length} orders`);
+          }}>
+            <Download className="w-4 h-4 mr-2" /> Export CSV
+          </Button>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All status</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="in_process">In process</SelectItem>
+              <SelectItem value="completed">Success</SelectItem>
+              <SelectItem value="failed">Rejected</SelectItem>
+              <SelectItem value="refunded">Refunded</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       }
     >
       <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
@@ -1245,9 +1266,26 @@ function AdminTransactions() {
 
   return (
     <AdminLayout title="Transactions" subtitle={`${tx.length} ledger entries`} actions={
-      <div className="relative w-72">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input className="pl-9" placeholder="Email or description…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={() => {
+          const rows = filtered.map((t) => ({
+            user_email: t.profiles?.email ?? "",
+            type: t.type,
+            amount: Number(t.amount).toFixed(2),
+            balance_after: Number(t.balance_after).toFixed(2),
+            description: t.description ?? "",
+            created_at: new Date(t.created_at).toISOString(),
+          }));
+          if (rows.length === 0) { toast.error("Nothing to export"); return; }
+          exportRowsCsv(rows, `admin-transactions-${new Date().toISOString().slice(0,10)}.csv`);
+          toast.success(`Exported ${rows.length} entries`);
+        }}>
+          <Download className="w-4 h-4 mr-2" /> Export CSV
+        </Button>
+        <div className="relative w-72">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Email or description…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
       </div>
     }>
       {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> :
@@ -2121,10 +2159,14 @@ import AdminEmailSettings from "./AdminEmailSettings";
 import AdminPayments from "./AdminPayments";
 import AdminTurnstile from "./AdminTurnstile";
 import AdminReferrals from "./AdminReferrals";
+import AdminAnalytics from "./AdminAnalytics";
+import AdminSupport from "./AdminSupport";
 export default function Admin() {
   return (
     <Routes>
       <Route index element={<AdminDashboard />} />
+      <Route path="analytics" element={<AdminAnalytics />} />
+      <Route path="support" element={<AdminSupport />} />
       <Route path="payments" element={<AdminPayments />} />
       <Route path="referrals" element={<AdminReferrals />} />
       <Route path="users" element={<AdminUsers />} />
