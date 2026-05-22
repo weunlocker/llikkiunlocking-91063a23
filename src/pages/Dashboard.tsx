@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, History, Plus, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings, Code2, LayoutGrid, List, Gift, Download, FileText } from "lucide-react";
+import { Wallet, History, Plus, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings, Code2, LayoutGrid, List, Gift, Download, FileText, MessageSquare } from "lucide-react";
 import { downloadOrderInvoice, exportOrdersCsv } from "@/lib/invoice";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -55,7 +55,7 @@ export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
   const { settings } = useSiteSettings();
   const [searchParams, setSearchParams] = useSearchParams();
-  const validTabs = ["services", "orders", "wallet", "referrals", "settings", "api"];
+  const validTabs = ["services", "orders", "wallet", "referrals", "support", "settings", "api"];
   const tabParam = searchParams.get("tab") ?? "services";
   const activeTab = validTabs.includes(tabParam) ? tabParam : "services";
   const [orders, setOrders] = useState<Order[]>([]);
@@ -305,6 +305,7 @@ export default function Dashboard() {
             <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
             <TabsTrigger value="wallet"><Wallet className="w-4 h-4 mr-2" />Wallet History</TabsTrigger>
             <TabsTrigger value="referrals"><Gift className="w-4 h-4 mr-2" />Referrals</TabsTrigger>
+            <TabsTrigger value="support"><MessageSquare className="w-4 h-4 mr-2" />Support</TabsTrigger>
             <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />Notifications</TabsTrigger>
             <TabsTrigger value="api"><Code2 className="w-4 h-4 mr-2" />API</TabsTrigger>
           </TabsList>
