@@ -1,49 +1,73 @@
-## Goal
-Add a dual Telegram bot system (Admin Bot + Client Bot) with Dhru-style pairing, push notifications, and interactive commands.
+# Upgrade Plan — 4 New Features
 
-## 1. Database changes
-- Add columns to `site_settings`:
-  - `admin_bot_token`, `admin_bot_username`, `admin_chat_ids` (text[]), `client_bot_token`, `client_bot_username`
-- New table `telegram_pairings`:
-  - `user_id`, `code` (6-digit), `bot_kind` ('admin'|'client'), `expires_at`, `used_at`, `chat_id`
-- Add to `profiles`: `client_bot_chat_id` (already have `telegram_chat_id` — repurpose or add separate `admin_bot_chat_id` for admins).
-- New table `auth_login_events` (user_id, email, ip, user_agent, success, created_at) — for login success/failed alerts.
+Building 4 features in order. Each is delivered independently so the app stays working.
 
-## 2. Edge functions
-- **`telegram-admin-webhook`** (verify_jwt=false): receives admin bot updates. Commands: `/start`, `/clients`, `/orders`, `/invoices`, `/balance <user>`. Validates chat_id is in `admin_chat_ids`.
-- **`telegram-client-webhook`** (verify_jwt=false): receives client bot updates.
-  - `/start <code>` or plain 6-digit message → look up `telegram_pairings`, bind chat_id to user.
-  - `/balance` → show balance.
-  - `/orders` → last 10 orders.
-  - `/placeorder` → interactive: list services (paginated inline keyboard) → ask IMEI → confirm → call existing check logic.
-  - `/status <imei>`.
-- **`telegram-pair`** (called from client panel): generates pairing code, stores in `telegram_pairings`, returns `{code, bot_username}`.
-- **`telegram-set-webhooks`** (admin-only): registers webhook URLs with both bots using their tokens (saved in settings). Also calls `setMyCommands`.
-- **`telegram-notify`** (extend existing): add events for `login_success`, `login_failed`, `order_placed`, `order_success`, `order_rejected`. Routes to admin bot (all admins) and client bot (the specific user) based on event.
+---
 
-## 3. Frontend
-- **Admin → Settings → Telegram tab**:
-  - Inputs for admin & client bot tokens, usernames, admin chat IDs (comma-separated).
-  - "Register webhooks" button → calls `telegram-set-webhooks`.
-  - Test buttons.
-- **Client Dashboard → "Connect Telegram" card**:
-  - Shows `@client_bot_username` + 6-digit pairing code (refresh button, 10-min expiry countdown).
-  - Instructions: "Open bot → send /start <code>".
-  - Once paired: shows "Connected as @username — Disconnect".
-- **Login page**: trigger `auth_login_events` insert + call `telegram-notify` (login_success/login_failed) with IP from request headers.
+## 1. Analytics Dashboard (Admin)
 
-## 4. Notification triggers
-- Hook into existing order flow (`_shared/check.ts`, `poll-dhru-orders`) to call `telegram-notify` on placed/success/rejected.
-- Hook into `useAuth` sign-in for login alerts (call edge function with IP).
+A new **Analytics** tab inside the admin panel with:
 
-## 5. Security
-- All bot tokens stored in `site_settings` (admin-only RLS).
-- Webhook secret token derived from bot token (HMAC) — verified on each webhook hit.
-- Pairing codes single-use, 10-min expiry, rate-limited per user.
-- Admin commands gated by chat_id whitelist.
+- **KPI cards**: Total revenue, total orders, success rate, active users (today / 7d / 30d / all-time toggle).
+- **Revenue chart**: Daily revenue line chart (last 30 days).
+- **Orders chart**: Stacked bar — completed vs rejected vs pending per day.
+- **Top services**: Table — top 10 services by order count and revenue.
+- **Top users**: Table — top 10 users by spend.
+- **User growth**: New signups per day (last 30 days).
 
-## Technical notes
-- Bot API calls use direct `https://api.telegram.org/bot{TOKEN}/...` (no Telegram connector since admin supplies tokens).
-- Inline keyboards for `/placeorder` service picker (callback_data carries service_code).
-- `setMyCommands` so users see suggestions in Telegram UI.
-- Idempotency: store `update_id` on processed updates table to dedupe Telegram retries.
+Tech: `recharts` (already used in shadcn), aggregated via SQL views / RPC functions for speed.
+
+---
+
+## 2. Invoices & Receipts
+
+- **Per-order invoice**: Users can click "Download Invoice" on any completed order on the Dashboard → generates a branded PDF (site logo, brand name, order #, IMEI, service, price, date, status, result summary).
+- **Bulk export**: Users can export their full order history as CSV or Excel from the Dashboard "Orders" tab.
+- **Admin export**: Admin can export all orders / all transactions as CSV from the Admin panel.
+- **Auto-email receipt**: When an order completes successfully, the user receives a branded HTML email with the invoice details and a link to download the PDF.
+
+Tech: `jspdf` + `jspdf-autotable` for client-side PDF generation (no edge function needed → free, instant). Email uses the existing Lovable Email infrastructure already configured in the project.
+
+---
+
+## 3. Support Ticket System
+
+New tables:
+- `support_tickets` (id, user_id, subject, status [open/pending/closed], priority, created_at, updated_at)
+- `support_ticket_messages` (id, ticket_id, sender_id, sender_type [user/admin], message, created_at)
+
+User side (new "Support" tab on Dashboard):
+- List of their tickets with status badges
+- "New Ticket" form (subject + initial message)
+- Open ticket → chat-style thread, reply box
+- Realtime updates via Supabase Realtime
+
+Admin side (new "Support" section in Admin):
+- Inbox of all tickets, filter by status/priority
+- Open ticket → reply, change status, close
+- Unread/new ticket badge in admin sidebar
+
+RLS: Users see only their tickets; admins see all.
+
+---
+
+## 4. Order Notifications
+
+Extend the existing notification system so users get notified on **every order status change** (pending → processing → completed/rejected), not just completion.
+
+- Use existing `notify_email` and `notify_telegram` toggles on `profiles`.
+- Add a new `notify_on_status_change` boolean (defaults true) so users can opt out of intermediate updates.
+- Trigger: A database trigger on `orders` table fires when `status` changes → calls an edge function `send-order-notification` → routes to email + Telegram based on user prefs.
+- Email uses Lovable Email queue (already set up).
+- Telegram uses existing `client_bot_token` from `site_settings` and `client_bot_chat_id` from `profiles`.
+
+---
+
+## Build Order
+
+1. **Invoices & Receipts** (smallest, no DB changes for PDF/CSV; email receipt last)
+2. **Analytics Dashboard** (read-only queries, no schema changes for charts)
+3. **Order Notifications** (one migration: trigger + flag; one edge function)
+4. **Support Tickets** (largest: 2 tables, RLS, UI on both sides, realtime)
+
+After each feature lands the app remains fully working.
