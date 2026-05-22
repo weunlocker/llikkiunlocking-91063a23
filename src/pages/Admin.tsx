@@ -2160,11 +2160,13 @@ import AdminPayments from "./AdminPayments";
 import AdminTurnstile from "./AdminTurnstile";
 import AdminReferrals from "./AdminReferrals";
 import AdminAnalytics from "./AdminAnalytics";
+import AdminSupport from "./AdminSupport";
 export default function Admin() {
   return (
     <Routes>
       <Route index element={<AdminDashboard />} />
       <Route path="analytics" element={<AdminAnalytics />} />
+      <Route path="support" element={<AdminSupport />} />
       <Route path="payments" element={<AdminPayments />} />
       <Route path="referrals" element={<AdminReferrals />} />
       <Route path="users" element={<AdminUsers />} />
