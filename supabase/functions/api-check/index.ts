@@ -347,10 +347,11 @@ Deno.serve(async (req) => {
       }
       const refId = orderNumber ?? (orderId ? String(orderId) : "");
       if (body.status === "failed") {
+        const generic = "Order failed. Please try again later or contact support.";
         return json(200, {
           ID: serviceParam,
           IMEI: imei,
-          ERROR: [{ MESSAGE: body.error || "Rejected", FULL_DESCRIPTION: body.error || "Rejected" }],
+          ERROR: [{ MESSAGE: generic, FULL_DESCRIPTION: generic }],
           apiversion: "2.0.0",
         });
       }
@@ -370,6 +371,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Plain (non-Dhru) JSON response — also hide upstream failure details.
+    if (result.body && (result.body as any).status === "failed") {
+      return json(result.status, {
+        status: "failed",
+        imei: (result.body as any).imei,
+        service: (result.body as any).service,
+        error: "Order failed. Please try again later or contact support.",
+        refunded: (result.body as any).refunded,
+        balance_after: (result.body as any).balance_after,
+        order_id: (result.body as any).order_id,
+      });
+    }
     return json(result.status, result.body);
   } catch (e) {
     console.error("api-check error:", e);
