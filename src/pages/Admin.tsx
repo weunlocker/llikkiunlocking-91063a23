@@ -577,7 +577,7 @@ function AdminServices() {
           {editing && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Name</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} maxLength={100} /></div>
+                <div><Label>Name</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} maxLength={250} /></div>
                 <div>
                   <Label>Category</Label>
                   <Select value={editing.category ?? "general"} onValueChange={(v) => setEditing({ ...editing, category: v })}>

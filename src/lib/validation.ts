@@ -17,7 +17,7 @@ export const loginSchema = z.object({
 });
 
 export const serviceSchema = z.object({
-  name: z.string().trim().min(2).max(100),
+  name: z.string().trim().min(2).max(250),
   description: z.string().trim().max(500).optional(),
   price: z.number().min(0).max(10000),
   delivery_time: z.string().trim().min(1).max(50),
