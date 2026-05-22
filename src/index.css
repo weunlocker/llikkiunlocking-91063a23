@@ -117,8 +117,8 @@
 
 @layer base {
   * { @apply border-border; }
-  html { scroll-behavior: smooth; font-size: 14px; }
-  @media (min-width: 1280px) { html { font-size: 15px; } }
+  html { scroll-behavior: smooth; font-size: 13px; }
+  @media (min-width: 1280px) { html { font-size: 14px; } }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
