@@ -403,8 +403,8 @@ export default function Dashboard() {
                               >
                                 <Smartphone className="w-5 h-5 text-primary shrink-0" />
                                 <div className="flex-1 min-w-0">
-                                  <div className="font-semibold truncate">{s.name}</div>
-                                  {s.description && <div className="text-xs text-muted-foreground truncate">{s.description}</div>}
+                                  <div className="font-semibold truncate" title={s.name}>{s.name}</div>
+                                  {s.description && <div className="text-xs text-muted-foreground truncate" title={s.description}>{s.description}</div>}
                                 </div>
                                 <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground shrink-0"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
                                 <div className="text-base font-bold font-mono shrink-0">${Number(s.price).toFixed(2)}</div>
