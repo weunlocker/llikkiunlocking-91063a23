@@ -151,7 +151,7 @@ function AdminDashboard() {
                 {recent.map((o) => (
                   <tr key={o.id} className="border-t border-border/40">
                     <td className="px-5 py-2.5 text-xs">{o.profiles?.email}</td>
-                    <td className="px-5 py-2.5">{o.services?.name}</td>
+                    <td className="px-5 py-2.5 max-w-[260px] truncate" title={o.services?.name ?? undefined}>{o.services?.name}</td>
                     <td className="px-5 py-2.5 font-mono text-xs">{o.imei}</td>
                     <td className={`px-5 py-2.5 capitalize ${statusColor(o.status)}`}>{o.status}</td>
                     <td className="px-5 py-2.5 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
@@ -545,7 +545,7 @@ function AdminServices() {
                 >
                   <td className="px-3 py-3 text-muted-foreground cursor-grab active:cursor-grabbing" title="Drag to reorder"><GripVertical className="w-4 h-4" /></td>
                   <td className="px-5 py-3 font-mono font-semibold text-primary">{s.service_code ?? "—"}</td>
-                  <td className="px-5 py-3 font-medium cursor-pointer hover:text-primary transition-colors" onClick={() => setEditing(s)}>{s.name}</td>
+                  <td className="px-5 py-3 font-medium cursor-pointer hover:text-primary transition-colors max-w-[300px] truncate" title={s.name} onClick={() => setEditing(s)}>{s.name}</td>
                   <td className="px-5 py-3"><span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">{s.category}</span></td>
                   <td className="px-3 py-3 font-mono text-right">${Number(s.price).toFixed(2)}</td>
                   <td className="px-3 py-3 font-mono text-right text-slate-300">${(Number(s.price) * 0.90).toFixed(2)}</td>
@@ -1054,7 +1054,7 @@ function AdminOrders() {
                 <tr key={o.id} className="border-t border-border/50 hover:bg-secondary/20 cursor-pointer" onClick={() => setView(o)}>
                   <td className="px-5 py-3 font-mono text-xs">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
                   <td className="px-5 py-3 text-xs">{o.profiles?.email}</td>
-                  <td className="px-5 py-3">{o.services?.name}</td>
+                  <td className="px-5 py-3 max-w-[260px] truncate" title={o.services?.name ?? undefined}>{o.services?.name}</td>
                   <td className="px-5 py-3 font-mono text-xs">{o.imei}</td>
                   <td className={`px-5 py-3 capitalize ${statusColor(o.status)}`}>{o.status}</td>
                   <td className="px-5 py-3 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>

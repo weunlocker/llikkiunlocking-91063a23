@@ -403,8 +403,8 @@ export default function Dashboard() {
                               >
                                 <Smartphone className="w-5 h-5 text-primary shrink-0" />
                                 <div className="flex-1 min-w-0">
-                                  <div className="font-semibold truncate">{s.name}</div>
-                                  {s.description && <div className="text-xs text-muted-foreground truncate">{s.description}</div>}
+                                  <div className="font-semibold truncate" title={s.name}>{s.name}</div>
+                                  {s.description && <div className="text-xs text-muted-foreground truncate" title={s.description}>{s.description}</div>}
                                 </div>
                                 <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground shrink-0"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
                                 <div className="text-base font-bold font-mono shrink-0">${Number(s.price).toFixed(2)}</div>
@@ -425,8 +425,8 @@ export default function Dashboard() {
                                   <Smartphone className="w-5 h-5 text-primary" />
                                   <div className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
                                 </div>
-                                <h3 className="font-bold mb-1 hover:text-primary transition-colors">{s.name}</h3>
-                                <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2">{s.description}</p>
+                                <h3 className="font-bold mb-1 hover:text-primary transition-colors line-clamp-2" title={s.name}>{s.name}</h3>
+                                <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2" title={s.description ?? undefined}>{s.description}</p>
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="text-xl font-bold font-mono">${Number(s.price).toFixed(2)}</div>
                                   <Button variant="neon" size="sm" onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
@@ -525,7 +525,7 @@ export default function Dashboard() {
                     {pageOrders.map((o) => (
                       <tr key={o.id} className="border-t border-border/50 hover:bg-secondary/20 cursor-pointer" onClick={() => setOrderDetail(o)}>
                         <td className="px-5 py-3 font-mono text-xs">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
-                        <td className="px-5 py-3 font-medium">{o.services?.name ?? "—"}</td>
+                        <td className="px-5 py-3 font-medium max-w-[260px] truncate" title={o.services?.name ?? undefined}>{o.services?.name ?? "—"}</td>
                         <td className="px-5 py-3 font-mono text-xs">{o.imei}</td>
                         <td className="px-5 py-3"><StatusBadge status={o.status} errorMessage={sanitizeError(o.error_message)} /></td>
                         <td className="px-5 py-3 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
