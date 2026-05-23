@@ -61,9 +61,12 @@ export function SiteSettingsProvider({ children }: { children: ReactNode }) {
     setMeta("description", settings.seo_description);
     setMeta("keywords", settings.seo_keywords);
     if (settings.favicon_url) {
-      let link = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
-      if (!link) { link = document.createElement("link"); link.rel = "icon"; document.head.appendChild(link); }
+      // Remove all existing icon links to avoid stale /favicon.png winning
+      document.querySelectorAll("link[rel='icon'], link[rel='shortcut icon'], link[rel='apple-touch-icon']").forEach((el) => el.parentNode?.removeChild(el));
+      const link = document.createElement("link");
+      link.rel = "icon";
       link.href = settings.favicon_url;
+      document.head.appendChild(link);
     }
   }, [settings.seo_title, settings.seo_description, settings.seo_keywords, settings.favicon_url]);
 
