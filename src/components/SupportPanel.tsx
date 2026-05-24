@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, Plus, MessageSquare, Send } from "lucide-react";
+import { Loader2, Plus, MessageSquare, Send, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 
 type Ticket = {
@@ -26,6 +26,68 @@ const statusColor: Record<string, string> = {
   closed: "bg-muted text-muted-foreground border-border",
 };
 
+const MAX_IMG_BYTES = 5 * 1024 * 1024; // 5MB
+
+async function uploadAttachment(file: File, userId: string): Promise<string | null> {
+  if (!file.type.startsWith("image/")) { toast.error("Only images allowed"); return null; }
+  if (file.size > MAX_IMG_BYTES) { toast.error("Image too large (max 5MB)"); return null; }
+  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await supabase.storage.from("support-attachments").upload(path, file, { contentType: file.type });
+  if (error) { toast.error(error.message); return null; }
+  const { data } = supabase.storage.from("support-attachments").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+function MessageBody({ text }: { text: string }) {
+  // render ![](url) inline images, rest as plain text
+  const parts: Array<{ type: "text" | "img"; value: string }> = [];
+  const re = /!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/g;
+  let last = 0; let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    if (m.index > last) parts.push({ type: "text", value: text.slice(last, m.index) });
+    parts.push({ type: "img", value: m[1] });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push({ type: "text", value: text.slice(last) });
+  return (
+    <div className="space-y-2">
+      {parts.map((p, i) => p.type === "img" ? (
+        <a key={i} href={p.value} target="_blank" rel="noopener noreferrer" className="block">
+          <img src={p.value} alt="attachment" className="rounded-lg max-h-64 max-w-full border border-border/40" />
+        </a>
+      ) : (
+        p.value.trim() && <div key={i} className="whitespace-pre-wrap break-words">{p.value}</div>
+      ))}
+    </div>
+  );
+}
+
+function AttachmentPicker({ onUpload, disabled }: { onUpload: (url: string) => void; disabled?: boolean }) {
+  const { user } = useAuth();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const handle = async (files: FileList | null) => {
+    if (!user || !files || files.length === 0) return;
+    setBusy(true);
+    for (const f of Array.from(files)) {
+      const url = await uploadAttachment(f, user.id);
+      if (url) onUpload(url);
+    }
+    setBusy(false);
+  };
+  return (
+    <>
+      <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
+        onChange={(e) => { handle(e.target.files); e.target.value = ""; }} />
+      <Button type="button" variant="outline" size="icon" disabled={disabled || busy}
+        onClick={() => fileRef.current?.click()} title="Attach image">
+        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
+      </Button>
+    </>
+  );
+}
+
 export default function SupportPanel() {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -35,7 +97,9 @@ export default function SupportPanel() {
   const [subject, setSubject] = useState("");
   const [priority, setPriority] = useState<"low" | "normal" | "high" | "urgent">("normal");
   const [firstMessage, setFirstMessage] = useState("");
+  const [attachments, setAttachments] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -59,20 +123,29 @@ export default function SupportPanel() {
   const submitNew = async () => {
     if (!user) return;
     if (subject.trim().length < 3) { toast.error("Subject too short"); return; }
-    if (firstMessage.trim().length < 3) { toast.error("Message too short"); return; }
+    if (firstMessage.trim().length < 3 && attachments.length === 0) { toast.error("Add a message or image"); return; }
     setSubmitting(true);
     const { data: t, error } = await supabase.from("support_tickets")
       .insert({ user_id: user.id, subject: subject.trim(), priority })
       .select("*").maybeSingle();
     if (error || !t) { setSubmitting(false); toast.error(error?.message || "Failed"); return; }
+    const body = [firstMessage.trim(), ...attachments.map((u) => `![image](${u})`)].filter(Boolean).join("\n\n");
     const { error: mErr } = await supabase.from("support_ticket_messages")
-      .insert({ ticket_id: t.id, sender_id: user.id, sender_type: "user", message: firstMessage.trim() });
+      .insert({ ticket_id: t.id, sender_id: user.id, sender_type: "user", message: body });
     setSubmitting(false);
     if (mErr) { toast.error(mErr.message); return; }
     toast.success("Ticket created");
-    setCreating(false); setSubject(""); setFirstMessage(""); setPriority("normal");
+    setCreating(false); setSubject(""); setFirstMessage(""); setPriority("normal"); setAttachments([]);
     load();
     setOpenTicket(t as Ticket);
+  };
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!user || !files) return;
+    for (const f of Array.from(files)) {
+      const url = await uploadAttachment(f, user.id);
+      if (url) setAttachments((a) => [...a, url]);
+    }
   };
 
   return (
@@ -105,7 +178,7 @@ export default function SupportPanel() {
           </table>}
       </div>
 
-      <Dialog open={creating} onOpenChange={setCreating}>
+      <Dialog open={creating} onOpenChange={(o) => { setCreating(o); if (!o) setAttachments([]); }}>
         <DialogContent className="glass max-w-lg">
           <DialogHeader><DialogTitle>New support ticket</DialogTitle></DialogHeader>
           <div className="space-y-3">
@@ -122,10 +195,51 @@ export default function SupportPanel() {
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>Message</Label><Textarea value={firstMessage} onChange={(e) => setFirstMessage(e.target.value)} rows={6} placeholder="Describe your issue…" /></div>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setCreating(false)}>Cancel</Button>
-              <Button onClick={submitNew} disabled={submitting}>{submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Create ticket</Button>
+            <div>
+              <Label>Message</Label>
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
+                className={`rounded-md border ${dragOver ? "border-primary bg-primary/5" : "border-border"} transition-colors`}
+              >
+                <Textarea
+                  value={firstMessage}
+                  onChange={(e) => setFirstMessage(e.target.value)}
+                  onPaste={(e) => {
+                    const imgs = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
+                    if (imgs.length) {
+                      e.preventDefault();
+                      const dt = new DataTransfer();
+                      imgs.forEach((f) => dt.items.add(f));
+                      handleFiles(dt.files);
+                    }
+                  }}
+                  rows={5}
+                  placeholder="Describe your issue… (drop, paste, or attach images)"
+                  className="border-0 focus-visible:ring-0"
+                />
+              </div>
+            </div>
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {attachments.map((u, i) => (
+                  <div key={u} className="relative group">
+                    <img src={u} alt="" className="w-20 h-20 object-cover rounded border border-border" />
+                    <button type="button" onClick={() => setAttachments((a) => a.filter((_, idx) => idx !== i))}
+                      className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-between items-center gap-2">
+              <AttachmentPicker onUpload={(u) => setAttachments((a) => [...a, u])} />
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setCreating(false)}>Cancel</Button>
+                <Button onClick={submitNew} disabled={submitting}>{submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Create ticket</Button>
+              </div>
             </div>
           </div>
         </DialogContent>
@@ -140,13 +254,15 @@ export function TicketThread({ ticket, onClose, role }: { ticket: Ticket | null;
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [reply, setReply] = useState("");
+  const [pending, setPending] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const closed = ticket?.status === "closed";
 
   useEffect(() => {
-    if (!ticket) { setMessages([]); return; }
+    if (!ticket) { setMessages([]); setPending([]); setReply(""); return; }
     let active = true;
     (async () => {
       setLoading(true);
@@ -155,7 +271,6 @@ export function TicketThread({ ticket, onClose, role }: { ticket: Ticket | null;
       if (!active) return;
       setMessages((data ?? []) as Message[]);
       setLoading(false);
-      // mark read
       const patch = role === "user" ? { unread_for_user: false } : { unread_for_admin: false };
       await supabase.from("support_tickets").update(patch).eq("id", ticket.id);
     })();
@@ -168,18 +283,27 @@ export function TicketThread({ ticket, onClose, role }: { ticket: Ticket | null;
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages]);
+  }, [messages, pending]);
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!user || !files) return;
+    for (const f of Array.from(files)) {
+      const url = await uploadAttachment(f, user.id);
+      if (url) setPending((a) => [...a, url]);
+    }
+  };
 
   const send = async () => {
     if (!ticket || !user) return;
     const text = reply.trim();
-    if (text.length < 1) return;
+    if (text.length < 1 && pending.length === 0) return;
     setSending(true);
+    const body = [text, ...pending.map((u) => `![image](${u})`)].filter(Boolean).join("\n\n");
     const { error } = await supabase.from("support_ticket_messages")
-      .insert({ ticket_id: ticket.id, sender_id: user.id, sender_type: role, message: text });
+      .insert({ ticket_id: ticket.id, sender_id: user.id, sender_type: role, message: body });
     setSending(false);
     if (error) { toast.error(error.message); return; }
-    setReply("");
+    setReply(""); setPending([]);
   };
 
   const setStatus = async (status: "open" | "pending" | "closed") => {
@@ -215,7 +339,7 @@ export function TicketThread({ ticket, onClose, role }: { ticket: Ticket | null;
                 <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${mine ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}>
                     <div className="text-[10px] uppercase tracking-wider opacity-70 mb-1">{m.sender_type}</div>
-                    <div className="whitespace-pre-wrap break-words">{m.message}</div>
+                    <MessageBody text={m.message} />
                     <div className="text-[10px] opacity-60 mt-1">{new Date(m.created_at).toLocaleString()}</div>
                   </div>
                 </div>
@@ -226,12 +350,49 @@ export function TicketThread({ ticket, onClose, role }: { ticket: Ticket | null;
         {closed ? (
           <div className="text-center text-xs text-muted-foreground py-3 border-t border-border/40">This ticket is closed.{role === "admin" && " You can re-open it above."}</div>
         ) : (
-          <div className="border-t border-border/40 pt-3 flex gap-2">
-            <Textarea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Type your reply…" rows={2}
-              onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } }} />
-            <Button onClick={send} disabled={sending || !reply.trim()}>
-              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            </Button>
+          <div className="border-t border-border/40 pt-3 space-y-2">
+            {pending.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {pending.map((u, i) => (
+                  <div key={u} className="relative">
+                    <img src={u} alt="" className="w-16 h-16 object-cover rounded border border-border" />
+                    <button type="button" onClick={() => setPending((a) => a.filter((_, idx) => idx !== i))}
+                      className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
+              className={`flex gap-2 rounded-md ${dragOver ? "ring-2 ring-primary" : ""}`}
+            >
+              <Textarea
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
+                onPaste={(e) => {
+                  const imgs = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
+                  if (imgs.length) {
+                    e.preventDefault();
+                    const dt = new DataTransfer();
+                    imgs.forEach((f) => dt.items.add(f));
+                    handleFiles(dt.files);
+                  }
+                }}
+                placeholder="Type your reply… (drop, paste, or attach images)"
+                rows={2}
+                onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } }}
+              />
+              <div className="flex flex-col gap-2">
+                <AttachmentPicker onUpload={(u) => setPending((a) => [...a, u])} />
+                <Button onClick={send} disabled={sending || (!reply.trim() && pending.length === 0)} size="icon">
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </DialogContent>
