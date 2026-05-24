@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -38,6 +39,24 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
   const navigate = useNavigate();
   const logoSrc = settings.logo_url || logo;
   const [open, setOpen] = useState(false);
+  const [supportPending, setSupportPending] = useState(0);
+
+  useEffect(() => {
+    const load = async () => {
+      const { count } = await supabase
+        .from("support_tickets")
+        .select("id", { count: "exact", head: true })
+        .eq("unread_for_admin", true)
+        .neq("status", "closed");
+      setSupportPending(count ?? 0);
+    };
+    load();
+    const ch = supabase
+      .channel("admin-support-badge")
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
 
   const SidebarBody = (
     <>
@@ -74,7 +93,12 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
               }
             >
               <Icon className="w-4 h-4" />
-              <span>{item.label}</span>
+              <span className="flex-1">{item.label}</span>
+              {item.to === "/admin/support" && supportPending > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                  {supportPending > 99 ? "99+" : supportPending}
+                </span>
+              )}
             </NavLink>
           );
         })}
