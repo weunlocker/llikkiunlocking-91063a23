@@ -25,6 +25,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const logoSrc = settings.logo_url || defaultLogo;
   const [menuOpen, setMenuOpen] = useState(false);
+  useSupportNotifications();
 
   const allNavLinks = [
     { to: "/", label: "Home" },
