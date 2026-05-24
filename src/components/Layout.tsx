@@ -7,6 +7,7 @@ import defaultLogo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useTheme } from "@/hooks/useTheme";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useSupportNotifications } from "@/hooks/useSupportNotifications";
 import {
   DropdownMenu,
   DropdownMenuContent,
