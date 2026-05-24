@@ -96,6 +96,24 @@ export default function Dashboard() {
   const [serviceView, setServiceView] = useState<"grid" | "list">(() => (localStorage.getItem("serviceView") as "grid" | "list") || "grid");
   useEffect(() => { localStorage.setItem("serviceView", serviceView); }, [serviceView]);
   const [paySettings, setPaySettings] = useState<{ binance_enabled: boolean; topup_amounts: number[]; ask_admin_enabled: boolean } | null>(null);
+  const [supportUnread, setSupportUnread] = useState(0);
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { count } = await supabase
+        .from("support_tickets")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("unread_for_user", true);
+      setSupportUnread(count ?? 0);
+    };
+    load();
+    const ch = supabase
+      .channel(`user-support-badge-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets", filter: `user_id=eq.${user.id}` }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user]);
   useEffect(() => {
     supabase.rpc("get_public_payment_settings").then(({ data }) => {
       const row = Array.isArray(data) ? data[0] : data;
