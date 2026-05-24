@@ -39,6 +39,24 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
   const navigate = useNavigate();
   const logoSrc = settings.logo_url || logo;
   const [open, setOpen] = useState(false);
+  const [supportPending, setSupportPending] = useState(0);
+
+  useEffect(() => {
+    const load = async () => {
+      const { count } = await supabase
+        .from("support_tickets")
+        .select("id", { count: "exact", head: true })
+        .eq("unread_for_admin", true)
+        .neq("status", "closed");
+      setSupportPending(count ?? 0);
+    };
+    load();
+    const ch = supabase
+      .channel("admin-support-badge")
+      .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
 
   const SidebarBody = (
     <>
