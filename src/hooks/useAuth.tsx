@@ -45,13 +45,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAdmin(!!roles?.some((r: { role: string }) => r.role === "admin"));
   };
 
+  const IDLE_MS = 30 * 60 * 1000; // 30 minutes
+  const LAST_ACTIVITY_KEY = "lastActivityAt";
+
   useEffect(() => {
-    // Set up listener FIRST
     const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
       setUser(sess?.user ?? null);
       if (sess?.user) {
-        // defer to avoid recursive locking
+        localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
         setTimeout(() => loadProfile(sess.user.id), 0);
       } else {
         setProfile(null);
@@ -59,12 +61,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // THEN check existing session
-    supabase.auth.getSession().then(({ data: { session: sess } }) => {
+    // On load: if last activity exceeded idle window, force sign-out
+    supabase.auth.getSession().then(async ({ data: { session: sess } }) => {
+      const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || 0);
+      if (sess?.user && last && Date.now() - last > IDLE_MS) {
+        await supabase.auth.signOut();
+        localStorage.removeItem(LAST_ACTIVITY_KEY);
+        setSession(null); setUser(null); setProfile(null); setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
       setSession(sess);
       setUser(sess?.user ?? null);
-      if (sess?.user) loadProfile(sess.user.id).finally(() => setLoading(false));
-      else setLoading(false);
+      if (sess?.user) {
+        localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+        loadProfile(sess.user.id).finally(() => setLoading(false));
+      } else setLoading(false);
     });
 
     return () => sub.subscription.unsubscribe();
@@ -76,27 +88,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    localStorage.removeItem(LAST_ACTIVITY_KEY);
     setUser(null); setSession(null); setProfile(null); setIsAdmin(false);
   };
 
-  // Auto sign-out after 5 minutes of inactivity
+  // Auto sign-out after 30 minutes of inactivity (also catches re-launch after gap)
   useEffect(() => {
     if (!user) return;
-    const IDLE_MS = 5 * 60 * 1000;
     let timer: ReturnType<typeof setTimeout>;
     const reset = () => {
+      localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
       clearTimeout(timer);
       timer = setTimeout(async () => {
         await signOut();
         try { (await import("sonner")).toast.info("Signed out due to inactivity"); } catch {}
       }, IDLE_MS);
     };
-    const events = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "visibilitychange"];
+    const events = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"];
     events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    const onVisibility = async () => {
+      if (document.visibilityState !== "visible") return;
+      const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || 0);
+      if (last && Date.now() - last > IDLE_MS) {
+        await signOut();
+        try { (await import("sonner")).toast.info("Signed out due to inactivity"); } catch {}
+      } else {
+        reset();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
     reset();
     return () => {
       clearTimeout(timer);
       events.forEach((e) => window.removeEventListener(e, reset));
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [user]);
 
