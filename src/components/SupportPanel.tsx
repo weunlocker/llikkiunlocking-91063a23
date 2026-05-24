@@ -50,7 +50,7 @@ export default function SupportPanel() {
 
   useEffect(() => {
     if (!user) return;
-    const ch = supabase.channel("user-tickets")
+    const ch = supabase.channel(`user-tickets-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets", filter: `user_id=eq.${user.id}` }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
