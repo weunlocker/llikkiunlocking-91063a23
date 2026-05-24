@@ -93,7 +93,12 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
               }
             >
               <Icon className="w-4 h-4" />
-              <span>{item.label}</span>
+              <span className="flex-1">{item.label}</span>
+              {item.to === "/admin/support" && supportPending > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+                  {supportPending > 99 ? "99+" : supportPending}
+                </span>
+              )}
             </NavLink>
           );
         })}
