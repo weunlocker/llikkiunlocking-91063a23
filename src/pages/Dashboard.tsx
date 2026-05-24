@@ -324,7 +324,7 @@ export default function Dashboard() {
             <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
             <TabsTrigger value="wallet"><Wallet className="w-4 h-4 mr-2" />Wallet History</TabsTrigger>
             <TabsTrigger value="referrals"><Gift className="w-4 h-4 mr-2" />Referrals</TabsTrigger>
-            <TabsTrigger value="support"><MessageSquare className="w-4 h-4 mr-2" />Support</TabsTrigger>
+            <TabsTrigger value="support" className="relative"><MessageSquare className="w-4 h-4 mr-2" />Support{supportUnread > 0 && (<span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">{supportUnread > 99 ? "99+" : supportUnread}</span>)}</TabsTrigger>
             <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />Notifications</TabsTrigger>
             <TabsTrigger value="api"><Code2 className="w-4 h-4 mr-2" />API</TabsTrigger>
           </TabsList>
