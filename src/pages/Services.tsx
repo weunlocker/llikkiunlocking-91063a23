@@ -80,10 +80,10 @@ export default function Services() {
         path="/services"
         jsonLd={collectionJsonLd}
       />
-      <div className="container py-12">
-        <div className="text-center mb-12 animate-fade-up">
-          <h1 className="text-4xl md:text-5xl font-bold mb-3">All <span className="glow-text">Services</span></h1>
-          <p className="text-muted-foreground text-lg">Choose a service, enter the IMEI, get instant results.</p>
+      <div className="container py-8">
+        <div className="text-center mb-8 animate-fade-up">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">All <span className="glow-text">Services</span></h1>
+          <p className="text-muted-foreground text-sm">Choose a service, enter the IMEI, get instant results.</p>
         </div>
 
         {loading ? (
@@ -93,26 +93,26 @@ export default function Services() {
             const items = grouped[cat];
             const label = catMap[cat]?.name ?? cat;
             return (
-            <div key={cat} className="mb-10">
-              <h2 className="text-xl font-bold mb-4 capitalize flex items-center gap-2">
-                <span className="w-1 h-6 bg-gradient-primary rounded-full" /> {label}
+            <div key={cat} className="mb-8">
+              <h2 className="text-base font-bold mb-3 capitalize flex items-center gap-2">
+                <span className="w-1 h-5 bg-gradient-primary rounded-full" /> {label}
               </h2>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {items.map((s) => (
                   <button
                     key={s.id}
                     type="button"
                     onClick={() => openCheck(s)}
-                    className="text-left glass rounded-xl p-5 sm:p-6 hover:border-primary/40 hover:shadow-elegant transition-all flex flex-col cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="text-left glass rounded-lg p-3 sm:p-4 hover:border-primary/40 hover:shadow-elegant transition-all flex flex-col cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <Smartphone className="w-5 h-5 text-primary" />
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
+                    <div className="flex items-start justify-between mb-2">
+                      <Smartphone className="w-4 h-4 text-primary" />
+                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
                     </div>
-                    <h3 className="font-bold mb-2 hover:text-primary transition-colors">{s.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2">{s.description}</p>
+                    <h3 className="text-sm font-semibold mb-1 hover:text-primary transition-colors">{s.name}</h3>
+                    <p className="text-xs text-muted-foreground mb-3 flex-1 line-clamp-2">{s.description}</p>
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-xl sm:text-2xl font-bold font-mono">${Number(s.price).toFixed(2)}</div>
+                      <div className="text-base font-bold font-mono">${Number(s.price).toFixed(2)}</div>
                       <Button variant="neon" size="sm" asChild={false} onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
                     </div>
                   </button>
@@ -123,6 +123,7 @@ export default function Services() {
           })
         )}
       </div>
+
 
       <ImeiCheckDialog
         service={selected}
