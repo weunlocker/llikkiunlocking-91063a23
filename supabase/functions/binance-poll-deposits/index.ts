@@ -127,13 +127,8 @@ Deno.serve(async (req) => {
         description: `Binance deposit ${d.coin} (${found.memo})`,
       });
 
-      await admin.from("payment_orders").update({
-        status: "paid",
-        tx_id: d.txId ?? null,
-        matched_at: new Date().toISOString(),
-        credited: true,
-        raw: d as unknown as Record<string, unknown>,
-      }).eq("id", found.id);
+
+
 
       // Notify user about the top-up
       try {
