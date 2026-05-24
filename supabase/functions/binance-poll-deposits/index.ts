@@ -104,12 +104,20 @@ Deno.serve(async (req) => {
         if (existing && existing.id !== found.id) continue;
       }
 
-      // Credit the user balance
-      const { data: prof } = await admin.from("profiles").select("balance").eq("id", found.user_id).maybeSingle();
-      const currentBal = Number(prof?.balance ?? 0);
-      const newBal = currentBal + depAmount;
-      const { error: balErr } = await admin.from("profiles").update({ balance: newBal }).eq("id", found.user_id);
+      // Atomically claim the payment order first to prevent double-credit on overlapping cron runs
+      const { data: claimed, error: claimErr } = await admin
+        .from("payment_orders")
+        .update({ status: "paid", tx_id: d.txId ?? null, matched_at: new Date().toISOString(), credited: true, raw: d as unknown as Record<string, unknown> })
+        .eq("id", found.id)
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
+      if (claimErr || !claimed) { continue; }
+
+      // Atomic balance credit
+      const { data: newBalData, error: balErr } = await admin.rpc("credit_balance", { p_user_id: found.user_id, p_amount: depAmount });
       if (balErr) { console.error("balance update", balErr); continue; }
+      const newBal = Number(newBalData);
 
       await admin.from("transactions").insert({
         user_id: found.user_id,
@@ -119,13 +127,8 @@ Deno.serve(async (req) => {
         description: `Binance deposit ${d.coin} (${found.memo})`,
       });
 
-      await admin.from("payment_orders").update({
-        status: "paid",
-        tx_id: d.txId ?? null,
-        matched_at: new Date().toISOString(),
-        credited: true,
-        raw: d as unknown as Record<string, unknown>,
-      }).eq("id", found.id);
+
+
 
       // Notify user about the top-up
       try {

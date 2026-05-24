@@ -20,6 +20,21 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
+    // Rate limit: cap inserts per IP to 10/min, and Telegram alerts to 1/min per IP, to prevent log poisoning + alert spam.
+    const oneMinAgo = new Date(Date.now() - 60_000).toISOString();
+    let recentFromIp = 0;
+    if (ip) {
+      const { count } = await supabase
+        .from("auth_login_events")
+        .select("id", { count: "exact", head: true })
+        .eq("ip", ip)
+        .gte("created_at", oneMinAgo);
+      recentFromIp = count ?? 0;
+    }
+    if (recentFromIp >= 10) {
+      return json(429, { error: "rate_limited" });
+    }
+
     let userId: string | null = null;
     if (email) {
       const { data: prof } = await supabase.from("profiles").select("id").ilike("email", email).maybeSingle();
@@ -28,16 +43,18 @@ Deno.serve(async (req) => {
 
     await supabase.from("auth_login_events").insert({ user_id: userId, email, ip, user_agent: userAgent, success });
 
-    // Notify admins
-    const subject = success ? "✅ Login success" : "⚠️ Login FAILED";
-    const body = `Email: ${email || "—"}\nIP: ${ip || "—"}\nUA: ${userAgent.slice(0, 120)}`;
-    await supabase.functions.invoke("telegram-notify", { body: { broadcast: "admins", subject, body } });
+    // Notify admins (debounced — skip if any alert already sent from this IP in the last minute)
+    if (recentFromIp === 0) {
+      const subject = success ? "✅ Login success" : "⚠️ Login FAILED";
+      const body = `Email: ${email || "—"}\nIP: ${ip || "—"}\nUA: ${userAgent.slice(0, 120)}`;
+      await supabase.functions.invoke("telegram-notify", { body: { broadcast: "admins", subject, body } });
 
-    // Notify the user themselves on success (if linked)
-    if (success && userId) {
-      await supabase.functions.invoke("telegram-notify", {
-        body: { user_id: userId, subject: "🔐 New login to your account", body },
-      });
+      // Notify the user themselves on success (if linked)
+      if (success && userId) {
+        await supabase.functions.invoke("telegram-notify", {
+          body: { user_id: userId, subject: "🔐 New login to your account", body: `Email: ${email || "—"}\nIP: ${ip || "—"}\nUA: ${userAgent.slice(0, 120)}` },
+        });
+      }
     }
 
     return json(200, { ok: true });

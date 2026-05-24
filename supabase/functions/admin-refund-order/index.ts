@@ -34,13 +34,17 @@ Deno.serve(async (req) => {
     if (!order) return json(404, { error: "Order not found" });
     if (order.status === "refunded") return json(400, { error: "Already refunded" });
 
-    const { data: profile } = await admin.from("profiles").select("balance").eq("id", order.user_id).single();
-    if (!profile) return json(404, { error: "User not found" });
+    // Atomically claim the order to prevent concurrent double-refund
+    const { data: claimed, error: claimErr } = await admin
+      .from("orders").update({ status: "refunded" })
+      .eq("id", order.id).neq("status", "refunded")
+      .select("id").maybeSingle();
+    if (claimErr || !claimed) return json(409, { error: "Already refunded" });
 
     const amount = Number(order.price_charged);
-    const newBalance = +(Number(profile.balance) + amount).toFixed(2);
-    await admin.from("profiles").update({ balance: newBalance }).eq("id", order.user_id);
-    await admin.from("orders").update({ status: "refunded" }).eq("id", order.id);
+    const { data: newBalData, error: balErr } = await admin.rpc("credit_balance", { p_user_id: order.user_id, p_amount: amount });
+    if (balErr) return json(500, { error: balErr.message });
+    const newBalance = Number(newBalData);
     await admin.from("transactions").insert({
       user_id: order.user_id, type: "refund", amount, balance_after: newBalance,
       description: `Manual refund (admin)`, order_id: order.id,
