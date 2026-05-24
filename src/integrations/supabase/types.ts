@@ -1243,6 +1243,10 @@ export type Database = {
         }
         Returns: Json
       }
+      credit_balance: {
+        Args: { p_amount: number; p_user_id: string }
+        Returns: number
+      }
       deduct_balance: {
         Args: { p_amount: number; p_user_id: string }
         Returns: number
