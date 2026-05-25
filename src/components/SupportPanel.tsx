@@ -306,6 +306,13 @@ export function TicketThread({ ticket, onClose, role }: { ticket: Ticket | null;
       .insert({ ticket_id: ticket.id, sender_id: user.id, sender_type: role, message: body });
     setSending(false);
     if (error) { toast.error(error.message); return; }
+    supabase.functions.invoke("notify-support-event", {
+      body: {
+        ticket_id: ticket.id,
+        event: role === "admin" ? "admin_reply" : "user_message",
+        preview: body,
+      },
+    }).catch(() => {});
     setReply(""); setPending([]);
   };
 
