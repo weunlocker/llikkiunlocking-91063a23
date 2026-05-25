@@ -49,10 +49,14 @@ Deno.serve(async (req) => {
       const body = `Email: ${email || "—"}\nIP: ${ip || "—"}\nUA: ${userAgent.slice(0, 120)}`;
       await supabase.functions.invoke("telegram-notify", { body: { broadcast: "admins", subject, body } });
 
-      // Notify the user themselves on success (if linked)
-      if (success && userId) {
+      // Notify the user themselves (if linked) on both success and failed attempts
+      if (userId) {
         await supabase.functions.invoke("telegram-notify", {
-          body: { user_id: userId, subject: "🔐 New login to your account", body: `Email: ${email || "—"}\nIP: ${ip || "—"}\nUA: ${userAgent.slice(0, 120)}` },
+          body: {
+            user_id: userId,
+            subject: success ? "🔐 New login to your account" : "⚠️ Failed login attempt on your account",
+            body: `Email: ${email || "—"}\nIP: ${ip || "—"}\nUA: ${userAgent.slice(0, 120)}${success ? "" : "\n\nIf this wasn't you, change your password immediately."}`,
+          },
         });
       }
     }
