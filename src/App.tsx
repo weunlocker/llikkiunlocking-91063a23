@@ -52,6 +52,7 @@ const App = () => (
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/admin/*" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
+            <Route path="/email-unsubscribe" element={<Unsubscribe />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

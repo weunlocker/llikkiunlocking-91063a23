@@ -19,7 +19,7 @@ const corsHeaders = {
 const EMAIL_SUBJECTS: Record<string, string> = {
   signup: 'Confirm your email',
   invite: "You've been invited",
-  magiclink: 'Your 6-digit login code',
+  magiclink: 'Your login link',
   recovery: 'Reset your password',
   email_change: 'Confirm your new email',
   reauthentication: 'Your verification code',
@@ -36,7 +36,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "LIKKIUNLOCKING"
+const SITE_NAME = "llikkiunlocking"
 const SENDER_DOMAIN = "notify.likkiunlocking.com"
 const ROOT_DOMAIN = "likkiunlocking.com"
 const FROM_DOMAIN = "likkiunlocking.com" // Domain shown in From address (may be root or sender subdomain)
