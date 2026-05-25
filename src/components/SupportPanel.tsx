@@ -134,6 +134,9 @@ export default function SupportPanel() {
       .insert({ ticket_id: t.id, sender_id: user.id, sender_type: "user", message: body });
     setSubmitting(false);
     if (mErr) { toast.error(mErr.message); return; }
+    supabase.functions.invoke("notify-support-event", {
+      body: { ticket_id: t.id, event: "created", preview: body },
+    }).catch(() => {});
     toast.success("Ticket created");
     setCreating(false); setSubject(""); setFirstMessage(""); setPriority("normal"); setAttachments([]);
     load();
@@ -303,6 +306,13 @@ export function TicketThread({ ticket, onClose, role }: { ticket: Ticket | null;
       .insert({ ticket_id: ticket.id, sender_id: user.id, sender_type: role, message: body });
     setSending(false);
     if (error) { toast.error(error.message); return; }
+    supabase.functions.invoke("notify-support-event", {
+      body: {
+        ticket_id: ticket.id,
+        event: role === "admin" ? "admin_reply" : "user_message",
+        preview: body,
+      },
+    }).catch(() => {});
     setReply(""); setPending([]);
   };
 
