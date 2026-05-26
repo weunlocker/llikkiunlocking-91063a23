@@ -11,4 +11,5 @@
   <url><loc>https://likkiunlocking.com/forgot-password</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
   <url><loc>https://likkiunlocking.com/reset-password</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
   <url><loc>https://likkiunlocking.com/unsubscribe</loc><changefreq>yearly</changefreq><priority>0.1</priority></url>
+  <url><loc>https://likkiunlocking.com/email-unsubscribe</loc><changefreq>yearly</changefreq><priority>0.1</priority></url>
 </urlset>
