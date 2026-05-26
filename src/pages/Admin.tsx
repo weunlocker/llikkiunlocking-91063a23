@@ -123,6 +123,12 @@ function AdminDashboard() {
 
   return (
     <AdminLayout title="Dashboard" subtitle="Real-time overview of your platform">
+      <Seo
+        title="Admin Dashboard — LIKKI UNLOCKING"
+        description="Internal admin console for LIKKI UNLOCKING — manage users, services, orders and platform configuration."
+        path="/admin"
+        noindex
+      />
       {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div> : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
