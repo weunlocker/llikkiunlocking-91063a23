@@ -368,9 +368,9 @@ export default function Dashboard() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex gap-1 glass rounded-md p-1 self-start">
-                <Button size="sm" variant={serviceView === "grid" ? "neon" : "ghost"} onClick={() => setServiceView("grid")} title="Grid view"><LayoutGrid className="w-4 h-4" /></Button>
-                <Button size="sm" variant={serviceView === "list" ? "neon" : "ghost"} onClick={() => setServiceView("list")} title="List view"><List className="w-4 h-4" /></Button>
+              <div className="flex gap-1 glass rounded-md p-1 self-start" role="group" aria-label="Service view mode">
+                <Button size="sm" variant={serviceView === "grid" ? "neon" : "ghost"} onClick={() => setServiceView("grid")} title="Grid view" aria-label="Grid view"><LayoutGrid className="w-4 h-4" /></Button>
+                <Button size="sm" variant={serviceView === "list" ? "neon" : "ghost"} onClick={() => setServiceView("list")} title="List view" aria-label="List view"><List className="w-4 h-4" /></Button>
               </div>
             </div>
             {loading ? (
