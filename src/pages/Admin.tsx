@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
+import Seo from "@/components/Seo";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
