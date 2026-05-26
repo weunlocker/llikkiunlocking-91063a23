@@ -79,13 +79,17 @@ export async function notifyUserEmail(
       }
 
       const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`;
-      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      // Gateway requires a valid JWT (verify_jwt = true). The new-format
+      // service_role secret (sb_secret_…) is NOT a JWT and is rejected with
+      // UNAUTHORIZED_INVALID_JWT_FORMAT. Use the anon key (always a JWT) for
+      // the gateway hop — the target function uses the service role internally.
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
       const res = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${serviceKey}`,
-          "apikey": serviceKey,
+          "Authorization": `Bearer ${anonKey}`,
+          "apikey": anonKey,
         },
         body: JSON.stringify({
           templateName,
