@@ -266,6 +266,12 @@ export default function Dashboard() {
 
   return (
     <Layout>
+      <Seo
+        title="Customer Dashboard — LIKKI UNLOCKING"
+        description="Manage your IMEI check orders, wallet balance, API access and support — all from your LIKKI UNLOCKING dashboard."
+        path="/dashboard"
+        noindex
+      />
       <div className="container py-10">
         <h1 className="sr-only">Customer Dashboard</h1>
         {customMessage && !msgDismissed && localStorage.getItem("seenAdminMsg") !== customMessage && (
