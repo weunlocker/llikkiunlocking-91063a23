@@ -171,23 +171,26 @@ export default function FreeCheck() {
             No free checks are available right now. Please check back soon.
           </Card>
         ) : (
-          <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
-            {services.map((s) => (
-              <Card
-                key={s.id}
-                className={`glass p-5 cursor-pointer transition border ${selected?.id === s.id ? "border-primary ring-1 ring-primary" : "border-border/50 hover:border-primary/40"}`}
-                onClick={() => { setSelected(s); setResult(""); }}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold">{s.name}</h3>
-                  {selected?.id === s.id && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                </div>
-                {s.description && <p className="text-xs text-muted-foreground mb-3 line-clamp-3">{s.description}</p>}
-                <div className="text-xs text-muted-foreground">⏱ {s.delivery_time}</div>
-                <div className="mt-3 inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-success/10 text-success">FREE</div>
-              </Card>
-            ))}
-          </div>
+          <section aria-labelledby="free-checks-heading">
+            <h2 id="free-checks-heading" className="sr-only">Available free checks</h2>
+            <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+              {services.map((s) => (
+                <Card
+                  key={s.id}
+                  className={`glass p-5 cursor-pointer transition border ${selected?.id === s.id ? "border-primary ring-1 ring-primary" : "border-border/50 hover:border-primary/40"}`}
+                  onClick={() => { setSelected(s); setResult(""); }}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold">{s.name}</h3>
+                    {selected?.id === s.id && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                  </div>
+                  {s.description && <p className="text-xs text-muted-foreground mb-3 line-clamp-3">{s.description}</p>}
+                  <div className="text-xs text-muted-foreground">⏱ {s.delivery_time}</div>
+                  <div className="mt-3 inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-success/10 text-success">FREE</div>
+                </Card>
+              ))}
+            </div>
+          </section>
         )}
 
         {selected && (

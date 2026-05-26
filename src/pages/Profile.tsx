@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import Seo from "@/components/Seo";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,12 @@ export default function Profile() {
 
   return (
     <Layout>
+      <Seo
+        title="Your Profile — LIKKI UNLOCKING"
+        description="View and manage your LIKKI UNLOCKING account details, group, and sign-in options."
+        path="/profile"
+        noindex
+      />
       <div className="container max-w-2xl py-10">
         <h1 className="text-3xl font-bold mb-6">Profile</h1>
         <Card>

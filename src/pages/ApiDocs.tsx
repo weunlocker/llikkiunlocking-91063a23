@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import Seo from "@/components/Seo";
 import { Code2, Copy, Info, AlertTriangle, Loader2, KeyRound, Link as LinkIcon, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -266,7 +267,16 @@ export default function ApiDocs({ embedded = false }: { embedded?: boolean } = {
         </Tabs>
       </div>
   );
-  return embedded ? content : <Layout>{content}</Layout>;
+  return embedded ? content : (
+    <Layout>
+      <Seo
+        title="Developer API Documentation — LIKKI UNLOCKING"
+        description="Integrate LIKKI UNLOCKING's IMEI check and unlock API. Simple Link and Dhru-compatible endpoints with code examples and API key management."
+        path="/api-docs"
+      />
+      {content}
+    </Layout>
+  );
 }
 
 function Field({ label, value, onCopy, mono }: { label: string; value: string; onCopy: (v: string) => void; mono?: boolean }) {

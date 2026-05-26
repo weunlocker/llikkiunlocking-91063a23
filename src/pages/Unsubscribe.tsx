@@ -63,6 +63,7 @@ export default function Unsubscribe() {
       />
       <div className="min-h-[60vh] flex items-center justify-center px-4 py-16">
         <div className="glass max-w-md w-full rounded-2xl p-8 text-center space-y-4">
+          <h1 className="sr-only">Unsubscribe from LIKKI UNLOCKING emails</h1>
           {state === "loading" && (
             <>
               <Loader2 className="w-10 h-10 mx-auto animate-spin text-primary" />
