@@ -35,14 +35,40 @@ async function uploadAttachment(file: File, userId: string): Promise<string | nu
   const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { error } = await supabase.storage.from("support-attachments").upload(path, file, { contentType: file.type });
   if (error) { toast.error(error.message); return null; }
-  const { data } = supabase.storage.from("support-attachments").getPublicUrl(path);
-  return data.publicUrl;
+  // Store a private storage reference. MessageBody resolves it to a short-lived signed URL on render.
+  return `sb:support-attachments/${path}`;
+}
+
+// Extract a storage path from either a new sb: reference or a legacy public URL.
+function extractStoragePath(ref: string): string | null {
+  if (ref.startsWith("sb:support-attachments/")) return ref.slice("sb:support-attachments/".length);
+  const m = ref.match(/\/support-attachments\/(.+?)(?:\?|$)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function SignedImage({ refStr }: { refStr: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const path = extractStoragePath(refStr);
+    if (!path) { setUrl(refStr); return; }
+    supabase.storage.from("support-attachments").createSignedUrl(path, 3600).then(({ data }) => {
+      if (!cancelled) setUrl(data?.signedUrl ?? null);
+    });
+    return () => { cancelled = true; };
+  }, [refStr]);
+  if (!url) return <div className="h-32 w-48 rounded-lg bg-muted/50 animate-pulse" />;
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+      <img src={url} alt="attachment" className="rounded-lg max-h-64 max-w-full border border-border/40" />
+    </a>
+  );
 }
 
 function MessageBody({ text }: { text: string }) {
-  // render ![](url) inline images, rest as plain text
+  // render ![](ref) inline images, rest as plain text. Refs may be sb:..., http(s)://...
   const parts: Array<{ type: "text" | "img"; value: string }> = [];
-  const re = /!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/g;
+  const re = /!\[[^\]]*\]\((sb:[^\s)]+|https?:\/\/[^\s)]+)\)/g;
   let last = 0; let m: RegExpExecArray | null;
   while ((m = re.exec(text))) {
     if (m.index > last) parts.push({ type: "text", value: text.slice(last, m.index) });
@@ -53,15 +79,14 @@ function MessageBody({ text }: { text: string }) {
   return (
     <div className="space-y-2">
       {parts.map((p, i) => p.type === "img" ? (
-        <a key={i} href={p.value} target="_blank" rel="noopener noreferrer" className="block">
-          <img src={p.value} alt="attachment" className="rounded-lg max-h-64 max-w-full border border-border/40" />
-        </a>
+        <SignedImage key={i} refStr={p.value} />
       ) : (
         p.value.trim() && <div key={i} className="whitespace-pre-wrap break-words">{p.value}</div>
       ))}
     </div>
   );
 }
+
 
 function AttachmentPicker({ onUpload, disabled }: { onUpload: (url: string) => void; disabled?: boolean }) {
   const { user } = useAuth();
