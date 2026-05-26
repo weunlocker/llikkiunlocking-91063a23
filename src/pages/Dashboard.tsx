@@ -697,7 +697,7 @@ export default function Dashboard() {
                             checked={checked}
                             onCheckedChange={async (v) => {
                               if (!user) return;
-                              const { error } = await supabase.from("profiles").update({ [row.col]: v }).eq("id", user.id);
+                              const { error } = await supabase.from("profiles").update({ [row.col]: v } as never).eq("id", user.id);
                               if (error) toast.error(error.message); else { toast.success("Saved"); refreshProfile(); }
                             }}
                           />
