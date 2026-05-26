@@ -662,12 +662,50 @@ export default function Dashboard() {
                 />
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border border-border/60 p-3 opacity-60">
-                <div>
-                  <Label className="text-base">Email alerts</Label>
-                  <p className="text-xs text-muted-foreground">Coming soon — set up an email domain in Cloud → Emails to enable.</p>
+              <div className="rounded-lg border border-border/60 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base">Email alerts</Label>
+                    <p className="text-xs text-muted-foreground">Master switch for all email notifications.</p>
+                  </div>
+                  <Switch
+                    checked={emailEnabled}
+                    onCheckedChange={async (v) => {
+                      setEmailEnabled(v);
+                      if (!user) return;
+                      const { error } = await supabase.from("profiles").update({ notify_email: v }).eq("id", user.id);
+                      if (error) toast.error(error.message); else { toast.success("Saved"); refreshProfile(); }
+                    }}
+                  />
                 </div>
-                <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} disabled />
+
+                {emailEnabled && (
+                  <div className="space-y-2 pl-1 pt-1 border-t border-border/40">
+                    {[
+                      { col: "notify_order_placed", label: "Order placed", desc: "Confirmation when you submit a check." },
+                      { col: "notify_order_completed", label: "Order success / rejected", desc: "Final result delivered to your inbox." },
+                      { col: "notify_balance_updates", label: "Wallet & referrals", desc: "Top-ups, refunds and referral bonuses." },
+                    ].map((row) => {
+                      const checked = (profile as unknown as Record<string, boolean | undefined>)?.[row.col] ?? true;
+                      return (
+                        <div key={row.col} className="flex items-center justify-between pt-2">
+                          <div>
+                            <Label className="text-sm">{row.label}</Label>
+                            <p className="text-[11px] text-muted-foreground">{row.desc}</p>
+                          </div>
+                          <Switch
+                            checked={checked}
+                            onCheckedChange={async (v) => {
+                              if (!user) return;
+                              const { error } = await supabase.from("profiles").update({ [row.col]: v }).eq("id", user.id);
+                              if (error) toast.error(error.message); else { toast.success("Saved"); refreshProfile(); }
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>
