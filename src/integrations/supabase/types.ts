@@ -484,7 +484,10 @@ export type Database = {
           display_name: string | null
           email: string | null
           id: string
+          notify_balance_updates: boolean
           notify_email: boolean
+          notify_order_completed: boolean
+          notify_order_placed: boolean
           notify_telegram: boolean
           phone: string | null
           pincode: string | null
@@ -509,7 +512,10 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id: string
+          notify_balance_updates?: boolean
           notify_email?: boolean
+          notify_order_completed?: boolean
+          notify_order_placed?: boolean
           notify_telegram?: boolean
           phone?: string | null
           pincode?: string | null
@@ -534,7 +540,10 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          notify_balance_updates?: boolean
           notify_email?: boolean
+          notify_order_completed?: boolean
+          notify_order_placed?: boolean
           notify_telegram?: boolean
           phone?: string | null
           pincode?: string | null
