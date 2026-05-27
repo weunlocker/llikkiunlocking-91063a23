@@ -184,7 +184,7 @@ function AdminUsers() {
   const [q, setQ] = useState("");
   const [creditUser, setCreditUser] = useState<ProfileRow | null>(null);
   const [creditAmount, setCreditAmount] = useState("10");
-  const [creditBusy, setCreditBusy] = useState(false);
+  const [creditBusy, setCreditBusy] = useState<null | "add" | "deduct">(null);
   const [editUser, setEditUser] = useState<ProfileRow | null>(null);
 
   const load = async () => {
@@ -200,7 +200,7 @@ function AdminUsers() {
   const adjustCredit = async (delta: number) => {
     if (!creditUser || creditBusy) return;
     if (!Number.isFinite(delta) || delta === 0) { toast.error("Enter a valid non-zero amount"); return; }
-    setCreditBusy(true);
+    setCreditBusy(delta > 0 ? "add" : "deduct");
     try {
       const { data, error } = await supabase.functions.invoke("admin-adjust-balance", {
         body: { user_id: creditUser.id, amount: delta, description: delta > 0 ? "Admin credit" : "Admin debit" },
@@ -215,7 +215,7 @@ function AdminUsers() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Request failed");
     } finally {
-      setCreditBusy(false);
+      setCreditBusy(null);
     }
   };
   const toggleBan = async (u: ProfileRow) => {
@@ -289,11 +289,11 @@ function AdminUsers() {
             <p className="text-sm text-muted-foreground">Current: <span className="font-mono font-bold">${Number(creditUser?.balance ?? 0).toFixed(2)}</span></p>
             <div><Label>Amount (USD)</Label><Input type="number" step="0.01" value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)} /></div>
             <div className="flex gap-2">
-              <Button variant="hero" className="flex-1" disabled={creditBusy} onClick={() => adjustCredit(Number(creditAmount))}>
-                {creditBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : "+ Add Credit"}
+              <Button variant="hero" className="flex-1" disabled={!!creditBusy} onClick={() => adjustCredit(Number(creditAmount))}>
+                {creditBusy === "add" ? <><Loader2 className="w-4 h-4 animate-spin" /> Adding…</> : "+ Add Credit"}
               </Button>
-              <Button variant="destructive" className="flex-1" disabled={creditBusy} onClick={() => adjustCredit(-Math.abs(Number(creditAmount)))}>
-                {creditBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : "− Deduct"}
+              <Button variant="destructive" className="flex-1" disabled={!!creditBusy} onClick={() => adjustCredit(-Math.abs(Number(creditAmount)))}>
+                {creditBusy === "deduct" ? <><Loader2 className="w-4 h-4 animate-spin" /> Deducting…</> : "− Deduct"}
               </Button>
             </div>
           </div>
