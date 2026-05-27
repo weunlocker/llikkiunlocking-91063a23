@@ -198,12 +198,25 @@ function AdminUsers() {
   ), [users, q]);
 
   const adjustCredit = async (delta: number) => {
-    if (!creditUser) return;
-    const { error } = await supabase.functions.invoke("admin-adjust-balance", {
-      body: { user_id: creditUser.id, amount: delta, description: delta > 0 ? "Admin credit" : "Admin debit" },
-    });
-    if (error) { toast.error(error.message); return; }
-    toast.success("Balance updated"); setCreditUser(null); load();
+    if (!creditUser || creditBusy) return;
+    if (!Number.isFinite(delta) || delta === 0) { toast.error("Enter a valid non-zero amount"); return; }
+    setCreditBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-adjust-balance", {
+        body: { user_id: creditUser.id, amount: delta, description: delta > 0 ? "Admin credit" : "Admin debit" },
+      });
+      const errMsg = (data && typeof data === "object" && "error" in (data as Record<string, unknown>))
+        ? String((data as { error: unknown }).error)
+        : error?.message;
+      if (errMsg) { toast.error(errMsg); return; }
+      toast.success("Balance updated");
+      setCreditUser(null);
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Request failed");
+    } finally {
+      setCreditBusy(false);
+    }
   };
   const toggleBan = async (u: ProfileRow) => {
     const { error } = await supabase.from("profiles").update({ banned: !u.banned }).eq("id", u.id);
