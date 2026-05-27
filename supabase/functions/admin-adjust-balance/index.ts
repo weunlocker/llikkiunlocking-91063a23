@@ -56,32 +56,37 @@ Deno.serve(async (req) => {
       console.error("profile update failed", pErr);
       return json(500, { error: `Balance update failed: ${pErr.message}` });
     }
-    try {
-      await admin.functions.invoke("telegram-notify", {
-        body: {
-          user_id,
-          subject: amount > 0 ? `💰 Admin credit added` : `🔻 Admin debit applied`,
-          body: `Amount: ${amount > 0 ? "+" : ""}$${amount.toFixed(2)}\nNew balance: $${newBalance.toFixed(2)}\n${description ?? ""}`,
-        },
-      });
-    } catch (_) { /* ignore */ }
-    try {
-      const { data: prof } = await admin.from("profiles").select("email,display_name,notify_email").eq("id", user_id).maybeSingle();
-      if (prof?.email && prof.notify_email !== false) {
-        await admin.functions.invoke("send-email", {
+    // Fire-and-forget notifications so the client gets an immediate response.
+    const notifyTask = (async () => {
+      try {
+        await admin.functions.invoke("telegram-notify", {
           body: {
-            event: "balance_update",
-            to: prof.email,
-            data: {
-              name: prof.display_name ?? prof.email,
-              amount: `${amount > 0 ? "+" : ""}$${amount.toFixed(2)}`,
-              balance: `$${newBalance.toFixed(2)}`,
-              note: description ?? "",
-            },
+            user_id,
+            subject: amount > 0 ? `💰 Admin credit added` : `🔻 Admin debit applied`,
+            body: `Amount: ${amount > 0 ? "+" : ""}$${amount.toFixed(2)}\nNew balance: $${newBalance.toFixed(2)}\n${description ?? ""}`,
           },
         });
-      }
-    } catch (_) { /* ignore */ }
+      } catch (_) { /* ignore */ }
+      try {
+        const { data: prof } = await admin.from("profiles").select("email,display_name,notify_email").eq("id", user_id).maybeSingle();
+        if (prof?.email && prof.notify_email !== false) {
+          await admin.functions.invoke("send-email", {
+            body: {
+              event: "balance_update",
+              to: prof.email,
+              data: {
+                name: prof.display_name ?? prof.email,
+                amount: `${amount > 0 ? "+" : ""}$${amount.toFixed(2)}`,
+                balance: `$${newBalance.toFixed(2)}`,
+                note: description ?? "",
+              },
+            },
+          });
+        }
+      } catch (_) { /* ignore */ }
+    })();
+    // @ts-ignore EdgeRuntime is available in Supabase Edge Functions
+    try { EdgeRuntime.waitUntil(notifyTask); } catch (_) { /* ignore */ }
     return json(200, { ok: true, balance: newBalance });
   } catch (e) {
     return json(500, { error: e instanceof Error ? e.message : "Server error" });
