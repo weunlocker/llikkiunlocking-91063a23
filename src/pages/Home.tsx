@@ -68,7 +68,6 @@ export default function Home() {
     serviceType: "IMEI Check & Phone Unlocking",
     provider: { "@type": "Organization", name: "LIKKI UNLOCKING" },
     areaServed: "Worldwide",
-    aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "1280" },
   };
 
   return (
