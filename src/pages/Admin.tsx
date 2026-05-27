@@ -200,7 +200,7 @@ function AdminUsers() {
   const adjustCredit = async (delta: number) => {
     if (!creditUser || creditBusy) return;
     if (!Number.isFinite(delta) || delta === 0) { toast.error("Enter a valid non-zero amount"); return; }
-    setCreditBusy(true);
+    setCreditBusy(delta > 0 ? "add" : "deduct");
     try {
       const { data, error } = await supabase.functions.invoke("admin-adjust-balance", {
         body: { user_id: creditUser.id, amount: delta, description: delta > 0 ? "Admin credit" : "Admin debit" },
@@ -215,7 +215,7 @@ function AdminUsers() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Request failed");
     } finally {
-      setCreditBusy(false);
+      setCreditBusy(null);
     }
   };
   const toggleBan = async (u: ProfileRow) => {
