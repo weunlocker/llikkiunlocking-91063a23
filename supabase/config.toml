@@ -3,6 +3,10 @@ project_id = "jhkumqyugvezfulkoine"
 [functions]
   [functions.admin-reprocess-order]
     verify_jwt = false
+  [functions.admin-adjust-balance]
+    verify_jwt = false
+  [functions.admin-refund-order]
+    verify_jwt = false
   [functions.ai-chat]
     verify_jwt = false
   [functions.api-check]
