@@ -184,6 +184,7 @@ function AdminUsers() {
   const [q, setQ] = useState("");
   const [creditUser, setCreditUser] = useState<ProfileRow | null>(null);
   const [creditAmount, setCreditAmount] = useState("10");
+  const [creditBusy, setCreditBusy] = useState(false);
   const [editUser, setEditUser] = useState<ProfileRow | null>(null);
 
   const load = async () => {
