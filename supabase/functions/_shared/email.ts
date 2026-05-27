@@ -71,7 +71,7 @@ export async function notifyUserEmail(
       const keys: Array<[string, string]> = [
         ["order_number", "orderNumber"], ["imei", "imei"], ["service", "service"],
         ["result", "result"], ["charged", "charged"], ["balance", "balance"],
-        ["error", "error"], ["refund", "refund"], ["amount", "amount"],
+        ["error", "error"], ["refund", "refund"], ["amount", "amount"], ["note", "note"],
         ["method", "method"], ["reference", "reference"], ["bonus", "bonus"],
         ["percent", "percent"], ["topup_amount", "topupAmount"], ["referred_name", "referredName"],
       ];
