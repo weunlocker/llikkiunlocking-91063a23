@@ -56,19 +56,26 @@ export default function Services() {
     name: "IMEI Check & Unlock Services",
     description: "Catalog of wholesale IMEI check and phone unlocking services.",
     url: "https://likkiunlocking.com/services",
-    hasPart: services.slice(0, 30).map((s) => ({
-      "@type": "Service",
-      name: s.name,
-      description: s.description ?? undefined,
-      category: s.category ?? undefined,
-      provider: { "@type": "Organization", name: "LIKKI UNLOCKING" },
-      offers: {
-        "@type": "Offer",
-        price: Number(s.price).toFixed(2),
-        priceCurrency: "USD",
-        availability: "https://schema.org/InStock",
-      },
-    })),
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: services.slice(0, 30).map((s, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        item: {
+          "@type": "Service",
+          name: s.name,
+          description: s.description ?? undefined,
+          category: s.category ?? undefined,
+          provider: { "@type": "Organization", name: "LIKKI UNLOCKING" },
+          offers: {
+            "@type": "Offer",
+            price: Number(s.price).toFixed(2),
+            priceCurrency: "USD",
+            availability: "https://schema.org/InStock",
+          },
+        },
+      })),
+    },
   };
 
   return (
