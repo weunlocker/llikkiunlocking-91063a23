@@ -57,33 +57,48 @@ Deno.serve(async (req) => {
       return json(500, { error: `Balance update failed: ${pErr.message}` });
     }
     // Fire-and-forget notifications so the client gets an immediate response.
-    const notifyTask = (async () => {
+    // IMPORTANT: use direct fetch (not sb.functions.invoke) to avoid background
+    // task cancellation when the parent edge function returns its response.
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const callFn = async (name: string, body: unknown) => {
       try {
-        await admin.functions.invoke("telegram-notify", {
-          body: {
-            user_id,
-            subject: amount > 0 ? `💰 Admin credit added` : `🔻 Admin debit applied`,
-            body: `Amount: ${amount > 0 ? "+" : ""}$${amount.toFixed(2)}\nNew balance: $${newBalance.toFixed(2)}\n${description ?? ""}`,
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${SERVICE_KEY}`,
+            "apikey": SERVICE_KEY,
+          },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
+          console.error(`[admin-adjust-balance] ${name} → ${res.status}: ${txt.slice(0, 300)}`);
+        }
+      } catch (e) {
+        console.error(`[admin-adjust-balance] ${name} failed`, e);
+      }
+    };
+    const notifyTask = (async () => {
+      await callFn("telegram-notify", {
+        user_id,
+        subject: amount > 0 ? `💰 Admin credit added` : `🔻 Admin debit applied`,
+        body: `Amount: ${amount > 0 ? "+" : ""}$${amount.toFixed(2)}\nNew balance: $${newBalance.toFixed(2)}\n${description ?? ""}`,
+      });
+      const { data: prof } = await admin.from("profiles").select("email,display_name,notify_email,notify_balance_updates").eq("id", user_id).maybeSingle();
+      if (prof?.email && prof.notify_email !== false && prof.notify_balance_updates !== false) {
+        await callFn("send-email", {
+          event: "balance_update",
+          to: prof.email,
+          data: {
+            name: prof.display_name ?? prof.email,
+            amount: `${amount > 0 ? "+" : ""}$${amount.toFixed(2)}`,
+            balance: `$${newBalance.toFixed(2)}`,
+            note: description ?? "",
           },
         });
-      } catch (_) { /* ignore */ }
-      try {
-        const { data: prof } = await admin.from("profiles").select("email,display_name,notify_email").eq("id", user_id).maybeSingle();
-        if (prof?.email && prof.notify_email !== false) {
-          await admin.functions.invoke("send-email", {
-            body: {
-              event: "balance_update",
-              to: prof.email,
-              data: {
-                name: prof.display_name ?? prof.email,
-                amount: `${amount > 0 ? "+" : ""}$${amount.toFixed(2)}`,
-                balance: `$${newBalance.toFixed(2)}`,
-                note: description ?? "",
-              },
-            },
-          });
-        }
-      } catch (_) { /* ignore */ }
+      }
     })();
     // @ts-ignore EdgeRuntime is available in Supabase Edge Functions
     try { EdgeRuntime.waitUntil(notifyTask); } catch (_) { /* ignore */ }
