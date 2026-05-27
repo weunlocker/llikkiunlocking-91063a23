@@ -10,6 +10,22 @@ const corsHeaders = {
 };
 const json = (s: number, b: unknown) => new Response(JSON.stringify(b), { status: s, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+async function callFn(url: string, key: string, name: string, body: unknown) {
+  const res = await fetch(`${url}/functions/v1/${name}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${key}`,
+      "apikey": key,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    console.error(`[notify-support-event] ${name} → ${res.status}: ${txt.slice(0, 300)}`);
+  }
+}
+
 function truncate(s: string, n = 240) {
   s = (s ?? "").replace(/!\[image\]\([^)]+\)/g, "[image]").trim();
   return s.length > n ? s.slice(0, n) + "…" : s;
@@ -69,22 +85,18 @@ Deno.serve(async (req) => {
       // Notify the ticket owner via Telegram + email
       const subject = `💬 Support reply on: ${ticket.subject}`;
       const msg = `You have a new reply from support.\n\n${preview || "(no text)"}\n\nOpen your ticket on the dashboard to reply.`;
-      await admin.functions.invoke("telegram-notify", {
-        body: { user_id: ticket.user_id, subject, body: msg, format: "plain" },
-      });
-      // Email (best effort) — use generic send-email since there's no dedicated template
+      await callFn(SUPABASE_URL, SERVICE_KEY, "telegram-notify", { user_id: ticket.user_id, subject, body: msg, format: "plain" });
       if (profile?.email) {
-        await admin.functions.invoke("send-email", {
-          body: {
-            event: "support_reply",
-            to: profile.email,
-            data: {
-              name: profile.display_name ?? profile.email,
-              subject: ticket.subject,
-              message: preview,
-            },
+        await callFn(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, "send-transactional-email", {
+          templateName: "support-reply",
+          recipientEmail: profile.email,
+          idempotencyKey: `support-reply-${ticket.id}-${Date.now()}`,
+          templateData: {
+            name: profile.display_name ?? profile.email,
+            subject: ticket.subject,
+            message: preview,
           },
-        }).catch(() => {});
+        });
       }
     }
 

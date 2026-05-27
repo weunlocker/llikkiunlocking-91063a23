@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
+import { notifyUserEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -86,19 +87,12 @@ Deno.serve(async (req) => {
         subject: amount > 0 ? `💰 Admin credit added` : `🔻 Admin debit applied`,
         body: `Amount: ${amount > 0 ? "+" : ""}$${amount.toFixed(2)}\nNew balance: $${newBalance.toFixed(2)}\n${description ?? ""}`,
       });
-      const { data: prof } = await admin.from("profiles").select("email,display_name,notify_email,notify_balance_updates").eq("id", user_id).maybeSingle();
-      if (prof?.email && prof.notify_email !== false && prof.notify_balance_updates !== false) {
-        await callFn("send-email", {
-          event: "balance_update",
-          to: prof.email,
-          data: {
-            name: prof.display_name ?? prof.email,
-            amount: `${amount > 0 ? "+" : ""}$${amount.toFixed(2)}`,
-            balance: `$${newBalance.toFixed(2)}`,
-            note: description ?? "",
-          },
-        });
-      }
+      await notifyUserEmail(admin, user_id, "balance_update", {
+        amount: `${amount > 0 ? "+" : ""}$${amount.toFixed(2)}`,
+        balance: `$${newBalance.toFixed(2)}`,
+        note: description ?? "",
+        reference: `admin-balance-${user_id}-${Date.now()}`,
+      });
     })();
     // @ts-ignore EdgeRuntime is available in Supabase Edge Functions
     try { EdgeRuntime.waitUntil(notifyTask); } catch (_) { /* ignore */ }
