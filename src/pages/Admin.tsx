@@ -289,11 +289,11 @@ function AdminUsers() {
             <p className="text-sm text-muted-foreground">Current: <span className="font-mono font-bold">${Number(creditUser?.balance ?? 0).toFixed(2)}</span></p>
             <div><Label>Amount (USD)</Label><Input type="number" step="0.01" value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)} /></div>
             <div className="flex gap-2">
-              <Button variant="hero" className="flex-1" disabled={creditBusy} onClick={() => adjustCredit(Number(creditAmount))}>
-                {creditBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : "+ Add Credit"}
+              <Button variant="hero" className="flex-1" disabled={!!creditBusy} onClick={() => adjustCredit(Number(creditAmount))}>
+                {creditBusy === "add" ? <><Loader2 className="w-4 h-4 animate-spin" /> Adding…</> : "+ Add Credit"}
               </Button>
-              <Button variant="destructive" className="flex-1" disabled={creditBusy} onClick={() => adjustCredit(-Math.abs(Number(creditAmount)))}>
-                {creditBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : "− Deduct"}
+              <Button variant="destructive" className="flex-1" disabled={!!creditBusy} onClick={() => adjustCredit(-Math.abs(Number(creditAmount)))}>
+                {creditBusy === "deduct" ? <><Loader2 className="w-4 h-4 animate-spin" /> Deducting…</> : "− Deduct"}
               </Button>
             </div>
           </div>
