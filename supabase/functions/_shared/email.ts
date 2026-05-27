@@ -18,6 +18,7 @@ const LOVABLE_TEMPLATE_MAP: Partial<Record<EmailEvent, string>> = {
   order_placed: "order-placed",
   order_success: "order-success",
   order_rejected: "order-rejected",
+  balance_update: "balance-update",
   balance_topup: "balance-topup",
   referral_bonus: "referral-bonus",
 };
@@ -107,7 +108,7 @@ export async function notifyUserEmail(
       return;
     }
 
-    // Legacy SMTP fallback (e.g. balance_update)
+    // Legacy SMTP fallback for events without a queued app-email template.
     await sb.functions.invoke("send-email", {
       body: { event, to: prof.email, data: { name: recipientName, ...data } },
     });
