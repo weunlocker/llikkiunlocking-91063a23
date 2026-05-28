@@ -25,6 +25,29 @@ function generateToken(): string {
     .join('')
 }
 
+function configuredSecretKeys(primaryKey: string): Set<string> {
+  const keys = new Set([primaryKey])
+  const rawKeys = Deno.env.get('SUPABASE_SECRET_KEYS')
+  if (!rawKeys) return keys
+  try {
+    const parsed = JSON.parse(rawKeys)
+    const values = Array.isArray(parsed) ? parsed : Object.values(parsed)
+    for (const value of values) {
+      if (typeof value === 'string') keys.add(value)
+      else if (value && typeof value === 'object') {
+        for (const nested of Object.values(value as Record<string, unknown>)) {
+          if (typeof nested === 'string') keys.add(nested)
+        }
+      }
+    }
+  } catch {
+    for (const value of rawKeys.split(/[\s,]+/)) {
+      if (value) keys.add(value)
+    }
+  }
+  return keys
+}
+
 // Auth note: this function accepts trusted backend calls only. The key is
 // validated in-function because modern service-role keys are not JWTs.
 
@@ -50,7 +73,9 @@ Deno.serve(async (req) => {
     )
   }
 
-  if (authorization !== `Bearer ${supabaseServiceKey}` && apiKey !== supabaseServiceKey) {
+  const bearerToken = authorization.replace(/^Bearer\s+/i, '')
+  const allowedKeys = configuredSecretKeys(supabaseServiceKey)
+  if (!allowedKeys.has(bearerToken) && !allowedKeys.has(apiKey)) {
     return new Response(
       JSON.stringify({ error: 'Unauthorized' }),
       {
