@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       const msg = `You have a new reply from support.\n\n${preview || "(no text)"}\n\nOpen your ticket on the dashboard to reply.`;
       await callFn(SUPABASE_URL, SERVICE_KEY, "telegram-notify", { user_id: ticket.user_id, subject, body: msg, format: "plain" });
       if (profile?.email) {
-        await callFn(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, "send-transactional-email", {
+        await callFn(SUPABASE_URL, SERVICE_KEY, "send-transactional-email", {
           templateName: "support-reply",
           recipientEmail: profile.email,
           idempotencyKey: `support-reply-${ticket.id}-${Date.now()}`,

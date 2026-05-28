@@ -25,9 +25,31 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
+function configuredSecretKeys(primaryKey: string): Set<string> {
+  const keys = new Set([primaryKey])
+  const rawKeys = Deno.env.get('SUPABASE_SECRET_KEYS')
+  if (!rawKeys) return keys
+  try {
+    const parsed = JSON.parse(rawKeys)
+    const values = Array.isArray(parsed) ? parsed : Object.values(parsed)
+    for (const value of values) {
+      if (typeof value === 'string') keys.add(value)
+      else if (value && typeof value === 'object') {
+        for (const nested of Object.values(value as Record<string, unknown>)) {
+          if (typeof nested === 'string') keys.add(nested)
+        }
+      }
+    }
+  } catch {
+    for (const value of rawKeys.split(/[\s,]+/)) {
+      if (value) keys.add(value)
+    }
+  }
+  return keys
+}
+
+// Auth note: this function accepts trusted backend calls only. The key is
+// validated in-function because modern service-role keys are not JWTs.
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -37,6 +59,8 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const authorization = req.headers.get('Authorization') ?? ''
+  const apiKey = req.headers.get('apikey') ?? ''
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
@@ -44,6 +68,18 @@ Deno.serve(async (req) => {
       JSON.stringify({ error: 'Server configuration error' }),
       {
         status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  const bearerToken = authorization.replace(/^Bearer\s+/i, '')
+  const allowedKeys = configuredSecretKeys(supabaseServiceKey)
+  if (!allowedKeys.has(bearerToken) && !allowedKeys.has(apiKey)) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      {
+        status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
