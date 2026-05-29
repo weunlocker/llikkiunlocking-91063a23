@@ -14,6 +14,7 @@ const navItems = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/admin/users", label: "Users", icon: Users },
+  { to: "/admin/login-activity", label: "Login Activity", icon: Activity },
   { to: "/admin/administrators", label: "Administrators", icon: ShieldCheck },
   { to: "/admin/groups", label: "Client Groups", icon: Crown },
   { to: "/admin/categories", label: "Categories", icon: Tags },
