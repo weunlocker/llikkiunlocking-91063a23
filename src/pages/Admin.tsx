@@ -2186,6 +2186,7 @@ import AdminTurnstile from "./AdminTurnstile";
 import AdminReferrals from "./AdminReferrals";
 import AdminAnalytics from "./AdminAnalytics";
 import AdminSupport from "./AdminSupport";
+import AdminLoginActivity from "./AdminLoginActivity";
 export default function Admin() {
   return (
     <Routes>
@@ -2195,6 +2196,7 @@ export default function Admin() {
       <Route path="payments" element={<AdminPayments />} />
       <Route path="referrals" element={<AdminReferrals />} />
       <Route path="users" element={<AdminUsers />} />
+      <Route path="login-activity" element={<AdminLoginActivity />} />
       <Route path="administrators" element={<AdminLayout title="Administrators" subtitle="Manage admin access and roles"><AdminAdministrators /></AdminLayout>} />
       <Route path="groups" element={<AdminGroups />} />
       <Route path="suppliers" element={<AdminSuppliers />} />
