@@ -5,6 +5,8 @@ project_id = "jhkumqyugvezfulkoine"
     verify_jwt = false
   [functions.admin-adjust-balance]
     verify_jwt = false
+  [functions.broadcast-service-update]
+    verify_jwt = false
   [functions.admin-refund-order]
     verify_jwt = false
   [functions.ai-chat]

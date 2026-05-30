@@ -21,6 +21,7 @@ import { ColoredResult } from "@/components/ColoredResult";
 import ApiDocs from "@/pages/ApiDocs";
 import ReferralsPanel from "@/components/ReferralsPanel";
 import SupportPanel from "@/components/SupportPanel";
+import WhatsNewBanner from "@/components/WhatsNewBanner";
 import Seo from "@/components/Seo";
 
 function sanitizeError(msg: string | null | undefined): string {
@@ -274,6 +275,7 @@ export default function Dashboard() {
       />
       <div className="container py-10">
         <h1 className="sr-only">Customer Dashboard</h1>
+        <WhatsNewBanner />
         {customMessage && !msgDismissed && localStorage.getItem("seenAdminMsg") !== customMessage && (
           <button
             type="button"
