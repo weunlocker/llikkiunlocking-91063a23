@@ -42,7 +42,6 @@ function mainKeyboard() {
       [{ text: BTN.help }],
     ],
     resize_keyboard: true,
-    is_persistent: true,
   };
 }
 
@@ -50,7 +49,7 @@ function cancelKeyboard() {
   return {
     keyboard: [[{ text: BTN.cancel }]],
     resize_keyboard: true,
-    is_persistent: true,
+    one_time_keyboard: true,
   };
 }
 
