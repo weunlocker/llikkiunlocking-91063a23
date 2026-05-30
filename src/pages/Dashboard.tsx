@@ -275,6 +275,7 @@ export default function Dashboard() {
       />
       <div className="container py-10">
         <h1 className="sr-only">Customer Dashboard</h1>
+        <WhatsNewBanner />
         {customMessage && !msgDismissed && localStorage.getItem("seenAdminMsg") !== customMessage && (
           <button
             type="button"
