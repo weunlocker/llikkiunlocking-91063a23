@@ -285,10 +285,11 @@ Deno.serve(async (req) => {
       const codeText = (resultBlob?.CODE ?? resultBlob?.code ?? resultBlob?.MESSAGE ?? resultBlob?.message ?? "").toString().toLowerCase().trim();
       const replyValue = resultBlob?.REPLY ?? resultBlob?.reply ?? resultBlob?.RESULT ?? resultBlob?.result;
       const hasFinalReply = replyValue != null && String(replyValue).trim() !== "" && !/^(pending|processing|in process)$/i.test(String(replyValue).trim());
-      const isDone = ["success", "completed", "complete", "available", "done", "finished", "4"].includes(statusText)
+      // Supplier numeric status codes: 1=pending, 2=unprocessed, 3=success, 4=rejected
+      const isDone = ["success", "completed", "complete", "available", "done", "finished", "3"].includes(statusText)
         || ["success", "completed", "complete", "available", "done", "finished"].some((word) => codeText.includes(word))
-        || (hasFinalReply && !["rejected", "cancelled", "canceled", "failed", "error", "3"].includes(statusText));
-      const isFailed = ["rejected", "cancelled", "canceled", "failed", "error", "3"].includes(statusText)
+        || (hasFinalReply && !["rejected", "cancelled", "canceled", "failed", "error", "4"].includes(statusText));
+      const isFailed = ["rejected", "cancelled", "canceled", "failed", "error", "4"].includes(statusText)
         || ["rejected", "cancelled", "canceled", "failed", "error"].some((word) => codeText.includes(word));
 
       if (isDone) {
