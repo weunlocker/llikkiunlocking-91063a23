@@ -455,11 +455,29 @@ function AdminServices() {
       supplier_id: editing.supplier_id ?? null,
       supplier_action: editing.supplier_action || null,
     };
-    const { error } = editing.id
-      ? await supabase.from("services").update(payload).eq("id", editing.id)
-      : await supabase.from("services").insert(payload);
+    const isUpdate = !!editing.id;
+    const prevPrice = isUpdate ? services.find((x) => x.id === editing.id)?.price ?? null : null;
+    const { data: saved, error } = isUpdate
+      ? await supabase.from("services").update(payload).eq("id", editing.id).select("id,price").maybeSingle()
+      : await supabase.from("services").insert(payload).select("id,price").maybeSingle();
     if (error) { toast.error(error.message); return; }
     toast.success("Saved"); setEditing(null); load();
+
+    // Announce new service / price change (best-effort, non-blocking)
+    try {
+      const savedId = saved?.id as string | undefined;
+      if (savedId && payload.active) {
+        if (!isUpdate) {
+          supabase.functions.invoke("broadcast-service-update", {
+            body: { service_id: savedId, kind: "new", new_price: payload.price },
+          });
+        } else if (prevPrice != null && Number(prevPrice) !== Number(payload.price)) {
+          supabase.functions.invoke("broadcast-service-update", {
+            body: { service_id: savedId, kind: "price", old_price: Number(prevPrice), new_price: Number(payload.price) },
+          });
+        }
+      }
+    } catch { /* ignore */ }
   };
   const delService = async (id: string) => {
     const ok = await confirm({ title: "Delete service?", description: "This service will be permanently removed.", confirmText: "Delete", tone: "danger" });
