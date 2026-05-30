@@ -614,6 +614,65 @@ export type Database = {
         }
         Relationships: []
       }
+      service_announcement_dismissals: {
+        Row: {
+          announcement_id: string
+          dismissed_at: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          dismissed_at?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          dismissed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_announcement_dismissals_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "service_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_announcements: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          new_price: number | null
+          old_price: number | null
+          service_id: string | null
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          new_price?: number | null
+          old_price?: number | null
+          service_id?: string | null
+          title: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          new_price?: number | null
+          old_price?: number | null
+          service_id?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           active: boolean
