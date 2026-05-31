@@ -685,6 +685,10 @@ export type Database = {
           delivery_time: string
           description: string | null
           id: string
+          input_label: string | null
+          input_max_length: number
+          input_min_length: number
+          input_mode: string
           is_free: boolean
           name: string
           price: number
@@ -710,6 +714,10 @@ export type Database = {
           delivery_time?: string
           description?: string | null
           id?: string
+          input_label?: string | null
+          input_max_length?: number
+          input_min_length?: number
+          input_mode?: string
           is_free?: boolean
           name: string
           price?: number
@@ -735,6 +743,10 @@ export type Database = {
           delivery_time?: string
           description?: string | null
           id?: string
+          input_label?: string | null
+          input_max_length?: number
+          input_min_length?: number
+          input_mode?: string
           is_free?: boolean
           name?: string
           price?: number
