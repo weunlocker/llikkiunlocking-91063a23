@@ -63,11 +63,12 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
 
   const submitSingle = async () => {
     const parsed = validateServiceInput(imei, inputCfg);
-    if (!parsed.ok) { toast.error(parsed.error); return; }
+    if (parsed.ok !== true) { toast.error(parsed.error); return; }
+    const okValue = parsed.value;
     if (balance < price) { toast.error("Insufficient balance. Please top up."); return; }
     setSubmitting(true);
     const { data, error } = await supabase.functions.invoke("check-imei", {
-      body: { service_id: service.id, imei: parsed.value },
+      body: { service_id: service.id, imei: okValue },
     });
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
