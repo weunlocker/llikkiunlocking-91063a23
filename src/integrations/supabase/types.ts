@@ -1225,6 +1225,10 @@ export type Database = {
           delivery_time: string | null
           description: string | null
           id: string | null
+          input_label: string | null
+          input_max_length: number | null
+          input_min_length: number | null
+          input_mode: string | null
           is_async: boolean | null
           is_free: boolean | null
           name: string | null
