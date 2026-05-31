@@ -38,6 +38,7 @@ const App = () => (
           <SiteSettingsProvider>
           <ConfirmProvider>
           <AIChatWidget />
+          <NewSiteWelcomeDialog />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/services" element={<Services />} />
