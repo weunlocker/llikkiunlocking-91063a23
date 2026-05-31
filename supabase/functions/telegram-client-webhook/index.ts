@@ -141,6 +141,11 @@ async function handleMessage(supabase: any, token: string, msg: any) {
     return sendWithMenu(token, chatId, "Cancelled.");
   }
 
+  if (text === BTN.back) {
+    await clearState(supabase, chatId);
+    return sendWithMenu(token, chatId, "Main menu.");
+  }
+
   // Require linked account for everything else
   const user = await findUserByChat(supabase, chatId);
   if (!user) {
