@@ -4,7 +4,7 @@ import { corsHeaders, executeCheck } from "../_shared/check.ts";
 
 const Body = z.object({
   service_id: z.string().uuid(),
-  imei: z.string().trim().regex(/^[A-Za-z0-9]{8,20}$/),
+  imei: z.string().trim().regex(/^[A-Za-z0-9]+$/, "Invalid characters").min(1).max(200),
 });
 
 Deno.serve(async (req) => {
