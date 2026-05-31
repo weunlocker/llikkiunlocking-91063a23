@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone, Copy, History as HistoryIcon, DollarSign as DollarSignIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { imeiSchema } from "@/lib/validation";
+import { imeiSchema, validateServiceInput, getInputLabel, type ServiceInputMode } from "@/lib/validation";
 import { extractResponse } from "@/lib/extractResponse";
 import { ColoredResult, fontCss } from "@/components/ColoredResult";
 
