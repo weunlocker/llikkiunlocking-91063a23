@@ -31,26 +31,52 @@ const BTN = {
   place: "Place Order",
   status: "Order Status",
   help: "Help",
+  back: "Back",
   cancel: "Cancel",
 } as const;
 
 function mainKeyboard() {
   return {
-    keyboard: [
-      [{ text: BTN.balance }, { text: BTN.orders }],
-      [{ text: BTN.place }, { text: BTN.status }],
-      [{ text: BTN.help }],
+    inline_keyboard: [
+      [{ text: BTN.balance, callback_data: "menu:balance" }, { text: BTN.orders, callback_data: "menu:orders" }],
+      [{ text: BTN.place, callback_data: "menu:place" }, { text: BTN.status, callback_data: "menu:status" }],
+      [{ text: BTN.help, callback_data: "menu:help" }],
     ],
-    resize_keyboard: true,
   };
 }
 
 function cancelKeyboard() {
   return {
-    keyboard: [[{ text: BTN.cancel }]],
-    resize_keyboard: true,
-    one_time_keyboard: true,
+    inline_keyboard: [[{ text: BTN.back, callback_data: "menu:cancel" }]],
   };
+}
+
+async function sendInlineReplacingReplyKeyboard(token: string, chatId: string, text: string, replyMarkup: Record<string, unknown>) {
+  const sent = await tgApi(token, "sendMessage", {
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+    disable_web_page_preview: true,
+    reply_markup: { remove_keyboard: true },
+  });
+  const messageId = (sent.data as any)?.result?.message_id;
+  if (sent.ok && messageId) {
+    const edited = await tgApi(token, "editMessageReplyMarkup", {
+      chat_id: chatId,
+      message_id: messageId,
+      reply_markup: replyMarkup,
+    });
+    if (!edited.ok) {
+      await tgApi(token, "sendMessage", {
+        chat_id: chatId,
+        text: BTN.back,
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
+        reply_markup: replyMarkup,
+      });
+    }
+  }
+  return sent;
 }
 
 Deno.serve(async (req) => {
@@ -87,17 +113,11 @@ async function findUserByChat(supabase: any, chatId: string) {
 }
 
 function sendWithMenu(token: string, chatId: string, text: string) {
-  return tgApi(token, "sendMessage", {
-    chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true,
-    reply_markup: mainKeyboard(),
-  });
+  return sendInlineReplacingReplyKeyboard(token, chatId, text, mainKeyboard());
 }
 
 function sendWithCancel(token: string, chatId: string, text: string) {
-  return tgApi(token, "sendMessage", {
-    chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true,
-    reply_markup: cancelKeyboard(),
-  });
+  return sendInlineReplacingReplyKeyboard(token, chatId, text, cancelKeyboard());
 }
 
 async function handleMessage(supabase: any, token: string, msg: any) {
