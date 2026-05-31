@@ -836,6 +836,36 @@ function AdminServices() {
                   <Textarea value={editing.api_request_body ?? ""} onChange={(e) => setEditing({ ...editing, api_request_body: e.target.value })} placeholder='{"username":"x","apikey":"y","imei":"{IMEI}"}' rows={3} className="font-mono text-xs" />
                 </div>
               )}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 rounded-md border border-border/40 p-3">
+                <div className="sm:col-span-2">
+                  <Label>Input Type</Label>
+                  <Select value={editing.input_mode ?? "imei"} onValueChange={(v) => setEditing({ ...editing, input_mode: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="imei">IMEI (digits, 14-17)</SelectItem>
+                      <SelectItem value="imei_sn">IMEI / SN (alphanumeric, 6-20)</SelectItem>
+                      <SelectItem value="custom">Custom (alphanumeric, your limits)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Field Label (optional)</Label>
+                  <Input value={editing.input_label ?? ""} onChange={(e) => setEditing({ ...editing, input_label: e.target.value })} placeholder="e.g. Serial Number, Order ID" />
+                </div>
+                {editing.input_mode === "custom" && (
+                  <>
+                    <div>
+                      <Label>Min length</Label>
+                      <Input type="number" min={1} value={editing.input_min_length ?? 1} onChange={(e) => setEditing({ ...editing, input_min_length: Number(e.target.value) })} />
+                    </div>
+                    <div>
+                      <Label>Max length</Label>
+                      <Input type="number" min={1} value={editing.input_max_length ?? 20} onChange={(e) => setEditing({ ...editing, input_max_length: Number(e.target.value) })} />
+                      <p className="text-xs text-muted-foreground mt-1">Set above 20 if needed (no cap).</p>
+                    </div>
+                  </>
+                )}
+              </div>
               <div>
                 <Label>Response Template (optional)</Label>
                 <Textarea value={editing.response_template ?? ""} onChange={(e) => setEditing({ ...editing, response_template: e.target.value })} placeholder="Model: {model}&#10;IMEI: {imei}" rows={3} />
