@@ -13,7 +13,7 @@ import { imeiSchema, validateServiceInput, getInputLabel, type ServiceInputMode 
 import { extractResponse } from "@/lib/extractResponse";
 import { ColoredResult, fontCss } from "@/components/ColoredResult";
 
-type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null; result_font?: string | null; result_color?: string | null };
+type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null; result_font?: string | null; result_color?: string | null; input_mode?: ServiceInputMode | string | null; input_label?: string | null; input_min_length?: number | null; input_max_length?: number | null };
 
 type SingleResult = { status: string; result?: string; error?: string } | null;
 
