@@ -116,12 +116,20 @@ Deno.serve(async (req) => {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const now = Date.now();
-    const last = lastHit.get(ip) ?? 0;
-    if (now - last < 5000) return json(429, { error: "Too many requests, please wait a few seconds." });
-    lastHit.set(ip, now);
 
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return json(400, { error: parsed.error.flatten().fieldErrors });
+
+    // Serve cached identical result instantly (skip throttle + upstream call)
+    const cacheKey = `${parsed.data.service_id}:${parsed.data.imei.toLowerCase()}`;
+    const cached = resultCache.get(cacheKey);
+    if (cached && cached.exp > now) {
+      return json(200, cached.payload);
+    }
+
+    const last = lastHit.get(ip) ?? 0;
+    if (now - last < 5000) return json(429, { error: "Too many requests, please wait a few seconds." });
+    lastHit.set(ip, now);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
