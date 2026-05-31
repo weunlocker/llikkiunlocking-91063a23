@@ -90,7 +90,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
   };
 
   const bulkList = parseBulk();
-  const bulkValid = bulkList.filter((l) => imeiSchema.safeParse(l).success);
+  const bulkValid = bulkList.filter((l) => validateServiceInput(l, inputCfg).ok === true);
   const bulkInvalid = bulkList.length - bulkValid.length;
   const totalCost = bulkValid.length * price;
 
