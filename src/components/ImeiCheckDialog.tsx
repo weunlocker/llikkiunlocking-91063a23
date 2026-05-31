@@ -55,11 +55,14 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
   if (!service) return null;
   const price = Number(service.price);
   const inputLabel = getInputLabel(service);
-  const inputCfg = { input_mode: service.input_mode, input_label: service.input_label, input_min_length: service.input_min_length, input_max_length: service.input_max_length };
-  const maxLen = Math.max(
-    Number(service.input_max_length ?? 20),
-    service.input_mode === "custom" ? Number(service.input_max_length ?? 20) : 20,
-  );
+  const inputCfg = {
+    input_mode: service.input_mode, input_label: service.input_label,
+    input_min_length: service.input_min_length, input_max_length: service.input_max_length,
+    input_regex: service.input_regex, input_info: service.input_info,
+    input_allow_alpha: service.input_allow_alpha, input_allow_bulk: service.input_allow_bulk,
+  };
+  const allowBulk = service.input_allow_bulk !== false;
+  const maxLen = Math.max(20, Number(service.input_max_length ?? 20));
 
   const submitSingle = async () => {
     const parsed = validateServiceInput(imei, inputCfg);
