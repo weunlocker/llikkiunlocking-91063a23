@@ -458,6 +458,10 @@ function AdminServices() {
       input_label: editing.input_label?.trim() ? editing.input_label.trim() : null,
       input_min_length: Math.max(1, Number(editing.input_min_length ?? 8)),
       input_max_length: Math.max(1, Number(editing.input_max_length ?? 20)),
+      input_regex: editing.input_regex?.trim() ? editing.input_regex.trim() : null,
+      input_info: editing.input_info?.trim() ? editing.input_info.trim() : null,
+      input_allow_alpha: editing.input_allow_alpha !== false,
+      input_allow_bulk: editing.input_allow_bulk !== false,
     };
     const isUpdate = !!editing.id;
     const prevPrice = isUpdate ? services.find((x) => x.id === editing.id)?.price ?? null : null;
