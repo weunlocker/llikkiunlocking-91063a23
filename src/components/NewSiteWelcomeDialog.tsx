@@ -66,11 +66,11 @@ export default function NewSiteWelcomeDialog() {
             {/* Logo */}
             <div className="mx-auto">
               <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-xl" />
+                <div className="absolute inset-0 bg-primary/20 rounded-3xl blur-2xl scale-110" />
                 <img
                   src={logo}
                   alt="LIKKI UNLOCKING"
-                  className="relative w-16 h-16 object-contain rounded-xl"
+                  className="relative w-24 h-24 object-contain rounded-2xl"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                 />
               </div>
