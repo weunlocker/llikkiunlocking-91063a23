@@ -11,10 +11,48 @@ const corsHeaders = {
 const Body = z.object({
   service_id: z.string().uuid(),
   imei: z.string().trim().regex(/^[A-Za-z0-9]{8,20}$/),
-  turnstile_token: z.string().min(10).max(2048).optional(),
+  challenge: z.object({
+    nonce: z.string().min(8).max(64),
+    exp: z.number().int(),
+    sig: z.string().min(8).max(128),
+  }).optional(),
 });
 
 const lastHit = new Map<string, number>();
+const usedNonces = new Map<string, number>(); // nonce -> exp (prevents replay)
+
+const CHALLENGE_SECRET = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "fallback-secret";
+
+function b64url(buf: ArrayBuffer | Uint8Array): string {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+async function hmac(msg: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(CHALLENGE_SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
+  return b64url(sig);
+}
+async function verifyChallenge(c: { nonce: string; exp: number; sig: string } | undefined): Promise<string | null> {
+  if (!c) return "Challenge required";
+  const now = Date.now();
+  if (c.exp < now) return "Challenge expired";
+  if (c.exp > now + 5 * 60_000) return "Challenge invalid";
+  const expected = await hmac(`${c.nonce}.${c.exp}`);
+  if (expected !== c.sig) return "Challenge invalid";
+  // cleanup old nonces
+  for (const [k, v] of usedNonces) if (v < now) usedNonces.delete(k);
+  if (usedNonces.has(c.nonce)) return "Challenge already used";
+  usedNonces.set(c.nonce, c.exp);
+  return null;
+}
 
 function normalizeHtml(s: string): string {
   if (!s) return s;
