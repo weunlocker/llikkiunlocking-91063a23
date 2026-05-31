@@ -20,6 +20,9 @@ const Body = z.object({
 
 const lastHit = new Map<string, number>();
 const usedNonces = new Map<string, number>(); // nonce -> exp (prevents replay)
+// Short-lived result cache so repeat checks for the same IMEI return instantly
+const resultCache = new Map<string, { exp: number; payload: unknown }>();
+const CACHE_TTL_MS = 5 * 60_000;
 
 const CHALLENGE_SECRET = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "fallback-secret";
 
@@ -113,12 +116,20 @@ Deno.serve(async (req) => {
   try {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const now = Date.now();
-    const last = lastHit.get(ip) ?? 0;
-    if (now - last < 5000) return json(429, { error: "Too many requests, please wait a few seconds." });
-    lastHit.set(ip, now);
 
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return json(400, { error: parsed.error.flatten().fieldErrors });
+
+    // Serve cached identical result instantly (skip throttle + upstream call)
+    const cacheKey = `${parsed.data.service_id}:${parsed.data.imei.toLowerCase()}`;
+    const cached = resultCache.get(cacheKey);
+    if (cached && cached.exp > now) {
+      return json(200, cached.payload);
+    }
+
+    const last = lastHit.get(ip) ?? 0;
+    if (now - last < 5000) return json(429, { error: "Too many requests, please wait a few seconds." });
+    lastHit.set(ip, now);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -260,7 +271,14 @@ Deno.serve(async (req) => {
       ? applyTemplate(service.response_template, parsedRaw)
       : (typeof parsedRaw === "string" ? parsedRaw : JSON.stringify(parsedRaw, null, 2));
     resultText = normalizeHtml(resultText) || "(empty response)";
-    return json(200, { status: "completed", service: service.name, imei, result: resultText });
+    const payload = { status: "completed", service: service.name, imei, result: resultText };
+    // cache so re-checking the same IMEI is instant for ~5 minutes
+    resultCache.set(cacheKey, { exp: Date.now() + CACHE_TTL_MS, payload });
+    // best-effort cleanup of stale cache entries
+    if (resultCache.size > 500) {
+      for (const [k, v] of resultCache) if (v.exp < Date.now()) resultCache.delete(k);
+    }
+    return json(200, payload);
   } catch (e) {
     console.error("free-check error:", e);
     return json(500, { error: e instanceof Error ? e.message : "Server error" });
