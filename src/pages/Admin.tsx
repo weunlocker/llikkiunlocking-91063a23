@@ -27,7 +27,7 @@ type ProfileRow = { id: string; email: string | null; display_name: string | nul
 type OrderRow = { id: string; order_number: number; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null; profiles: { email: string | null } | null };
 type TxRow = { id: string; user_id: string; amount: number; type: string; balance_after: number; description: string | null; created_at: string; profiles?: { email: string | null } | null };
 
-const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", sample_result: "", result_font: "mono", result_color: "#e2e8f0", active: true, is_free: false, category: "general", success_rules: [], supplier_id: null, supplier_action: "", input_mode: "imei", input_label: "", input_min_length: 8, input_max_length: 20 };
+const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", sample_result: "", result_font: "mono", result_color: "#e2e8f0", active: true, is_free: false, category: "general", success_rules: [], supplier_id: null, supplier_action: "", input_mode: "imei", input_label: "", input_min_length: 8, input_max_length: 20, input_regex: "", input_info: "", input_allow_alpha: true, input_allow_bulk: true };
 
 const FONT_OPTIONS = [
   { label: "Mono", value: "mono", css: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" },
