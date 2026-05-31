@@ -15,7 +15,7 @@ export default function NewSiteWelcomeDialog() {
   const [open, setOpen] = useState(false);
 
   const tgRaw = settings.telegram_url?.trim();
-  const email = settings.support_email?.trim() || "support@likkiunlocking.com";
+  const email = settings.contact_email?.trim() || "support@likkiunlocking.com";
 
   useEffect(() => {
     if (loading) return;
