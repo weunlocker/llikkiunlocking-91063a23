@@ -54,21 +54,27 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
 
   if (!service) return null;
   const price = Number(service.price);
+  const inputLabel = getInputLabel(service);
+  const inputCfg = { input_mode: service.input_mode, input_label: service.input_label, input_min_length: service.input_min_length, input_max_length: service.input_max_length };
+  const maxLen = Math.max(
+    Number(service.input_max_length ?? 20),
+    service.input_mode === "custom" ? Number(service.input_max_length ?? 20) : 20,
+  );
 
   const submitSingle = async () => {
-    const parsed = imeiSchema.safeParse(imei);
-    if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
+    const parsed = validateServiceInput(imei, inputCfg);
+    if (!parsed.ok) { toast.error(parsed.error); return; }
     if (balance < price) { toast.error("Insufficient balance. Please top up."); return; }
     setSubmitting(true);
     const { data, error } = await supabase.functions.invoke("check-imei", {
-      body: { service_id: service.id, imei: parsed.data },
+      body: { service_id: service.id, imei: parsed.value },
     });
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
     onAfterRun?.();
     if (data?.status === "pending") {
       // Non-instant (supplier) order — show submitted screen with action buttons.
-      setSubmittedAsync({ imei: parsed.data });
+      setSubmittedAsync({ imei: parsed.value });
       return;
     }
     setResult(data);
