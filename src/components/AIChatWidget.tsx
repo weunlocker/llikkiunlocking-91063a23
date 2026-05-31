@@ -40,6 +40,13 @@ export default function AIChatWidget() {
   // Fresh chat on every page load — no persistence.
   const [messages, setMessages] = useState<Msg[]>([initialGreeting]);
 
+  // Listen for external "open-ai-chat" events (e.g. from welcome dialog)
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener("open-ai-chat", handler);
+    return () => window.removeEventListener("open-ai-chat", handler);
+  }, []);
+
   // Guest contact details (asked once when user is not logged in and tries to hand off)
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
