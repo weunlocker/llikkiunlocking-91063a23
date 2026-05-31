@@ -31,26 +31,52 @@ const BTN = {
   place: "Place Order",
   status: "Order Status",
   help: "Help",
+  back: "Back",
   cancel: "Cancel",
 } as const;
 
 function mainKeyboard() {
   return {
-    keyboard: [
-      [{ text: BTN.balance }, { text: BTN.orders }],
-      [{ text: BTN.place }, { text: BTN.status }],
-      [{ text: BTN.help }],
+    inline_keyboard: [
+      [{ text: BTN.balance, callback_data: "menu:balance" }, { text: BTN.orders, callback_data: "menu:orders" }],
+      [{ text: BTN.place, callback_data: "menu:place" }, { text: BTN.status, callback_data: "menu:status" }],
+      [{ text: BTN.help, callback_data: "menu:help" }],
     ],
-    resize_keyboard: true,
   };
 }
 
 function cancelKeyboard() {
   return {
-    keyboard: [[{ text: BTN.cancel }]],
-    resize_keyboard: true,
-    one_time_keyboard: true,
+    inline_keyboard: [[{ text: BTN.back, callback_data: "menu:cancel" }]],
   };
+}
+
+async function sendInlineReplacingReplyKeyboard(token: string, chatId: string, text: string, replyMarkup: Record<string, unknown>) {
+  const sent = await tgApi(token, "sendMessage", {
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+    disable_web_page_preview: true,
+    reply_markup: { remove_keyboard: true },
+  });
+  const messageId = (sent.data as any)?.result?.message_id;
+  if (sent.ok && messageId) {
+    const edited = await tgApi(token, "editMessageReplyMarkup", {
+      chat_id: chatId,
+      message_id: messageId,
+      reply_markup: replyMarkup,
+    });
+    if (!edited.ok) {
+      await tgApi(token, "sendMessage", {
+        chat_id: chatId,
+        text: BTN.back,
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
+        reply_markup: replyMarkup,
+      });
+    }
+  }
+  return sent;
 }
 
 Deno.serve(async (req) => {
@@ -87,17 +113,11 @@ async function findUserByChat(supabase: any, chatId: string) {
 }
 
 function sendWithMenu(token: string, chatId: string, text: string) {
-  return tgApi(token, "sendMessage", {
-    chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true,
-    reply_markup: mainKeyboard(),
-  });
+  return sendInlineReplacingReplyKeyboard(token, chatId, text, mainKeyboard());
 }
 
 function sendWithCancel(token: string, chatId: string, text: string) {
-  return tgApi(token, "sendMessage", {
-    chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true,
-    reply_markup: cancelKeyboard(),
-  });
+  return sendInlineReplacingReplyKeyboard(token, chatId, text, cancelKeyboard());
 }
 
 async function handleMessage(supabase: any, token: string, msg: any) {
@@ -119,6 +139,11 @@ async function handleMessage(supabase: any, token: string, msg: any) {
   if (text === BTN.cancel || text.toLowerCase() === "/cancel") {
     await clearState(supabase, chatId);
     return sendWithMenu(token, chatId, "Cancelled.");
+  }
+
+  if (text === BTN.back) {
+    await clearState(supabase, chatId);
+    return sendWithMenu(token, chatId, "Main menu.");
   }
 
   // Require linked account for everything else
@@ -229,6 +254,7 @@ async function showServiceList(supabase: any, token: string, chatId: string, pag
   if (page > 0) nav.push({ text: "Prev", callback_data: `pg:${page - 1}` });
   if (start + PAGE < list.length) nav.push({ text: "Next", callback_data: `pg:${page + 1}` });
   if (nav.length) buttons.push(nav);
+  buttons.push([{ text: BTN.back, callback_data: "menu:cancel" }]);
   return tgApi(token, "sendMessage", {
     chat_id: chatId, text: "Pick a service:", parse_mode: "HTML",
     reply_markup: { inline_keyboard: buttons },
@@ -241,6 +267,29 @@ async function handleCallback(supabase: any, token: string, cb: any) {
   await tgApi(token, "answerCallbackQuery", { callback_query_id: cb.id });
   const user = await findUserByChat(supabase, chatId);
   if (!user) return sendMessage(token, chatId, "Account not linked.");
+  if (data.startsWith("menu:")) {
+    const action = data.slice(5);
+    if (action === "cancel") {
+      await clearState(supabase, chatId);
+      return sendWithMenu(token, chatId, "Main menu.");
+    }
+    if (action === "balance") return sendWithMenu(token, chatId, `Balance\n$${Number(user.balance).toFixed(2)}`);
+    if (action === "orders") return showOrders(supabase, token, chatId, user.id);
+    if (action === "place") return showServiceList(supabase, token, chatId, 0);
+    if (action === "status") {
+      await setState(supabase, chatId, { kind: "await_status_order" });
+      return sendWithCancel(token, chatId, "Send the Order ID to check status.");
+    }
+    if (action === "help") {
+      return sendWithMenu(token, chatId,
+        "Use the buttons below:\n" +
+        "Balance — your wallet\n" +
+        "My Orders — last 10\n" +
+        "Place Order — pick a service and send IMEI\n" +
+        "Order Status — look up by Order ID",
+      );
+    }
+  }
   if (data.startsWith("pg:")) return showServiceList(supabase, token, chatId, Number(data.slice(3)));
   if (data.startsWith("svc:")) {
     const serviceId = data.slice(4);
