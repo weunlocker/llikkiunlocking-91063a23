@@ -11,10 +11,48 @@ const corsHeaders = {
 const Body = z.object({
   service_id: z.string().uuid(),
   imei: z.string().trim().regex(/^[A-Za-z0-9]{8,20}$/),
-  turnstile_token: z.string().min(10).max(2048).optional(),
+  challenge: z.object({
+    nonce: z.string().min(8).max(64),
+    exp: z.number().int(),
+    sig: z.string().min(8).max(128),
+  }).optional(),
 });
 
 const lastHit = new Map<string, number>();
+const usedNonces = new Map<string, number>(); // nonce -> exp (prevents replay)
+
+const CHALLENGE_SECRET = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "fallback-secret";
+
+function b64url(buf: ArrayBuffer | Uint8Array): string {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+async function hmac(msg: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(CHALLENGE_SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
+  return b64url(sig);
+}
+async function verifyChallenge(c: { nonce: string; exp: number; sig: string } | undefined): Promise<string | null> {
+  if (!c) return "Challenge required";
+  const now = Date.now();
+  if (c.exp < now) return "Challenge expired";
+  if (c.exp > now + 5 * 60_000) return "Challenge invalid";
+  const expected = await hmac(`${c.nonce}.${c.exp}`);
+  if (expected !== c.sig) return "Challenge invalid";
+  // cleanup old nonces
+  for (const [k, v] of usedNonces) if (v < now) usedNonces.delete(k);
+  if (usedNonces.has(c.nonce)) return "Challenge already used";
+  usedNonces.set(c.nonce, c.exp);
+  return null;
+}
 
 function normalizeHtml(s: string): string {
   if (!s) return s;
@@ -88,34 +126,15 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    // Parallelize: fetch site settings, private settings, and service in one round-trip
-    const [siteRes, privRes, serviceRes] = await Promise.all([
-      supabase.from("site_settings").select("turnstile_enabled, turnstile_site_key").eq("id", 1).maybeSingle(),
-      supabase.from("private_settings").select("turnstile_secret_key").eq("id", 1).maybeSingle(),
-      supabase.from("services").select("*").eq("id", parsed.data.service_id).maybeSingle(),
-    ]);
-    const siteRow = siteRes.data as any;
-    const priv = privRes.data as any;
-    const service = serviceRes.data as any;
+    // Verify lightweight HMAC challenge (replaces Turnstile)
+    const challengeErr = await verifyChallenge(parsed.data.challenge);
+    if (challengeErr) return json(401, { error: challengeErr });
 
+    // Parallelize: fetch service (and supplier if needed)
+    const { data: service } = await supabase.from("services").select("*").eq("id", parsed.data.service_id).maybeSingle();
     if (!service) return json(404, { error: "Service not found" });
     if (!service.active) return json(400, { error: "Service inactive" });
     if (!service.is_free) return json(403, { error: "This service is not a free check" });
-
-    // Turnstile verification (run in parallel with supplier fetch below if enabled)
-    let turnstilePromise: Promise<Response | null> = Promise.resolve(null);
-    if (siteRow?.turnstile_enabled && siteRow?.turnstile_site_key && priv?.turnstile_secret_key) {
-      const token = parsed.data.turnstile_token;
-      if (!token) return json(401, { error: "CAPTCHA required" });
-      const form = new FormData();
-      form.append("secret", priv.turnstile_secret_key);
-      form.append("response", token);
-      form.append("remoteip", ip);
-      turnstilePromise = fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-        method: "POST",
-        body: form,
-      });
-    }
 
     let supplier: any = null;
     if (service.supplier_id) {
@@ -123,13 +142,6 @@ Deno.serve(async (req) => {
       supplier = sup;
     }
 
-    const verifyRes = await turnstilePromise;
-    if (verifyRes) {
-      const verifyJson = await verifyRes.json().catch(() => ({}));
-      if (!verifyJson?.success) {
-        return json(401, { error: "CAPTCHA verification failed", codes: verifyJson?.["error-codes"] });
-      }
-    }
     const imei = parsed.data.imei;
 
     if (!supplier && !service.api_url) {

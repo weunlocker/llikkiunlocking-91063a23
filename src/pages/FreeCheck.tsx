@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import Seo from "@/components/Seo";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,16 +11,6 @@ import { toast } from "sonner";
 import { imeiSchema } from "@/lib/validation";
 import { ColoredResult } from "@/components/ColoredResult";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (el: HTMLElement, opts: { sitekey: string; callback: (token: string) => void; "error-callback"?: () => void; "expired-callback"?: () => void; theme?: string }) => string;
-      reset: (id?: string) => void;
-      remove: (id?: string) => void;
-    };
-  }
-}
 
 type FreeService = {
   id: string;
@@ -39,19 +29,6 @@ export default function FreeCheck() {
   const [result, setResult] = useState<string>("");
   const [open, setOpen] = useState(false);
   const { settings } = useSiteSettings();
-  const [turnstileConfig, setTurnstileConfig] = useState<{ loaded: boolean; enabled: boolean; siteKey: string | null }>({
-    loaded: false,
-    enabled: false,
-    siteKey: null,
-  });
-  const [tsToken, setTsToken] = useState<string>("");
-  const tsRef = useRef<HTMLDivElement | null>(null);
-  const tsWidgetId = useRef<string | null>(null);
-
-  const turnstileSiteKey = turnstileConfig.siteKey ?? settings.turnstile_site_key;
-  const turnstileEnabled = turnstileConfig.loaded
-    ? turnstileConfig.enabled && !!turnstileSiteKey
-    : settings.turnstile_enabled && !!turnstileSiteKey;
 
   useEffect(() => {
     document.title = "Free IMEI Check — Model, FMI & Sim Lock";
@@ -66,68 +43,18 @@ export default function FreeCheck() {
     })();
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("site_settings_public")
-        .select("turnstile_site_key, turnstile_enabled")
-        .eq("id", 1)
-        .maybeSingle();
-      if (!cancelled) {
-        setTurnstileConfig({
-          loaded: true,
-          enabled: Boolean((data as any)?.turnstile_enabled),
-          siteKey: ((data as any)?.turnstile_site_key ?? null) as string | null,
-        });
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  // Load Turnstile script + render widget when a service is selected
-  useEffect(() => {
-    setTsToken("");
-    if (!turnstileEnabled || !selected || !turnstileSiteKey) return;
-    const SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-    const ensureScript = () =>
-      new Promise<void>((resolve) => {
-        if (window.turnstile) return resolve();
-        const existing = document.querySelector(`script[src="${SRC}"]`) as HTMLScriptElement | null;
-        if (existing) { existing.addEventListener("load", () => resolve()); return; }
-        const s = document.createElement("script");
-        s.src = SRC; s.async = true; s.defer = true;
-        s.onload = () => resolve();
-        document.head.appendChild(s);
-      });
-    let cancelled = false;
-    ensureScript().then(() => {
-      if (cancelled || !tsRef.current || !window.turnstile) return;
-      if (tsWidgetId.current) {
-        try { window.turnstile.remove(tsWidgetId.current); } catch { /* ignore */ }
-      }
-      tsRef.current.innerHTML = "";
-      tsWidgetId.current = window.turnstile.render(tsRef.current, {
-        sitekey: turnstileSiteKey,
-        theme: "auto",
-        callback: (token) => setTsToken(token),
-        "error-callback": () => setTsToken(""),
-        "expired-callback": () => setTsToken(""),
-      });
-    });
-    return () => { cancelled = true; };
-  }, [turnstileEnabled, selected, turnstileSiteKey]);
-
   const run = async () => {
     if (!selected) return;
     const v = imeiSchema.safeParse(imei.trim());
     if (!v.success) { toast.error("Enter a valid IMEI / serial (8–20 chars)"); return; }
-    if (!turnstileConfig.loaded) { toast.error("Security check is still loading. Please wait."); return; }
-    if (turnstileEnabled && !tsToken) { toast.error("Please complete the CAPTCHA"); return; }
     setRunning(true); setResult("");
     try {
+      // Get a fresh single-use signed challenge for this run
+      const ch = await supabase.functions.invoke("free-check-challenge", { body: {} });
+      if (ch.error || !ch.data?.sig) throw new Error("Could not initialize check");
+
       const { data, error } = await supabase.functions.invoke("free-check", {
-        body: { service_id: selected.id, imei: imei.trim(), turnstile_token: tsToken || undefined },
+        body: { service_id: selected.id, imei: imei.trim(), challenge: ch.data },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -137,11 +64,6 @@ export default function FreeCheck() {
       toast.error(e instanceof Error ? e.message : "Check failed");
     } finally {
       setRunning(false);
-      // Tokens are single-use — reset widget
-      if (turnstileEnabled && window.turnstile && tsWidgetId.current) {
-        try { window.turnstile.reset(tsWidgetId.current); } catch { /* ignore */ }
-      }
-      setTsToken("");
     }
   };
 
@@ -208,13 +130,10 @@ export default function FreeCheck() {
                 maxLength={20}
                 className="font-mono"
               />
-              <Button variant="hero" onClick={run} disabled={running || !imei.trim() || !turnstileConfig.loaded || (turnstileEnabled && !tsToken)}>
+              <Button variant="hero" onClick={run} disabled={running || !imei.trim()}>
                 {running ? <Loader2 className="w-4 h-4 animate-spin" /> : "Check"}
               </Button>
             </div>
-            {turnstileEnabled && (
-              <div ref={tsRef} className="flex justify-center" />
-            )}
           </Card>
         )}
 
@@ -223,10 +142,6 @@ export default function FreeCheck() {
           if (!o) {
             setImei("");
             setResult("");
-            setTsToken("");
-            if (window.turnstile && tsWidgetId.current) {
-              try { window.turnstile.reset(tsWidgetId.current); } catch { /* ignore */ }
-            }
           }
         }}>
           <DialogContent className="max-w-2xl">
