@@ -249,6 +249,7 @@ async function showServiceList(supabase: any, token: string, chatId: string, pag
   if (page > 0) nav.push({ text: "Prev", callback_data: `pg:${page - 1}` });
   if (start + PAGE < list.length) nav.push({ text: "Next", callback_data: `pg:${page + 1}` });
   if (nav.length) buttons.push(nav);
+  buttons.push([{ text: BTN.back, callback_data: "menu:cancel" }]);
   return tgApi(token, "sendMessage", {
     chat_id: chatId, text: "Pick a service:", parse_mode: "HTML",
     reply_markup: { inline_keyboard: buttons },
@@ -261,6 +262,29 @@ async function handleCallback(supabase: any, token: string, cb: any) {
   await tgApi(token, "answerCallbackQuery", { callback_query_id: cb.id });
   const user = await findUserByChat(supabase, chatId);
   if (!user) return sendMessage(token, chatId, "Account not linked.");
+  if (data.startsWith("menu:")) {
+    const action = data.slice(5);
+    if (action === "cancel") {
+      await clearState(supabase, chatId);
+      return sendWithMenu(token, chatId, "Main menu.");
+    }
+    if (action === "balance") return sendWithMenu(token, chatId, `Balance\n$${Number(user.balance).toFixed(2)}`);
+    if (action === "orders") return showOrders(supabase, token, chatId, user.id);
+    if (action === "place") return showServiceList(supabase, token, chatId, 0);
+    if (action === "status") {
+      await setState(supabase, chatId, { kind: "await_status_order" });
+      return sendWithCancel(token, chatId, "Send the Order ID to check status.");
+    }
+    if (action === "help") {
+      return sendWithMenu(token, chatId,
+        "Use the buttons below:\n" +
+        "Balance — your wallet\n" +
+        "My Orders — last 10\n" +
+        "Place Order — pick a service and send IMEI\n" +
+        "Order Status — look up by Order ID",
+      );
+    }
+  }
   if (data.startsWith("pg:")) return showServiceList(supabase, token, chatId, Number(data.slice(3)));
   if (data.startsWith("svc:")) {
     const serviceId = data.slice(4);
