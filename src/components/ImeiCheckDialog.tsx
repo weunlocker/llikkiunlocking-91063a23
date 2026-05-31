@@ -187,8 +187,8 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
 
             <TabsContent value="single" className="space-y-4 pt-4">
               <div>
-                <Label htmlFor="imei-single">IMEI / Serial</Label>
-                <Input id="imei-single" value={imei} onChange={(e) => setImei(e.target.value)} placeholder="e.g. 356938035643809" maxLength={20} className="font-mono" />
+                <Label htmlFor="imei-single">{inputLabel}</Label>
+                <Input id="imei-single" value={imei} onChange={(e) => setImei(e.target.value)} placeholder={service.input_mode === "imei" ? "e.g. 356938035643809" : `e.g. ABC123 (${inputLabel})`} maxLength={maxLen} className="font-mono" />
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="glass rounded-md p-3 flex items-center justify-between gap-2">
