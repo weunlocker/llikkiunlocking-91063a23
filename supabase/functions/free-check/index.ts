@@ -271,7 +271,14 @@ Deno.serve(async (req) => {
       ? applyTemplate(service.response_template, parsedRaw)
       : (typeof parsedRaw === "string" ? parsedRaw : JSON.stringify(parsedRaw, null, 2));
     resultText = normalizeHtml(resultText) || "(empty response)";
-    return json(200, { status: "completed", service: service.name, imei, result: resultText });
+    const payload = { status: "completed", service: service.name, imei, result: resultText };
+    // cache so re-checking the same IMEI is instant for ~5 minutes
+    resultCache.set(cacheKey, { exp: Date.now() + CACHE_TTL_MS, payload });
+    // best-effort cleanup of stale cache entries
+    if (resultCache.size > 500) {
+      for (const [k, v] of resultCache) if (v.exp < Date.now()) resultCache.delete(k);
+    }
+    return json(200, payload);
   } catch (e) {
     console.error("free-check error:", e);
     return json(500, { error: e instanceof Error ? e.message : "Server error" });
