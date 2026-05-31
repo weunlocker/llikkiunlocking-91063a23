@@ -685,10 +685,14 @@ export type Database = {
           delivery_time: string
           description: string | null
           id: string
+          input_allow_alpha: boolean
+          input_allow_bulk: boolean
+          input_info: string | null
           input_label: string | null
           input_max_length: number
           input_min_length: number
           input_mode: string
+          input_regex: string | null
           is_free: boolean
           name: string
           price: number
@@ -714,10 +718,14 @@ export type Database = {
           delivery_time?: string
           description?: string | null
           id?: string
+          input_allow_alpha?: boolean
+          input_allow_bulk?: boolean
+          input_info?: string | null
           input_label?: string | null
           input_max_length?: number
           input_min_length?: number
           input_mode?: string
+          input_regex?: string | null
           is_free?: boolean
           name: string
           price?: number
@@ -743,10 +751,14 @@ export type Database = {
           delivery_time?: string
           description?: string | null
           id?: string
+          input_allow_alpha?: boolean
+          input_allow_bulk?: boolean
+          input_info?: string | null
           input_label?: string | null
           input_max_length?: number
           input_min_length?: number
           input_mode?: string
+          input_regex?: string | null
           is_free?: boolean
           name?: string
           price?: number
@@ -1225,10 +1237,14 @@ export type Database = {
           delivery_time: string | null
           description: string | null
           id: string | null
+          input_allow_alpha: boolean | null
+          input_allow_bulk: boolean | null
+          input_info: string | null
           input_label: string | null
           input_max_length: number | null
           input_min_length: number | null
           input_mode: string | null
+          input_regex: string | null
           is_async: boolean | null
           is_free: boolean | null
           name: string | null

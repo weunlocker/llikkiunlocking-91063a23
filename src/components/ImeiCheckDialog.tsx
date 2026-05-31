@@ -13,7 +13,7 @@ import { validateServiceInput, getInputLabel, type ServiceInputMode } from "@/li
 import { extractResponse } from "@/lib/extractResponse";
 import { ColoredResult, fontCss } from "@/components/ColoredResult";
 
-type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null; result_font?: string | null; result_color?: string | null; input_mode?: ServiceInputMode | string | null; input_label?: string | null; input_min_length?: number | null; input_max_length?: number | null };
+type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null; result_font?: string | null; result_color?: string | null; input_mode?: ServiceInputMode | string | null; input_label?: string | null; input_min_length?: number | null; input_max_length?: number | null; input_regex?: string | null; input_info?: string | null; input_allow_alpha?: boolean | null; input_allow_bulk?: boolean | null };
 
 type SingleResult = { status: string; result?: string; error?: string } | null;
 
@@ -55,11 +55,14 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
   if (!service) return null;
   const price = Number(service.price);
   const inputLabel = getInputLabel(service);
-  const inputCfg = { input_mode: service.input_mode, input_label: service.input_label, input_min_length: service.input_min_length, input_max_length: service.input_max_length };
-  const maxLen = Math.max(
-    Number(service.input_max_length ?? 20),
-    service.input_mode === "custom" ? Number(service.input_max_length ?? 20) : 20,
-  );
+  const inputCfg = {
+    input_mode: service.input_mode, input_label: service.input_label,
+    input_min_length: service.input_min_length, input_max_length: service.input_max_length,
+    input_regex: service.input_regex, input_info: service.input_info,
+    input_allow_alpha: service.input_allow_alpha, input_allow_bulk: service.input_allow_bulk,
+  };
+  const allowBulk = service.input_allow_bulk !== false;
+  const maxLen = Math.max(20, Number(service.input_max_length ?? 20));
 
   const submitSingle = async () => {
     const parsed = validateServiceInput(imei, inputCfg);
@@ -180,15 +183,18 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
           </div>
         ) : !result && rows.length === 0 ? (
           <Tabs value={tab} onValueChange={(v) => setTab(v as "single" | "bulk")}>
-            <TabsList className="grid grid-cols-2 w-full">
+            <TabsList className={`grid w-full ${allowBulk ? "grid-cols-2" : "grid-cols-1"}`}>
               <TabsTrigger value="single"><Smartphone className="w-4 h-4 mr-2" />Single</TabsTrigger>
-              <TabsTrigger value="bulk"><List className="w-4 h-4 mr-2" />Bulk</TabsTrigger>
+              {allowBulk && <TabsTrigger value="bulk"><List className="w-4 h-4 mr-2" />Bulk</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="single" className="space-y-4 pt-4">
               <div>
                 <Label htmlFor="imei-single">{inputLabel}</Label>
                 <Input id="imei-single" value={imei} onChange={(e) => setImei(e.target.value)} placeholder={service.input_mode === "imei" ? "e.g. 356938035643809" : `e.g. ABC123 (${inputLabel})`} maxLength={maxLen} className="font-mono" />
+                {service.input_info && service.input_info.trim() && (
+                  <p className="text-xs text-muted-foreground mt-1">{service.input_info}</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="glass rounded-md p-3 flex items-center justify-between gap-2">
