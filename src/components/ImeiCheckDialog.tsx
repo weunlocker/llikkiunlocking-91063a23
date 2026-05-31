@@ -223,7 +223,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
 
             <TabsContent value="bulk" className="space-y-4 pt-4">
               <div>
-                <Label htmlFor="imei-bulk">IMEI / Serial list</Label>
+                <Label htmlFor="imei-bulk">{inputLabel} list</Label>
                 <Textarea
                   id="imei-bulk"
                   value={bulkText}
