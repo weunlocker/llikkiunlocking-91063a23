@@ -75,7 +75,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
     onAfterRun?.();
     if (data?.status === "pending") {
       // Non-instant (supplier) order — show submitted screen with action buttons.
-      setSubmittedAsync({ imei: parsed.value });
+      setSubmittedAsync({ imei: okValue });
       return;
     }
     setResult(data);
