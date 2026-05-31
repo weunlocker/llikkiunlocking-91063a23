@@ -37,17 +37,21 @@ const BTN = {
 
 function mainKeyboard() {
   return {
-    inline_keyboard: [
-      [{ text: BTN.balance, callback_data: "menu:balance" }, { text: BTN.orders, callback_data: "menu:orders" }],
-      [{ text: BTN.place, callback_data: "menu:place" }, { text: BTN.status, callback_data: "menu:status" }],
-      [{ text: BTN.help, callback_data: "menu:help" }],
+    keyboard: [
+      [{ text: BTN.balance }, { text: BTN.orders }],
+      [{ text: BTN.place }, { text: BTN.status }],
+      [{ text: BTN.help }],
     ],
+    resize_keyboard: true,
+    one_time_keyboard: false,
   };
 }
 
 function cancelKeyboard() {
   return {
-    inline_keyboard: [[{ text: BTN.back, callback_data: "menu:cancel" }]],
+    keyboard: [[{ text: BTN.back }]],
+    resize_keyboard: true,
+    one_time_keyboard: false,
   };
 }
 
@@ -113,11 +117,11 @@ async function findUserByChat(supabase: any, chatId: string) {
 }
 
 function sendWithMenu(token: string, chatId: string, text: string) {
-  return sendInlineReplacingReplyKeyboard(token, chatId, text, mainKeyboard());
+  return sendMessage(token, chatId, text, { reply_markup: mainKeyboard() });
 }
 
 function sendWithCancel(token: string, chatId: string, text: string) {
-  return sendInlineReplacingReplyKeyboard(token, chatId, text, cancelKeyboard());
+  return sendMessage(token, chatId, text, { reply_markup: cancelKeyboard() });
 }
 
 async function handleMessage(supabase: any, token: string, msg: any) {
