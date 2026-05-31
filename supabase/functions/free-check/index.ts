@@ -126,34 +126,15 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    // Parallelize: fetch site settings, private settings, and service in one round-trip
-    const [siteRes, privRes, serviceRes] = await Promise.all([
-      supabase.from("site_settings").select("turnstile_enabled, turnstile_site_key").eq("id", 1).maybeSingle(),
-      supabase.from("private_settings").select("turnstile_secret_key").eq("id", 1).maybeSingle(),
-      supabase.from("services").select("*").eq("id", parsed.data.service_id).maybeSingle(),
-    ]);
-    const siteRow = siteRes.data as any;
-    const priv = privRes.data as any;
-    const service = serviceRes.data as any;
+    // Verify lightweight HMAC challenge (replaces Turnstile)
+    const challengeErr = await verifyChallenge(parsed.data.challenge);
+    if (challengeErr) return json(401, { error: challengeErr });
 
+    // Parallelize: fetch service (and supplier if needed)
+    const { data: service } = await supabase.from("services").select("*").eq("id", parsed.data.service_id).maybeSingle();
     if (!service) return json(404, { error: "Service not found" });
     if (!service.active) return json(400, { error: "Service inactive" });
     if (!service.is_free) return json(403, { error: "This service is not a free check" });
-
-    // Turnstile verification (run in parallel with supplier fetch below if enabled)
-    let turnstilePromise: Promise<Response | null> = Promise.resolve(null);
-    if (siteRow?.turnstile_enabled && siteRow?.turnstile_site_key && priv?.turnstile_secret_key) {
-      const token = parsed.data.turnstile_token;
-      if (!token) return json(401, { error: "CAPTCHA required" });
-      const form = new FormData();
-      form.append("secret", priv.turnstile_secret_key);
-      form.append("response", token);
-      form.append("remoteip", ip);
-      turnstilePromise = fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-        method: "POST",
-        body: form,
-      });
-    }
 
     let supplier: any = null;
     if (service.supplier_id) {
@@ -161,13 +142,6 @@ Deno.serve(async (req) => {
       supplier = sup;
     }
 
-    const verifyRes = await turnstilePromise;
-    if (verifyRes) {
-      const verifyJson = await verifyRes.json().catch(() => ({}));
-      if (!verifyJson?.success) {
-        return json(401, { error: "CAPTCHA verification failed", codes: verifyJson?.["error-codes"] });
-      }
-    }
     const imei = parsed.data.imei;
 
     if (!supplier && !service.api_url) {
