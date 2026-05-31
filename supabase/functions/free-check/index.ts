@@ -20,6 +20,9 @@ const Body = z.object({
 
 const lastHit = new Map<string, number>();
 const usedNonces = new Map<string, number>(); // nonce -> exp (prevents replay)
+// Short-lived result cache so repeat checks for the same IMEI return instantly
+const resultCache = new Map<string, { exp: number; payload: unknown }>();
+const CACHE_TTL_MS = 5 * 60_000;
 
 const CHALLENGE_SECRET = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "fallback-secret";
 
