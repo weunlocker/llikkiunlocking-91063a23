@@ -841,34 +841,51 @@ function AdminServices() {
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 rounded-md border border-border/40 p-3">
+                <div className="sm:col-span-4">
+                  <Label className="text-sm font-semibold">Input field configuration</Label>
+                </div>
                 <div className="sm:col-span-2">
                   <Label>Input Type</Label>
                   <Select value={editing.input_mode ?? "imei"} onValueChange={(v) => setEditing({ ...editing, input_mode: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="imei">IMEI (digits, 14-17)</SelectItem>
-                      <SelectItem value="imei_sn">IMEI / SN (alphanumeric, 6-20)</SelectItem>
-                      <SelectItem value="custom">Custom (alphanumeric, your limits)</SelectItem>
+                      <SelectItem value="imei">IMEI (digits)</SelectItem>
+                      <SelectItem value="imei_sn">IMEI / SN (alphanumeric)</SelectItem>
+                      <SelectItem value="custom">Custom (your rules)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="sm:col-span-2">
-                  <Label>Field Label (optional)</Label>
+                  <Label>Custom Field Name (optional)</Label>
                   <Input value={editing.input_label ?? ""} onChange={(e) => setEditing({ ...editing, input_label: e.target.value })} placeholder="e.g. Serial Number, Order ID" />
                 </div>
-                {editing.input_mode === "custom" && (
-                  <>
-                    <div>
-                      <Label>Min length</Label>
-                      <Input type="number" min={1} value={editing.input_min_length ?? 1} onChange={(e) => setEditing({ ...editing, input_min_length: Number(e.target.value) })} />
-                    </div>
-                    <div>
-                      <Label>Max length</Label>
-                      <Input type="number" min={1} value={editing.input_max_length ?? 20} onChange={(e) => setEditing({ ...editing, input_max_length: Number(e.target.value) })} />
-                      <p className="text-xs text-muted-foreground mt-1">Set above 20 if needed (no cap).</p>
-                    </div>
-                  </>
-                )}
+                <div>
+                  <Label>Length Minimum</Label>
+                  <Input type="number" min={1} value={editing.input_min_length ?? 1} onChange={(e) => setEditing({ ...editing, input_min_length: Number(e.target.value) })} />
+                </div>
+                <div>
+                  <Label>Length Maximum</Label>
+                  <Input type="number" min={1} value={editing.input_max_length ?? 20} onChange={(e) => setEditing({ ...editing, input_max_length: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground mt-1">Optional — set above 20 if you need a wider range.</p>
+                </div>
+                <div className="sm:col-span-2 flex items-center gap-6 pt-5">
+                  <label className="flex items-center gap-2 text-sm">
+                    <Switch checked={editing.input_allow_alpha !== false} onCheckedChange={(v) => setEditing({ ...editing, input_allow_alpha: v })} />
+                    Accept letters
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Switch checked={editing.input_allow_bulk !== false} onCheckedChange={(v) => setEditing({ ...editing, input_allow_bulk: v })} />
+                    Allow bulk
+                  </label>
+                </div>
+                <div className="sm:col-span-4">
+                  <Label>Regular Expression (optional)</Label>
+                  <Input value={editing.input_regex ?? ""} onChange={(e) => setEditing({ ...editing, input_regex: e.target.value })} placeholder="e.g. \d{15} — overrides length/alphabet rules when set" className="font-mono text-xs" />
+                </div>
+                <div className="sm:col-span-4">
+                  <Label>Help text shown to user (optional)</Label>
+                  <Input value={editing.input_info ?? ""} onChange={(e) => setEditing({ ...editing, input_info: e.target.value })} placeholder="e.g. Enter the 15-digit IMEI printed on the box" />
+                </div>
               </div>
               <div>
                 <Label>Response Template (optional)</Label>
