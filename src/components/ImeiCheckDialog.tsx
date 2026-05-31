@@ -183,15 +183,18 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
           </div>
         ) : !result && rows.length === 0 ? (
           <Tabs value={tab} onValueChange={(v) => setTab(v as "single" | "bulk")}>
-            <TabsList className="grid grid-cols-2 w-full">
+            <TabsList className={`grid w-full ${allowBulk ? "grid-cols-2" : "grid-cols-1"}`}>
               <TabsTrigger value="single"><Smartphone className="w-4 h-4 mr-2" />Single</TabsTrigger>
-              <TabsTrigger value="bulk"><List className="w-4 h-4 mr-2" />Bulk</TabsTrigger>
+              {allowBulk && <TabsTrigger value="bulk"><List className="w-4 h-4 mr-2" />Bulk</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="single" className="space-y-4 pt-4">
               <div>
                 <Label htmlFor="imei-single">{inputLabel}</Label>
                 <Input id="imei-single" value={imei} onChange={(e) => setImei(e.target.value)} placeholder={service.input_mode === "imei" ? "e.g. 356938035643809" : `e.g. ABC123 (${inputLabel})`} maxLength={maxLen} className="font-mono" />
+                {service.input_info && service.input_info.trim() && (
+                  <p className="text-xs text-muted-foreground mt-1">{service.input_info}</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="glass rounded-md p-3 flex items-center justify-between gap-2">
