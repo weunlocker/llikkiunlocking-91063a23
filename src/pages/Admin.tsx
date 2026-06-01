@@ -375,7 +375,7 @@ function AdminServices() {
     const sid = editing?.supplier_id;
     if (!sid) { setSupSvc([]); setSupSvcQ(""); return; }
     setSupSvcLoading(true);
-    supabase.from("supplier_services").select("action_code,name,credit,delivery_time").eq("supplier_id", sid).order("name").then(({ data }) => {
+    supabase.from("supplier_services").select("action_code,name,credit,delivery_time,service_type,fields").eq("supplier_id", sid).order("name").then(({ data }) => {
       setSupSvc((data ?? []) as SupplierService[]);
       setSupSvcLoading(false);
     });
