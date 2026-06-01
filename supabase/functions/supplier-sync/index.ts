@@ -147,6 +147,7 @@ Deno.serve(async (req) => {
 
     let lastRaw = "";
     let lastErrorMsg = "";
+    let lastErrorPriority = 0;
     let usedFormat = "";
     let usedEndpoint = "";
     const endpoints = endpointCandidates(String(sup.endpoint_url ?? ""));
@@ -176,6 +177,23 @@ Deno.serve(async (req) => {
       return order.map((format) => ({ format, body: map[format] }));
     };
 
+    const rememberError = (message: string) => {
+      const msg = message.trim();
+      if (!msg) return;
+      const lower = msg.toLowerCase();
+      const priority = /ip|authorized|whitelist|profile.*api access/.test(lower)
+        ? 4
+        : /access key|username|credential|auth/.test(lower)
+          ? 3
+          : /action/.test(lower)
+            ? 2
+            : 1;
+      if (priority >= lastErrorPriority) {
+        lastErrorMsg = msg;
+        lastErrorPriority = priority;
+      }
+    };
+
     const fetchKind = async (actions: string[]): Promise<{ services: DhruService[]; action: string }> => {
       for (const action of actions) {
         for (const endpoint of endpoints) {
@@ -195,7 +213,7 @@ Deno.serve(async (req) => {
             if (errBlock) {
               const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
               const e = eArr as Record<string, unknown> | undefined;
-              lastErrorMsg = String(e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Supplier returned an error");
+              rememberError(String(e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Supplier returned an error"));
               continue;
             }
             const found = flatten(payload);
