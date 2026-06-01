@@ -1711,14 +1711,13 @@ function AdminSuppliers() {
         toast.error(res.error);
         setSyncResult({ supplier: s, services: [], action_used: res.action_used, error: res.error, raw_sample: res.raw_sample });
         setSyncQ("");
-        return;
       } else {
         toast.success(`Synced ${res.count ?? 0} services from ${s.name}`);
+        const services = res.services ?? [];
+        setSyncResult({ supplier: s, services, action_used: res.action_used });
+        setSyncQ("");
+        load();
       }
-      const services = res.services ?? [];
-      setSyncResult({ supplier: s, services, action_used: res.action_used });
-      setSyncQ("");
-      load();
     } catch (e) {
       const message = "Sync failed: " + (e instanceof Error ? e.message : "unknown");
       toast.error(message);
