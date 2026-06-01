@@ -206,15 +206,16 @@ Deno.serve(async (req) => {
         const username = sup.dhru_username ?? "";
         const apiKey = sup.dhru_api_key ?? "";
         const refId = String(o.supplier_reference);
+        const getAction = svc?.service_type === "server" ? "getserverorder" : "getimeiorder";
         if (sup.api_format === "bulk") {
           params.set("data", JSON.stringify({
             username, apikey: apiKey,
-            action: "getimeiorder",
+            action: getAction,
             id: refId,
           }));
         } else if (sup.api_format === "v6") {
           params.set("apiaccesskey", apiKey);
-          params.set("action", "getimeiorder");
+          params.set("action", getAction);
           params.set("requestformat", "JSON");
           if (username) params.set("username", username);
           params.set("ID", refId);
@@ -222,7 +223,7 @@ Deno.serve(async (req) => {
         } else {
           params.set("username", username);
           params.set("apikey", apiKey);
-          params.set("action", "getimeiorder");
+          params.set("action", getAction);
           params.set("id", refId);
         }
         r = await fetch(sup.endpoint_url, {
