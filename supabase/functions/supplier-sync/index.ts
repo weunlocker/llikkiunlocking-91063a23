@@ -241,7 +241,7 @@ Deno.serve(async (req) => {
       return true;
     });
 
-    await admin.from("supplier_services").delete().eq("supplier_id", supplier_id);
+    // Merge (upsert) instead of delete+insert so existing services aren't wiped on partial syncs.
     const rows = unique.map((s) => ({
       supplier_id,
       action_code: s.id,
@@ -252,10 +252,11 @@ Deno.serve(async (req) => {
       info: s.info ?? null,
       fields: s.fields ?? [],
       raw: { ...(s.raw && typeof s.raw === "object" ? s.raw as object : {}), _group: s.group ?? null },
+      synced_at: new Date().toISOString(),
     }));
     for (let i = 0; i < rows.length; i += 500) {
       const slice = rows.slice(i, i + 500);
-      const { error } = await admin.from("supplier_services").insert(slice);
+      const { error } = await admin.from("supplier_services").upsert(slice, { onConflict: "supplier_id,action_code" });
       if (error) return json(500, { error: error.message });
     }
 
