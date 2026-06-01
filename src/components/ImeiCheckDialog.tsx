@@ -63,19 +63,33 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
   const price = Number(service.price);
 
   const submitSingle = async () => {
-    const parsed = imeiSchema.safeParse(imei);
-    if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
+    let primary = imei.trim();
+    let extraFields: Record<string, string> | undefined;
+    if (isServer) {
+      // Validate required fields
+      for (const f of customFields) {
+        const v = (fieldValues[f.name] ?? "").trim();
+        if (f.required && !v) { toast.error(`${f.label} is required`); return; }
+      }
+      extraFields = { ...fieldValues };
+      // Pick a primary identifier for the order's imei column
+      const idField = customFields.find((f) => /imei|serial|sn|udid|meid/i.test(f.name)) ?? customFields[0];
+      primary = (fieldValues[idField.name] ?? "").trim() || "N/A";
+    } else {
+      const parsed = imeiSchema.safeParse(imei);
+      if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
+      primary = parsed.data;
+    }
     if (balance < price) { toast.error("Insufficient balance. Please top up."); return; }
     setSubmitting(true);
     const { data, error } = await supabase.functions.invoke("check-imei", {
-      body: { service_id: service.id, imei: parsed.data },
+      body: { service_id: service.id, imei: primary, fields: extraFields },
     });
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
     onAfterRun?.();
     if (data?.status === "pending") {
-      // Non-instant (supplier) order — show submitted screen with action buttons.
-      setSubmittedAsync({ imei: parsed.data });
+      setSubmittedAsync({ imei: primary });
       return;
     }
     setResult(data);
