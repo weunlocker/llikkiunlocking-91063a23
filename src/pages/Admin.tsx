@@ -1839,11 +1839,17 @@ function AdminSuppliers() {
       <Dialog open={!!syncResult} onOpenChange={(o) => !o && setSyncResult(null)}>
         <DialogContent className="glass max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>{syncResult?.supplier.name} — {syncResult?.services.length} services synced</DialogTitle>
+            <DialogTitle>{syncResult?.supplier.name} — {syncResult?.error ? "sync failed" : `${syncResult?.services.length ?? 0} services synced`}</DialogTitle>
             {syncResult?.action_used && <p className="text-xs text-muted-foreground">via Dhru action <code className="px-1 bg-secondary/50 rounded">{syncResult.action_used}</code></p>}
           </DialogHeader>
           {syncResult && (
             <div className="space-y-3 overflow-hidden flex flex-col flex-1">
+              {syncResult.error ? (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                  <div className="flex items-start gap-2 font-medium"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{syncResult.error}</div>
+                  {syncResult.raw_sample && <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-background/70 p-3 text-xs text-muted-foreground">{syncResult.raw_sample}</pre>}
+                </div>
+              ) : <>
               <Input placeholder={`Search ${syncResult.services.length} services…`} value={syncQ} onChange={(e) => setSyncQ(e.target.value)} />
               <div className="rounded-xl border border-border/50 overflow-y-auto flex-1">
                 <table className="w-full text-xs">
@@ -1876,6 +1882,7 @@ function AdminSuppliers() {
               ) : (
                 <p className="text-xs text-muted-foreground">Showing {syncResult.services.length} services. Open <b>Services → New / Edit</b>, pick this supplier to use them.</p>
               )}
+              </>}
             </div>
           )}
         </DialogContent>
