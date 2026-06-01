@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
   // Step 1: place any pending Dhru orders that don't yet have a supplier_reference
   const { data: toPlace } = await sb
     .from("orders")
-    .select("id, imei, service_id, services(supplier_action, supplier_id, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))")
+    .select("id, imei, service_id, fields, services(supplier_action, supplier_id, service_type, custom_fields, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))")
     .eq("status", "pending")
     .is("supplier_reference", null)
     .order("created_at", { ascending: true })
@@ -89,20 +89,47 @@ Deno.serve(async (req) => {
       const username = String(sup.dhru_username ?? "");
       const apiKey = String(sup.dhru_api_key ?? "");
       const action = String(svc.supplier_action ?? "");
+      const isServer = svc?.service_type === "server";
+      const dhruAction = isServer ? "placeserverorder" : "placeimeiorder";
+      const submittedFields: Record<string, string> = (o.fields && typeof o.fields === "object") ? o.fields : {};
+
       if (sup.api_format === "bulk") {
-        params.set("data", JSON.stringify({ username, apikey: apiKey, action: "placeimeiorder", service: action, imei: o.imei }));
+        const payload: Record<string, unknown> = { username, apikey: apiKey, action: dhruAction, service: action };
+        if (isServer) {
+          payload.custom = submittedFields;
+          if (!submittedFields.imei && o.imei) payload.imei = o.imei;
+        } else {
+          payload.imei = o.imei;
+        }
+        params.set("data", JSON.stringify(payload));
       } else if (sup.api_format === "v6") {
         params.set("apiaccesskey", apiKey);
-        params.set("action", "placeimeiorder");
+        params.set("action", dhruAction);
         params.set("requestformat", "JSON");
         if (username) params.set("username", username);
-        params.set("parameters", `<PARAMETERS><ID>${escapeXml(action)}</ID><IMEI>${escapeXml(o.imei)}</IMEI></PARAMETERS>`);
+        let inner = `<ID>${escapeXml(action)}</ID>`;
+        if (isServer) {
+          for (const [k, v] of Object.entries(submittedFields)) {
+            inner += `<${escapeXml(k)}>${escapeXml(String(v ?? ""))}</${escapeXml(k)}>`;
+          }
+          if (!submittedFields.imei && o.imei) inner += `<IMEI>${escapeXml(o.imei)}</IMEI>`;
+        } else {
+          inner += `<IMEI>${escapeXml(o.imei)}</IMEI>`;
+        }
+        params.set("parameters", `<PARAMETERS>${inner}</PARAMETERS>`);
       } else {
         params.set("username", username);
         params.set("apikey", apiKey);
-        params.set("action", "placeimeiorder");
+        params.set("action", dhruAction);
         params.set("service", action);
-        params.set("imei", o.imei);
+        if (isServer) {
+          for (const [k, v] of Object.entries(submittedFields)) {
+            params.set(k, String(v ?? ""));
+          }
+          if (!submittedFields.imei && o.imei) params.set("imei", o.imei);
+        } else {
+          params.set("imei", o.imei);
+        }
       }
       const r = await fetch(sup.endpoint_url, {
         method: "POST",
