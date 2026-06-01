@@ -1,73 +1,79 @@
-# Upgrade Plan — 4 New Features
 
-Building 4 features in order. Each is delivered independently so the app stays working.
+## Goal
 
----
+One-time import of all goimei services. Existing services get **linked** (not replaced) so their group pricing (Silver/Gold/Diamond), category, and history are preserved. Unmatched goimei services get auto-created as new active services.
 
-## 1. Analytics Dashboard (Admin)
+## How it works
 
-A new **Analytics** tab inside the admin panel with:
+A new admin page **Admin → Supplier Import** with a 3-step wizard for the goimei supplier:
 
-- **KPI cards**: Total revenue, total orders, success rate, active users (today / 7d / 30d / all-time toggle).
-- **Revenue chart**: Daily revenue line chart (last 30 days).
-- **Orders chart**: Stacked bar — completed vs rejected vs pending per day.
-- **Top services**: Table — top 10 services by order count and revenue.
-- **Top users**: Table — top 10 users by spend.
-- **User growth**: New signups per day (last 30 days).
+```text
+[1 Sync]  →  [2 Review matches]  →  [3 Import]
+```
 
-Tech: `recharts` (already used in shadcn), aggregated via SQL views / RPC functions for speed.
+### Step 1 — Sync
+Reuses the existing `supplier-sync` edge function to pull the full goimei service list into `supplier_services` (already works). Shows count.
 
----
+### Step 2 — Review matches (the important part)
+Loads:
+- All `supplier_services` rows for the goimei supplier
+- All existing `services` rows
 
-## 2. Invoices & Receipts
+For each goimei service, computes a similarity score against every existing service using:
+- **Name** — token-based fuzzy match (normalize: lowercase, strip punctuation, drop noise words like "check / unlock / service / premium / instant", then Jaccard/Dice on tokens). Weight: 70%.
+- **Price** — closeness of goimei `credit` to your `price` (within ±20% = full, ±50% = partial). Weight: 20%.
+- **Delivery time** — same bucket (instant / minutes / hours / days). Weight: 10%.
 
-- **Per-order invoice**: Users can click "Download Invoice" on any completed order on the Dashboard → generates a branded PDF (site logo, brand name, order #, IMEI, service, price, date, status, result summary).
-- **Bulk export**: Users can export their full order history as CSV or Excel from the Dashboard "Orders" tab.
-- **Admin export**: Admin can export all orders / all transactions as CSV from the Admin panel.
-- **Auto-email receipt**: When an order completes successfully, the user receives a branded HTML email with the invoice details and a link to download the PDF.
+Best match per goimei service is preselected when score ≥ a threshold (e.g. 0.55). Below that → "Create new".
 
-Tech: `jspdf` + `jspdf-autotable` for client-side PDF generation (no edge function needed → free, instant). Email uses the existing Lovable Email infrastructure already configured in the project.
+The review screen shows a table:
 
----
+```text
+goimei service          | suggested match (your catalog)        | action
+------------------------|---------------------------------------|---------------------
+iCloud Clean iPhone     | iPhone iCloud Status (Clean) [0.82]   | [Link ▼] [Skip]
+FMI Off Premium         | — (no good match, 0.31)               | [Create new ▼]
+...
+```
 
-## 3. Support Ticket System
+User can:
+- Change the matched service from a searchable dropdown of all services
+- Switch action to **Link / Create new / Skip**
+- Bulk actions: "Accept all suggestions", "Create new for all unmatched"
 
-New tables:
-- `support_tickets` (id, user_id, subject, status [open/pending/closed], priority, created_at, updated_at)
-- `support_ticket_messages` (id, ticket_id, sender_id, sender_type [user/admin], message, created_at)
+### Step 3 — Import (single call)
+One edge function `supplier-bulk-link` accepts the reviewed plan:
 
-User side (new "Support" tab on Dashboard):
-- List of their tickets with status badges
-- "New Ticket" form (subject + initial message)
-- Open ticket → chat-style thread, reply box
-- Realtime updates via Supabase Realtime
+```ts
+{ supplier_id, items: [
+  { action_code, action: "link",   service_id },
+  { action_code, action: "create", name, price, delivery_time, category },
+  { action_code, action: "skip" },
+]}
+```
 
-Admin side (new "Support" section in Admin):
-- Inbox of all tickets, filter by status/priority
-- Open ticket → reply, change status, close
-- Unread/new ticket badge in admin sidebar
+For each item:
+- **link** → `UPDATE services SET supplier_id=…, supplier_action=action_code WHERE id=service_id` (keeps your price, category, group discounts, existing orders).
+- **create** → `INSERT INTO services (name, price, delivery_time, category, supplier_id, supplier_action, active=true)` using goimei's values. Category defaults to `general` (editable in row).
+- **skip** → nothing.
 
-RLS: Users see only their tickets; admins see all.
+Returns counts: linked / created / skipped / failed.
 
----
+## Safety
 
-## 4. Order Notifications
+- **Nothing is deleted.** Existing services that don't get linked stay exactly as they are.
+- **No price changes** on linked services — group discounts (Default/Silver/Gold/Diamond) keep working untouched because they're computed from `services.price`.
+- Idempotent: re-running the wizard re-loads current `supplier_id` links and shows them as already-linked so you don't double-create.
+- All work is admin-only (RLS already enforces).
 
-Extend the existing notification system so users get notified on **every order status change** (pending → processing → completed/rejected), not just completion.
+## Files to add
 
-- Use existing `notify_email` and `notify_telegram` toggles on `profiles`.
-- Add a new `notify_on_status_change` boolean (defaults true) so users can opt out of intermediate updates.
-- Trigger: A database trigger on `orders` table fires when `status` changes → calls an edge function `send-order-notification` → routes to email + Telegram based on user prefs.
-- Email uses Lovable Email queue (already set up).
-- Telegram uses existing `client_bot_token` from `site_settings` and `client_bot_chat_id` from `profiles`.
+- `src/pages/AdminSupplierImport.tsx` — wizard UI
+- `src/lib/serviceMatch.ts` — similarity scoring (pure TS, no deps)
+- `supabase/functions/supplier-bulk-link/index.ts` — applies the plan server-side with service-role + admin check
+- Route + sidebar link in `AdminLayout`
 
----
+## Out of scope
 
-## Build Order
-
-1. **Invoices & Receipts** (smallest, no DB changes for PDF/CSV; email receipt last)
-2. **Analytics Dashboard** (read-only queries, no schema changes for charts)
-3. **Order Notifications** (one migration: trigger + flag; one edge function)
-4. **Support Tickets** (largest: 2 tables, RLS, UI on both sides, realtime)
-
-After each feature lands the app remains fully working.
+- No background sync function, no cron.
+- No automatic price syncing later — one-time only, as requested.
