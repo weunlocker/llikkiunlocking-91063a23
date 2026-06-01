@@ -773,44 +773,51 @@ function AdminServices() {
                             </button>
                           );
                         }
+                        const filtered = supSvc.filter((s) => !supSvcQ || s.name.toLowerCase().includes(supSvcQ.toLowerCase()) || s.action_code.includes(supSvcQ));
+                        const imeiList = filtered.filter((s) => (s.service_type ?? "imei") !== "server").slice(0, 200);
+                        const serverList = filtered.filter((s) => s.service_type === "server").slice(0, 200);
+                        const renderItem = (s: SupplierService) => {
+                          const selected = editing.supplier_action === s.action_code;
+                          return (
+                            <button
+                              key={s.action_code}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setEditing((prev) => ({
+                                  ...prev,
+                                  supplier_action: s.action_code,
+                                  name: prev.name || s.name,
+                                  delivery_time: prev.delivery_time && prev.delivery_time !== "Instant" ? prev.delivery_time : (s.delivery_time || "Instant"),
+                                  price: prev.price && Number(prev.price) > 0 ? prev.price : (s.credit != null ? Number(s.credit) : prev.price),
+                                  service_type: s.service_type ?? "imei",
+                                  custom_fields: s.service_type === "server" ? (s.fields ?? []) : [],
+                                }));
+                                setSupSvcQ("");
+                                setSupSvcOpen(false);
+                              }}
+                              className={`w-full text-left px-3 py-1.5 text-xs flex justify-between gap-2 hover:bg-primary/10 ${selected ? "bg-primary/20 ring-1 ring-primary" : ""}`}
+                            >
+                              <span className="truncate flex items-center gap-1.5">
+                                <span className="font-mono text-primary">#{s.action_code}</span> {s.name}
+                              </span>
+                              <span className="text-muted-foreground whitespace-nowrap">{s.credit != null ? `${s.credit} cr` : ""}{s.delivery_time ? ` · ${s.delivery_time}` : ""}</span>
+                            </button>
+                          );
+                        };
                         return (
                           <>
                             <Input autoFocus value={supSvcQ} onChange={(e) => setSupSvcQ(e.target.value)} placeholder={`Search ${supSvc.length} synced services…`} />
-                            <div className="max-h-56 overflow-y-auto rounded border border-border/50 bg-background/50">
-                              {supSvc
-                                .filter((s) => !supSvcQ || s.name.toLowerCase().includes(supSvcQ.toLowerCase()) || s.action_code.includes(supSvcQ))
-                                .slice(0, 200)
-                                .map((s) => {
-                                  const selected = editing.supplier_action === s.action_code;
-                                  return (
-                                    <button
-                                      key={s.action_code}
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setEditing((prev) => ({
-                                          ...prev,
-                                          supplier_action: s.action_code,
-                                          name: prev.name || s.name,
-                                          delivery_time: prev.delivery_time && prev.delivery_time !== "Instant" ? prev.delivery_time : (s.delivery_time || "Instant"),
-                                          price: prev.price && Number(prev.price) > 0 ? prev.price : (s.credit != null ? Number(s.credit) : prev.price),
-                                          service_type: s.service_type ?? "imei",
-                                          custom_fields: s.service_type === "server" ? (s.fields ?? []) : [],
-                                        }));
-                                        setSupSvcQ("");
-                                        setSupSvcOpen(false);
-                                      }}
-                                      className={`w-full text-left px-3 py-1.5 text-xs flex justify-between gap-2 hover:bg-primary/10 ${selected ? "bg-primary/20 ring-1 ring-primary" : ""}`}
-                                    >
-                                      <span className="truncate flex items-center gap-1.5">
-                                        {s.service_type === "server" && <span className="px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">SERVER</span>}
-                                        <span className="font-mono text-primary">#{s.action_code}</span> {s.name}
-                                      </span>
-                                      <span className="text-muted-foreground whitespace-nowrap">{s.credit != null ? `${s.credit} cr` : ""}{s.delivery_time ? ` · ${s.delivery_time}` : ""}</span>
-                                    </button>
-                                  );
-                                })}
+                            <div className="max-h-72 overflow-y-auto rounded border border-border/50 bg-background/50 divide-y divide-border/40">
+                              <div>
+                                <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-sky-300 bg-sky-500/10 sticky top-0">IMEI Services ({imeiList.length})</div>
+                                {imeiList.length === 0 ? <div className="px-3 py-2 text-xs text-muted-foreground">None</div> : imeiList.map(renderItem)}
+                              </div>
+                              <div>
+                                <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-amber-500/10 sticky top-0">Server Services ({serverList.length})</div>
+                                {serverList.length === 0 ? <div className="px-3 py-2 text-xs text-muted-foreground">None</div> : serverList.map(renderItem)}
+                              </div>
                             </div>
                             <div className="flex justify-end">
                               <button type="button" onClick={() => setSupSvcOpen(false)} className="text-xs text-muted-foreground hover:text-foreground">Close</button>
