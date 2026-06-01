@@ -192,10 +192,14 @@ Deno.serve(async (req) => {
 
     if (all.length === 0) {
       const isAuth = /auth/i.test(lastErrorMsg);
-      return json(isAuth ? 401 : 502, {
+      // Return 200 so the client can read the body and fall back to cached services.
+      return json(200, {
+        ok: false,
+        count: 0,
+        services: [],
         error: lastErrorMsg
           ? `Dhru: ${lastErrorMsg}${isAuth ? " — check the Username and API Key on this supplier (and IP whitelist on Dhru)." : ""}`
-          : "Supplier returned no services. The endpoint/account may not expose IMEI or Server services.",
+          : "Supplier returned no services. The endpoint/account may not expose IMEI or Server services (the URL may be pointing to a website homepage instead of supplier_api.php).",
         raw_sample: lastRaw.slice(0, 800),
       });
     }
