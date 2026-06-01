@@ -21,13 +21,14 @@ import { ColoredResult } from "@/components/ColoredResult";
 import { extractResponse } from "@/lib/extractResponse";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
-type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; sort_order: number | null };
+export type CustomField = { name: string; label: string; type: string; required: boolean; default?: string; options?: string[] };
+type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; sort_order: number | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
 type Supplier = { id: string; name: string; type: "dhru" | "generic" | "ifree" | "goimeicheck"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
 type ProfileRow = { id: string; email: string | null; display_name: string | null; balance: number; banned: boolean; created_at: string };
 type OrderRow = { id: string; order_number: number; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null; profiles: { email: string | null } | null };
 type TxRow = { id: string; user_id: string; amount: number; type: string; balance_after: number; description: string | null; created_at: string; profiles?: { email: string | null } | null };
 
-const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", sample_result: "", result_font: "mono", result_color: "#e2e8f0", active: true, is_free: false, category: "general", success_rules: [], supplier_id: null, supplier_action: "" };
+const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", sample_result: "", result_font: "mono", result_color: "#e2e8f0", active: true, is_free: false, category: "general", success_rules: [], supplier_id: null, supplier_action: "", service_type: "imei", custom_fields: [] };
 
 const FONT_OPTIONS = [
   { label: "Mono", value: "mono", css: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" },
@@ -305,7 +306,7 @@ function AdminUsers() {
 }
 
 /* ---------- Services ---------- */
-type SupplierService = { action_code: string; name: string; credit: number | null; delivery_time: string | null };
+type SupplierService = { action_code: string; name: string; credit: number | null; delivery_time: string | null; service_type?: "imei" | "server"; fields?: CustomField[] };
 
 type Category = { id: string; slug: string; name: string; sort_order: number };
 
@@ -374,7 +375,7 @@ function AdminServices() {
     const sid = editing?.supplier_id;
     if (!sid) { setSupSvc([]); setSupSvcQ(""); return; }
     setSupSvcLoading(true);
-    supabase.from("supplier_services").select("action_code,name,credit,delivery_time").eq("supplier_id", sid).order("name").then(({ data }) => {
+    supabase.from("supplier_services").select("action_code,name,credit,delivery_time,service_type,fields").eq("supplier_id", sid).order("name").then(({ data }) => {
       setSupSvc((data ?? []) as SupplierService[]);
       setSupSvcLoading(false);
     });
@@ -454,6 +455,8 @@ function AdminServices() {
       success_rules: (editing.success_rules ?? []) as unknown as never,
       supplier_id: editing.supplier_id ?? null,
       supplier_action: editing.supplier_action || null,
+      service_type: editing.service_type ?? "imei",
+      custom_fields: (editing.custom_fields ?? []) as unknown as never,
     };
     const isUpdate = !!editing.id;
     const prevPrice = isUpdate ? services.find((x) => x.id === editing.id)?.price ?? null : null;
@@ -754,7 +757,7 @@ function AdminServices() {
                               onClick={() => { setSupSvcOpen(true); setSupSvcQ(""); }}
                               className="w-full text-left rounded-md border border-primary/40 bg-background/50 px-3 py-2 text-sm flex items-center justify-between gap-2 hover:bg-primary/10"
                             >
-                              <span className="truncate"><span className="font-mono text-primary">#{sel.action_code}</span> {sel.name}</span>
+                              <span className="truncate flex items-center gap-1.5">{sel.service_type === "server" && <span className="px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">SERVER</span>}<span className="font-mono text-primary">#{sel.action_code}</span> {sel.name}</span>
                               <span className="text-xs text-muted-foreground whitespace-nowrap">{sel.credit != null ? `${sel.credit} cr` : ""}{sel.delivery_time ? ` · ${sel.delivery_time}` : ""} · change ▾</span>
                             </button>
                           );
@@ -792,13 +795,18 @@ function AdminServices() {
                                           name: prev.name || s.name,
                                           delivery_time: prev.delivery_time && prev.delivery_time !== "Instant" ? prev.delivery_time : (s.delivery_time || "Instant"),
                                           price: prev.price && Number(prev.price) > 0 ? prev.price : (s.credit != null ? Number(s.credit) : prev.price),
+                                          service_type: s.service_type ?? "imei",
+                                          custom_fields: s.service_type === "server" ? (s.fields ?? []) : [],
                                         }));
                                         setSupSvcQ("");
                                         setSupSvcOpen(false);
                                       }}
                                       className={`w-full text-left px-3 py-1.5 text-xs flex justify-between gap-2 hover:bg-primary/10 ${selected ? "bg-primary/20 ring-1 ring-primary" : ""}`}
                                     >
-                                      <span className="truncate"><span className="font-mono text-primary">#{s.action_code}</span> {s.name}</span>
+                                      <span className="truncate flex items-center gap-1.5">
+                                        {s.service_type === "server" && <span className="px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">SERVER</span>}
+                                        <span className="font-mono text-primary">#{s.action_code}</span> {s.name}
+                                      </span>
                                       <span className="text-muted-foreground whitespace-nowrap">{s.credit != null ? `${s.credit} cr` : ""}{s.delivery_time ? ` · ${s.delivery_time}` : ""}</span>
                                     </button>
                                   );
@@ -810,6 +818,24 @@ function AdminServices() {
                           </>
                         );
                       })()}
+
+                      {editing.service_type === "server" && (editing.custom_fields?.length ?? 0) > 0 && (
+                        <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-1">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/30">SERVER</span>
+                            Customer must fill {editing.custom_fields!.length} field{editing.custom_fields!.length === 1 ? "" : "s"} when ordering
+                          </div>
+                          <div className="grid grid-cols-2 gap-1 text-[11px]">
+                            {editing.custom_fields!.map((f) => (
+                              <div key={f.name} className="flex items-center gap-1 rounded bg-background/40 px-2 py-1">
+                                <span className="font-mono text-primary">{f.name}</span>
+                                <span className="text-muted-foreground truncate">· {f.label}</span>
+                                <span className="ml-auto text-muted-foreground">{f.type}{f.required ? " *" : ""}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -8,7 +8,7 @@ import { Loader2, Smartphone, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
 
-type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null };
+type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; service_type?: "imei" | "server" | null; custom_fields?: { name: string; label: string; type: string; required: boolean; default?: string; options?: string[] }[] | null };
 type Category = { slug: string; name: string; sort_order: number };
 
 export default function Services() {
@@ -22,10 +22,10 @@ export default function Services() {
   useEffect(() => {
     (async () => {
       const [{ data: svc }, { data: cats }] = await Promise.all([
-        supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color,is_free").order("category").order("sort_order").order("price"),
+        supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color,is_free,service_type,custom_fields").order("category").order("sort_order").order("price"),
         supabase.from("categories").select("slug,name,sort_order"),
       ]);
-      setServices(((svc ?? []) as Service[]));
+      setServices(((svc ?? []) as unknown as Service[]));
       setCategories((cats ?? []) as Category[]);
       setLoading(false);
     })();

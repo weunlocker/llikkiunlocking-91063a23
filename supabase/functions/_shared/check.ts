@@ -179,7 +179,7 @@ type PlacementCtx = {
 };
 
 async function placeOrder(opts: {
-  userId: string; serviceId: string; imei: string; source: "web" | "api";
+  userId: string; serviceId: string; imei: string; source: "web" | "api"; fields?: Record<string, string>;
 }): Promise<{ ok: false; status: number; body: any } | { ok: true; ctx: PlacementCtx }> {
   const supabase = makeServiceClient();
 
@@ -239,6 +239,7 @@ async function placeOrder(opts: {
   const { data: order, error: oErr } = await supabase.from("orders").insert({
     user_id: opts.userId, service_id: service.id, imei: opts.imei,
     status: "pending", price_charged: price, source: opts.source,
+    fields: opts.fields ?? null,
   }).select().single();
 
   if (oErr || !order) {
@@ -555,7 +556,7 @@ function detach(p: Promise<unknown> | unknown) {
 // Async entrypoint: charge + create order, run upstream in background, return pending immediately.
 // Caller is responsible for keeping the function alive (EdgeRuntime.waitUntil).
 export async function executeCheckAsync(opts: {
-  userId: string; serviceId: string; imei: string; source: "web" | "api";
+  userId: string; serviceId: string; imei: string; source: "web" | "api"; fields?: Record<string, string>;
 }): Promise<{ status: number; body: any; background?: Promise<void> }> {
   const placed = await placeOrder(opts);
   if (!placed.ok) return { status: placed.status, body: placed.body };
@@ -578,7 +579,7 @@ export async function executeCheckAsync(opts: {
 
 // Synchronous entrypoint (kept for API): waits for upstream and returns final status.
 export async function executeCheck(opts: {
-  userId: string; serviceId: string; imei: string; source: "web" | "api";
+  userId: string; serviceId: string; imei: string; source: "web" | "api"; fields?: Record<string, string>;
 }) {
   const placed = await placeOrder(opts);
   if (!placed.ok) return { ok: false, status: placed.status, body: placed.body };

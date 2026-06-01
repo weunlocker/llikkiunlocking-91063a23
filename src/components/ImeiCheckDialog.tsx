@@ -13,7 +13,8 @@ import { imeiSchema } from "@/lib/validation";
 import { extractResponse } from "@/lib/extractResponse";
 import { ColoredResult, fontCss } from "@/components/ColoredResult";
 
-type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null; result_font?: string | null; result_color?: string | null };
+export type CustomField = { name: string; label: string; type: string; required: boolean; default?: string; options?: string[] };
+type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null; result_font?: string | null; result_color?: string | null; service_type?: "imei" | "server" | null; custom_fields?: CustomField[] | null };
 
 type SingleResult = { status: string; result?: string; error?: string } | null;
 
@@ -42,13 +43,19 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
   const [submittedAsync, setSubmittedAsync] = useState<{ imei: string } | null>(null);
   const [rows, setRows] = useState<BulkRow[]>([]);
   const [showSample, setShowSample] = useState(false);
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
 
   const font = fontCss(service?.result_font);
-  
+  const isServer = service?.service_type === "server" && Array.isArray(service?.custom_fields) && service!.custom_fields!.length > 0;
+  const customFields = (isServer ? service!.custom_fields! : []) as CustomField[];
 
   useEffect(() => {
     if (service) {
       setTab("single"); setImei(""); setBulkText(""); setResult(null); setRows([]); setShowSample(false); setSubmittedAsync(null);
+      // Seed defaults for server fields
+      const seed: Record<string, string> = {};
+      (service.custom_fields ?? []).forEach((f) => { seed[f.name] = f.default ?? ""; });
+      setFieldValues(seed);
     }
   }, [service?.id]);
 
@@ -56,19 +63,33 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
   const price = Number(service.price);
 
   const submitSingle = async () => {
-    const parsed = imeiSchema.safeParse(imei);
-    if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
+    let primary = imei.trim();
+    let extraFields: Record<string, string> | undefined;
+    if (isServer) {
+      // Validate required fields
+      for (const f of customFields) {
+        const v = (fieldValues[f.name] ?? "").trim();
+        if (f.required && !v) { toast.error(`${f.label} is required`); return; }
+      }
+      extraFields = { ...fieldValues };
+      // Pick a primary identifier for the order's imei column
+      const idField = customFields.find((f) => /imei|serial|sn|udid|meid/i.test(f.name)) ?? customFields[0];
+      primary = (fieldValues[idField.name] ?? "").trim() || "N/A";
+    } else {
+      const parsed = imeiSchema.safeParse(imei);
+      if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
+      primary = parsed.data;
+    }
     if (balance < price) { toast.error("Insufficient balance. Please top up."); return; }
     setSubmitting(true);
     const { data, error } = await supabase.functions.invoke("check-imei", {
-      body: { service_id: service.id, imei: parsed.data },
+      body: { service_id: service.id, imei: primary, fields: extraFields },
     });
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
     onAfterRun?.();
     if (data?.status === "pending") {
-      // Non-instant (supplier) order — show submitted screen with action buttons.
-      setSubmittedAsync({ imei: parsed.data });
+      setSubmittedAsync({ imei: primary });
       return;
     }
     setResult(data);
@@ -173,16 +194,51 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
           </div>
         ) : !result && rows.length === 0 ? (
           <Tabs value={tab} onValueChange={(v) => setTab(v as "single" | "bulk")}>
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="single"><Smartphone className="w-4 h-4 mr-2" />Single</TabsTrigger>
-              <TabsTrigger value="bulk"><List className="w-4 h-4 mr-2" />Bulk</TabsTrigger>
+            <TabsList className={`grid w-full ${isServer ? "grid-cols-1" : "grid-cols-2"}`}>
+              <TabsTrigger value="single"><Smartphone className="w-4 h-4 mr-2" />{isServer ? "Order" : "Single"}</TabsTrigger>
+              {!isServer && <TabsTrigger value="bulk"><List className="w-4 h-4 mr-2" />Bulk</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="single" className="space-y-4 pt-4">
-              <div>
-                <Label htmlFor="imei-single">IMEI / Serial</Label>
-                <Input id="imei-single" value={imei} onChange={(e) => setImei(e.target.value)} placeholder="e.g. 356938035643809" maxLength={20} className="font-mono" />
-              </div>
+              {isServer ? (
+                <div className="space-y-3">
+                  {customFields.map((f) => {
+                    const v = fieldValues[f.name] ?? "";
+                    const onChange = (val: string) => setFieldValues((prev) => ({ ...prev, [f.name]: val }));
+                    return (
+                      <div key={f.name}>
+                        <Label htmlFor={`f-${f.name}`}>{f.label}{f.required && <span className="text-destructive"> *</span>}</Label>
+                        {f.type === "select" && f.options?.length ? (
+                          <select
+                            id={`f-${f.name}`}
+                            value={v}
+                            onChange={(e) => onChange(e.target.value)}
+                            className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                          >
+                            <option value="">— select —</option>
+                            {f.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        ) : f.type === "textarea" ? (
+                          <Textarea id={`f-${f.name}`} value={v} onChange={(e) => onChange(e.target.value)} rows={3} />
+                        ) : (
+                          <Input
+                            id={`f-${f.name}`}
+                            type={f.type === "number" ? "number" : f.type === "password" ? "password" : "text"}
+                            value={v}
+                            onChange={(e) => onChange(e.target.value)}
+                            className={/imei|serial|sn|udid|meid/i.test(f.name) ? "font-mono" : ""}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor="imei-single">IMEI / Serial</Label>
+                  <Input id="imei-single" value={imei} onChange={(e) => setImei(e.target.value)} placeholder="e.g. 356938035643809" maxLength={20} className="font-mono" />
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="glass rounded-md p-3 flex items-center justify-between gap-2">
                   <span className="text-muted-foreground flex items-center gap-2"><DollarSignIcon className="w-4 h-4" /> Price</span>

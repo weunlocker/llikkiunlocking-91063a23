@@ -1,73 +1,65 @@
-# Upgrade Plan — 4 New Features
+## Goal
 
-Building 4 features in order. Each is delivered independently so the app stays working.
+Support Dhru **Server Services** (unlock/IMEI codes that need extra inputs like Quantity, Email, Username, Password, MEID, etc.) in addition to the existing IMEI Services.
 
----
+The custom fields are defined by the supplier per-service. When admin picks a supplier service in the editor, the field schema appears automatically. When the customer orders, those fields are rendered as inputs and sent to Dhru.
 
-## 1. Analytics Dashboard (Admin)
+## 1. Database
 
-A new **Analytics** tab inside the admin panel with:
+Migration adds:
 
-- **KPI cards**: Total revenue, total orders, success rate, active users (today / 7d / 30d / all-time toggle).
-- **Revenue chart**: Daily revenue line chart (last 30 days).
-- **Orders chart**: Stacked bar — completed vs rejected vs pending per day.
-- **Top services**: Table — top 10 services by order count and revenue.
-- **Top users**: Table — top 10 users by spend.
-- **User growth**: New signups per day (last 30 days).
+**`supplier_services`**
+- `service_type text not null default 'imei'`  — `'imei'` or `'server'`
+- `fields jsonb not null default '[]'` — `[{ name, label, type, required, default, options? }, ...]` extracted from Dhru `Custom` block
 
-Tech: `recharts` (already used in shadcn), aggregated via SQL views / RPC functions for speed.
+**`services`**
+- `service_type text not null default 'imei'` — copied when admin picks a supplier server-service
+- `custom_fields jsonb not null default '[]'` — same shape; auto-filled from `supplier_services.fields` on selection, editable by admin
 
----
+Grants already exist for both tables; no new tables.
 
-## 2. Invoices & Receipts
+## 2. `supplier-sync` edge function
 
-- **Per-order invoice**: Users can click "Download Invoice" on any completed order on the Dashboard → generates a branded PDF (site logo, brand name, order #, IMEI, service, price, date, status, result summary).
-- **Bulk export**: Users can export their full order history as CSV or Excel from the Dashboard "Orders" tab.
-- **Admin export**: Admin can export all orders / all transactions as CSV from the Admin panel.
-- **Auto-email receipt**: When an order completes successfully, the user receives a branded HTML email with the invoice details and a link to download the PDF.
+In addition to `imeiservicelist`, also call Dhru `serverservicelist` for the same supplier in the same sync.
 
-Tech: `jspdf` + `jspdf-autotable` for client-side PDF generation (no edge function needed → free, instant). Email uses the existing Lovable Email infrastructure already configured in the project.
+For each server service, parse the `Custom` block (Dhru returns `Custom: { "1": {field: "imei", label: "IMEI", required: true}, "2": {field: "email", label: "Email", required: false}, ... }` — keys vary by Dhru version, code already walks all casings).
 
----
+Insert rows with `service_type = 'server'` and `fields = [...]`.
 
-## 3. Support Ticket System
+## 3. Admin service editor (`src/pages/Admin.tsx`)
 
-New tables:
-- `support_tickets` (id, user_id, subject, status [open/pending/closed], priority, created_at, updated_at)
-- `support_ticket_messages` (id, ticket_id, sender_id, sender_type [user/admin], message, created_at)
+- Supplier-service picker already lists `supplier_services`. Show a small `[SERVER]` / `[IMEI]` tag per row.
+- When admin selects a row with `service_type='server'`, set on the service: `service_type='server'`, `custom_fields = <synced fields>`, and `input_mode='custom'` so the order dialog renders fields instead of just IMEI.
+- Below the picker, render a read-only preview of the field schema (name, label, required) so admin can see what end-users will see.
 
-User side (new "Support" tab on Dashboard):
-- List of their tickets with status badges
-- "New Ticket" form (subject + initial message)
-- Open ticket → chat-style thread, reply box
-- Realtime updates via Supabase Realtime
+## 4. End-user order dialog (`src/components/ImeiCheckDialog.tsx`)
 
-Admin side (new "Support" section in Admin):
-- Inbox of all tickets, filter by status/priority
-- Open ticket → reply, change status, close
-- Unread/new ticket badge in admin sidebar
+If `service.service_type === 'server'` and `custom_fields.length > 0`:
+- Render one input per field (text / number / select / textarea based on `type`).
+- Validate required fields client-side.
+- Submit `fields` object alongside the existing payload.
 
-RLS: Users see only their tickets; admins see all.
+The first/primary field doubles as the "IMEI"-equivalent identifier so the existing `orders.imei` column is still populated (use whichever field is named imei/serial/identifier, else the first field's value).
 
----
+## 5. Order placement (`supabase/functions/_shared/check.ts` + `poll-dhru-orders`)
 
-## 4. Order Notifications
+When supplier is Dhru and `service.service_type === 'server'`:
+- Use action `placeserverorder` instead of `placeimeiorder`.
+- Build the `<PARAMETERS>` block / form fields from the submitted `fields` object plus the service `ID`.
+- Polling stays the same — Dhru returns a reference id either way.
 
-Extend the existing notification system so users get notified on **every order status change** (pending → processing → completed/rejected), not just completion.
+Store the submitted field values on the order (reuse `orders.imei` for the primary field; stash the rest in a new `orders.fields jsonb` column added in the same migration).
 
-- Use existing `notify_email` and `notify_telegram` toggles on `profiles`.
-- Add a new `notify_on_status_change` boolean (defaults true) so users can opt out of intermediate updates.
-- Trigger: A database trigger on `orders` table fires when `status` changes → calls an edge function `send-order-notification` → routes to email + Telegram based on user prefs.
-- Email uses Lovable Email queue (already set up).
-- Telegram uses existing `client_bot_token` from `site_settings` and `client_bot_chat_id` from `profiles`.
+## Out of scope for this pass
 
----
+- API (`/api-check`) support for server services — easy follow-up once the schema is in place.
+- Per-field price/quantity multipliers.
 
-## Build Order
+## Order of work
 
-1. **Invoices & Receipts** (smallest, no DB changes for PDF/CSV; email receipt last)
-2. **Analytics Dashboard** (read-only queries, no schema changes for charts)
-3. **Order Notifications** (one migration: trigger + flag; one edge function)
-4. **Support Tickets** (largest: 2 tables, RLS, UI on both sides, realtime)
+1. Migration (schema)
+2. `supplier-sync` — pull server services + fields
+3. Admin UI — auto-show fields on select
+4. Order dialog + `check.ts` placement — end-to-end ordering
 
-After each feature lands the app remains fully working.
+Ship in that order; each step is independently testable.

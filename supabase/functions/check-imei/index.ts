@@ -4,7 +4,8 @@ import { corsHeaders, executeCheck } from "../_shared/check.ts";
 
 const Body = z.object({
   service_id: z.string().uuid(),
-  imei: z.string().trim().regex(/^[A-Za-z0-9]{8,20}$/),
+  imei: z.string().trim().min(1).max(200),
+  fields: z.record(z.string().max(500)).optional(),
 });
 
 Deno.serve(async (req) => {
@@ -26,12 +27,11 @@ Deno.serve(async (req) => {
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return json(400, { error: parsed.error.flatten().fieldErrors });
 
-
-
     const result = await executeCheck({
       userId: user.id,
       serviceId: parsed.data.service_id,
       imei: parsed.data.imei,
+      fields: parsed.data.fields,
       source: "web",
     });
     return json(result.status, result.body);
