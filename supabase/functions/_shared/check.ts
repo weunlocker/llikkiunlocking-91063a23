@@ -556,7 +556,7 @@ function detach(p: Promise<unknown> | unknown) {
 // Async entrypoint: charge + create order, run upstream in background, return pending immediately.
 // Caller is responsible for keeping the function alive (EdgeRuntime.waitUntil).
 export async function executeCheckAsync(opts: {
-  userId: string; serviceId: string; imei: string; source: "web" | "api";
+  userId: string; serviceId: string; imei: string; source: "web" | "api"; fields?: Record<string, string>;
 }): Promise<{ status: number; body: any; background?: Promise<void> }> {
   const placed = await placeOrder(opts);
   if (!placed.ok) return { status: placed.status, body: placed.body };
