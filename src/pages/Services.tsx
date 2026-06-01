@@ -22,7 +22,7 @@ export default function Services() {
   useEffect(() => {
     (async () => {
       const [{ data: svc }, { data: cats }] = await Promise.all([
-        supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color,is_free").order("category").order("sort_order").order("price"),
+        supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color,is_free,service_type,custom_fields").order("category").order("sort_order").order("price"),
         supabase.from("categories").select("slug,name,sort_order"),
       ]);
       setServices(((svc ?? []) as Service[]));
