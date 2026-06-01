@@ -97,6 +97,29 @@ function flatten(obj: unknown): DhruService[] {
   return out;
 }
 
+function endpointCandidates(rawEndpoint: string): string[] {
+  const out: string[] = [];
+  const add = (url: string) => {
+    if (url && !out.includes(url)) out.push(url);
+  };
+  const endpoint = rawEndpoint.trim();
+  add(endpoint);
+  try {
+    const u = new URL(endpoint);
+    const barePath = u.pathname === "/" || u.pathname === "";
+    if (barePath) {
+      add(`${u.origin}/supplier_api.php`);
+      add(`${u.origin}/api/index.php`);
+    }
+    if (u.hostname.startsWith("www.")) {
+      add(`${u.protocol}//server.${u.hostname.slice(4)}/supplier_api.php`);
+    }
+  } catch {
+    // Keep the original endpoint only if it is not a valid absolute URL.
+  }
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -125,6 +148,8 @@ Deno.serve(async (req) => {
     let lastRaw = "";
     let lastErrorMsg = "";
     let usedFormat = "";
+    let usedEndpoint = "";
+    const endpoints = endpointCandidates(String(sup.endpoint_url ?? ""));
 
     const buildRequests = (action: string) => {
       const apiKey = String(sup.dhru_api_key ?? "");
@@ -153,29 +178,32 @@ Deno.serve(async (req) => {
 
     const fetchKind = async (actions: string[]): Promise<{ services: DhruService[]; action: string }> => {
       for (const action of actions) {
-        for (const variant of buildRequests(action)) {
-          const r = await fetch(sup.endpoint_url, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: variant.body,
-          });
-          const text = await r.text();
-          lastRaw = text;
-          console.log(`[supplier-sync] action=${action} fmt=${variant.format} status=${r.status} sample=`, text.slice(0, 300));
-          let payload: unknown;
-          try { payload = JSON.parse(text); } catch { continue; }
-          const p = payload as Record<string, unknown> | null;
-          const errBlock = p?.ERROR ?? p?.error;
-          if (errBlock) {
-            const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
-            const e = eArr as Record<string, unknown> | undefined;
-            lastErrorMsg = String(e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Supplier returned an error");
-            continue;
-          }
-          const found = flatten(payload);
-          if (found.length > 0) {
-            usedFormat = variant.format;
-            return { services: found, action };
+        for (const endpoint of endpoints) {
+          for (const variant of buildRequests(action)) {
+            const r = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: variant.body,
+            });
+            const text = await r.text();
+            lastRaw = text;
+            console.log(`[supplier-sync] endpoint=${endpoint} action=${action} fmt=${variant.format} status=${r.status} sample=`, text.slice(0, 300));
+            let payload: unknown;
+            try { payload = JSON.parse(text); } catch { continue; }
+            const p = payload as Record<string, unknown> | null;
+            const errBlock = p?.ERROR ?? p?.error;
+            if (errBlock) {
+              const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
+              const e = eArr as Record<string, unknown> | undefined;
+              lastErrorMsg = String(e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Supplier returned an error");
+              continue;
+            }
+            const found = flatten(payload);
+            if (found.length > 0) {
+              usedFormat = variant.format;
+              usedEndpoint = endpoint;
+              return { services: found, action };
+            }
           }
         }
       }
@@ -199,7 +227,7 @@ Deno.serve(async (req) => {
         services: [],
         error: lastErrorMsg
           ? `Dhru: ${lastErrorMsg}${isAuth ? " — check the Username and API Key on this supplier (and IP whitelist on Dhru)." : ""}`
-          : "Supplier returned no services. The endpoint/account may not expose IMEI or Server services (the URL may be pointing to a website homepage instead of supplier_api.php).",
+          : `Supplier returned no services. Tried ${endpoints.join(", ")}. Check supplier endpoint URL & credentials — the API may be returning a website page instead of JSON.`,
         raw_sample: lastRaw.slice(0, 800),
       });
     }
@@ -232,7 +260,7 @@ Deno.serve(async (req) => {
     }
 
     if (usedFormat) {
-      await admin.from("suppliers").update({ api_format: usedFormat }).eq("id", supplier_id);
+      await admin.from("suppliers").update({ api_format: usedFormat, endpoint_url: usedEndpoint || sup.endpoint_url }).eq("id", supplier_id);
     }
 
     return json(200, {
@@ -241,6 +269,7 @@ Deno.serve(async (req) => {
       imei_count: imeiRes.services.length,
       server_count: serverRes.services.length,
       format: usedFormat,
+      endpoint: usedEndpoint,
       services: unique.map((s) => ({
         id: s.id,
         name: s.name,
