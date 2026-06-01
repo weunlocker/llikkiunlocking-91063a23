@@ -18,6 +18,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import AdminUserEditDialog, { type EditableUser } from "@/components/AdminUserEditDialog";
 import AdminAdministrators from "@/components/AdminAdministrators";
 import { ColoredResult } from "@/components/ColoredResult";
+import AdminSupplierImport from "@/pages/AdminSupplierImport";
 import { extractResponse } from "@/lib/extractResponse";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
@@ -2225,6 +2226,7 @@ export default function Admin() {
       <Route path="notifications" element={<AdminNotifications />} />
       <Route path="telegram-bot" element={<AdminTelegramBot />} />
       <Route path="api-providers" element={<AdminSuppliers />} />
+      <Route path="supplier-import" element={<AdminSupplierImport />} />
       <Route path="email-settings" element={<AdminEmailSettings />} />
       <Route path="turnstile" element={<AdminTurnstile />} />
       <Route path="settings" element={<AdminSettings />} />
