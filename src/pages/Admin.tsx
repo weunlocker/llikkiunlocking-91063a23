@@ -306,7 +306,7 @@ function AdminUsers() {
 }
 
 /* ---------- Services ---------- */
-type SupplierService = { action_code: string; name: string; credit: number | null; delivery_time: string | null };
+type SupplierService = { action_code: string; name: string; credit: number | null; delivery_time: string | null; service_type?: "imei" | "server"; fields?: CustomField[] };
 
 type Category = { id: string; slug: string; name: string; sort_order: number };
 
