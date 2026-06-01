@@ -1704,7 +1704,23 @@ function AdminSuppliers() {
         return;
       }
       toast.success(`Synced ${res.count ?? 0} services from ${s.name}`);
-      setSyncResult({ supplier: s, services: res.services ?? [], action_used: res.action_used });
+      let services = res.services ?? [];
+      if (services.length === 0) {
+        // Fall back to cached supplier_services from DB
+        const { data: cached } = await supabase
+          .from("supplier_services")
+          .select("action_code,name,credit,delivery_time,raw")
+          .eq("supplier_id", s.id)
+          .order("name");
+        services = (cached ?? []).map((r: any) => ({
+          id: r.action_code,
+          name: r.name,
+          group: (r.raw && (r.raw.group ?? r.raw.GROUPNAME)) ?? null,
+          price: r.credit,
+          time: r.delivery_time,
+        }));
+      }
+      setSyncResult({ supplier: s, services, action_used: res.action_used });
       setSyncQ("");
       load();
     } catch (e) {
@@ -1857,7 +1873,11 @@ function AdminSuppliers() {
                   </tbody>
                 </table>
               </div>
-              <p className="text-xs text-muted-foreground">These are now cached. Open <b>Services → New / Edit</b>, pick this supplier, and you'll see the searchable list.</p>
+              {syncResult.services.length === 0 ? (
+                <p className="text-xs text-destructive">No services returned. Check supplier endpoint URL & credentials — the API may be returning an HTML page instead of JSON.</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Showing {syncResult.services.length} services. Open <b>Services → New / Edit</b>, pick this supplier to use them.</p>
+              )}
             </div>
           )}
         </DialogContent>
