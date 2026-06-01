@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
       delivery_time: s.time ?? null,
       info: s.info ?? null,
       fields: s.fields ?? [],
-      raw: s.raw ?? null,
+      raw: { ...(s.raw && typeof s.raw === "object" ? s.raw as object : {}), _group: s.group ?? null },
     }));
     for (let i = 0; i < rows.length; i += 500) {
       const slice = rows.slice(i, i + 500);
@@ -237,6 +237,13 @@ Deno.serve(async (req) => {
       imei_count: imeiRes.services.length,
       server_count: serverRes.services.length,
       format: usedFormat,
+      services: unique.map((s) => ({
+        id: s.id,
+        name: s.name,
+        group: s.group ?? null,
+        price: s.price ?? null,
+        time: s.time ?? null,
+      })),
     });
   } catch (e) {
     return json(500, { error: e instanceof Error ? e.message : "unknown" });

@@ -1715,7 +1715,7 @@ function AdminSuppliers() {
         services = (cached ?? []).map((r: any) => ({
           id: r.action_code,
           name: r.name,
-          group: (r.raw && (r.raw.group ?? r.raw.GROUPNAME)) ?? null,
+          group: (r.raw && (r.raw._group ?? r.raw.group ?? r.raw.GROUPNAME)) ?? null,
           price: r.credit,
           time: r.delivery_time,
         }));
