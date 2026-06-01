@@ -455,6 +455,8 @@ function AdminServices() {
       success_rules: (editing.success_rules ?? []) as unknown as never,
       supplier_id: editing.supplier_id ?? null,
       supplier_action: editing.supplier_action || null,
+      service_type: editing.service_type ?? "imei",
+      custom_fields: (editing.custom_fields ?? []) as unknown as never,
     };
     const isUpdate = !!editing.id;
     const prevPrice = isUpdate ? services.find((x) => x.id === editing.id)?.price ?? null : null;
