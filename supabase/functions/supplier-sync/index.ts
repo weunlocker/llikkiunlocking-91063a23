@@ -147,6 +147,7 @@ Deno.serve(async (req) => {
 
     let lastRaw = "";
     let lastErrorMsg = "";
+    let lastErrorPriority = 0;
     let usedFormat = "";
     let usedEndpoint = "";
     const endpoints = endpointCandidates(String(sup.endpoint_url ?? ""));
@@ -176,6 +177,23 @@ Deno.serve(async (req) => {
       return order.map((format) => ({ format, body: map[format] }));
     };
 
+    const rememberError = (message: string) => {
+      const msg = message.trim();
+      if (!msg) return;
+      const lower = msg.toLowerCase();
+      const priority = /ip|authorized|whitelist|profile.*api access/.test(lower)
+        ? 4
+        : /access key|username|credential|auth/.test(lower)
+          ? 3
+          : /action/.test(lower)
+            ? 2
+            : 1;
+      if (priority >= lastErrorPriority) {
+        lastErrorMsg = msg;
+        lastErrorPriority = priority;
+      }
+    };
+
     const fetchKind = async (actions: string[]): Promise<{ services: DhruService[]; action: string }> => {
       for (const action of actions) {
         for (const endpoint of endpoints) {
@@ -195,7 +213,7 @@ Deno.serve(async (req) => {
             if (errBlock) {
               const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
               const e = eArr as Record<string, unknown> | undefined;
-              lastErrorMsg = String(e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Supplier returned an error");
+              rememberError(String(e?.MESSAGE ?? e?.message ?? e?.FACTOR ?? "Supplier returned an error"));
               continue;
             }
             const found = flatten(payload);
@@ -219,14 +237,15 @@ Deno.serve(async (req) => {
     ];
 
     if (all.length === 0) {
-      const isAuth = /auth/i.test(lastErrorMsg);
+      const isIpBlocked = /ip|authorized|whitelist|profile.*api access/i.test(lastErrorMsg);
+      const isAuth = !isIpBlocked && /auth|access key|username|credential/i.test(lastErrorMsg);
       // Return 200 so the client can read the body and fall back to cached services.
       return json(200, {
         ok: false,
         count: 0,
         services: [],
         error: lastErrorMsg
-          ? `Dhru: ${lastErrorMsg}${isAuth ? " — check the Username and API Key on this supplier (and IP whitelist on Dhru)." : ""}`
+          ? `Dhru: ${lastErrorMsg}${isIpBlocked ? " — clear/reset the Allowed IPs in Dhru Profile > API Access, or add this server IP there." : isAuth ? " — check the Username and API Key on this supplier." : ""}`
           : `Supplier returned no services. Tried ${endpoints.join(", ")}. Check supplier endpoint URL & credentials — the API may be returning a website page instead of JSON.`,
         raw_sample: lastRaw.slice(0, 800),
       });
