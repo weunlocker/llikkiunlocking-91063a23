@@ -1607,7 +1607,7 @@ function AdminSuppliers() {
   const [editing, setEditing] = useState<Partial<Supplier> | null>(null);
   const [testing, setTesting] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
-  const [syncResult, setSyncResult] = useState<{ supplier: Supplier; services: Array<{ id: string; name: string; group?: string | null; price?: string | number | null; time?: string | null }>; action_used?: string } | null>(null);
+  const [syncResult, setSyncResult] = useState<{ supplier: Supplier; services: Array<{ id: string; name: string; group?: string | null; price?: string | number | null; time?: string | null }>; action_used?: string; error?: string; raw_sample?: string } | null>(null);
   const [syncQ, setSyncQ] = useState("");
 
   const load = async () => {
@@ -1702,36 +1702,26 @@ function AdminSuppliers() {
   const syncSupplier = async (s: Supplier) => {
     if (s.type !== "dhru") { toast.error("Sync only works for Dhru suppliers"); return; }
     setSyncing(s.id);
+    setSyncResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("supplier-sync", { body: { supplier_id: s.id } });
       if (error) throw new Error(error.message);
       const res = data as { count?: number; error?: string; raw_sample?: string; action_used?: string; services?: Array<{ id: string; name: string; group?: string | null; price?: string | number | null; time?: string | null }> };
       if (res.error) {
         toast.error(res.error);
+        setSyncResult({ supplier: s, services: [], action_used: res.action_used, error: res.error, raw_sample: res.raw_sample });
+        setSyncQ("");
       } else {
         toast.success(`Synced ${res.count ?? 0} services from ${s.name}`);
+        const services = res.services ?? [];
+        setSyncResult({ supplier: s, services, action_used: res.action_used });
+        setSyncQ("");
+        load();
       }
-      let services = res.services ?? [];
-      if (services.length === 0) {
-        // Fall back to cached supplier_services from DB
-        const { data: cached } = await supabase
-          .from("supplier_services")
-          .select("action_code,name,credit,delivery_time,raw")
-          .eq("supplier_id", s.id)
-          .order("name");
-        services = (cached ?? []).map((r: any) => ({
-          id: r.action_code,
-          name: r.name,
-          group: (r.raw && (r.raw._group ?? r.raw.group ?? r.raw.GROUPNAME)) ?? null,
-          price: r.credit,
-          time: r.delivery_time,
-        }));
-      }
-      setSyncResult({ supplier: s, services, action_used: res.action_used });
-      setSyncQ("");
-      load();
     } catch (e) {
-      toast.error("Sync failed: " + (e instanceof Error ? e.message : "unknown"));
+      const message = "Sync failed: " + (e instanceof Error ? e.message : "unknown");
+      toast.error(message);
+      setSyncResult({ supplier: s, services: [], error: message });
     }
     setSyncing(null);
   };
@@ -1848,11 +1838,17 @@ function AdminSuppliers() {
       <Dialog open={!!syncResult} onOpenChange={(o) => !o && setSyncResult(null)}>
         <DialogContent className="glass max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>{syncResult?.supplier.name} — {syncResult?.services.length} services synced</DialogTitle>
+            <DialogTitle>{syncResult?.supplier.name} — {syncResult?.error ? "sync failed" : `${syncResult?.services.length ?? 0} services synced`}</DialogTitle>
             {syncResult?.action_used && <p className="text-xs text-muted-foreground">via Dhru action <code className="px-1 bg-secondary/50 rounded">{syncResult.action_used}</code></p>}
           </DialogHeader>
           {syncResult && (
             <div className="space-y-3 overflow-hidden flex flex-col flex-1">
+              {syncResult.error ? (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                  <div className="flex items-start gap-2 font-medium"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{syncResult.error}</div>
+                  {syncResult.raw_sample && <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-background/70 p-3 text-xs text-muted-foreground">{syncResult.raw_sample}</pre>}
+                </div>
+              ) : <>
               <Input placeholder={`Search ${syncResult.services.length} services…`} value={syncQ} onChange={(e) => setSyncQ(e.target.value)} />
               <div className="rounded-xl border border-border/50 overflow-y-auto flex-1">
                 <table className="w-full text-xs">
@@ -1885,6 +1881,7 @@ function AdminSuppliers() {
               ) : (
                 <p className="text-xs text-muted-foreground">Showing {syncResult.services.length} services. Open <b>Services → New / Edit</b>, pick this supplier to use them.</p>
               )}
+              </>}
             </div>
           )}
         </DialogContent>
