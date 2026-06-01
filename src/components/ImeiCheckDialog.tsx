@@ -9,11 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone, Copy, History as HistoryIcon, DollarSign as DollarSignIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { validateServiceInput, getInputLabel, type ServiceInputMode } from "@/lib/validation";
+import { imeiSchema } from "@/lib/validation";
 import { extractResponse } from "@/lib/extractResponse";
 import { ColoredResult, fontCss } from "@/components/ColoredResult";
 
-type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null; result_font?: string | null; result_color?: string | null; input_mode?: ServiceInputMode | string | null; input_label?: string | null; input_min_length?: number | null; input_max_length?: number | null; input_regex?: string | null; input_info?: string | null; input_allow_alpha?: boolean | null; input_allow_bulk?: boolean | null };
+type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null; result_font?: string | null; result_color?: string | null };
 
 type SingleResult = { status: string; result?: string; error?: string } | null;
 
@@ -54,31 +54,21 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
 
   if (!service) return null;
   const price = Number(service.price);
-  const inputLabel = getInputLabel(service);
-  const inputCfg = {
-    input_mode: service.input_mode, input_label: service.input_label,
-    input_min_length: service.input_min_length, input_max_length: service.input_max_length,
-    input_regex: service.input_regex, input_info: service.input_info,
-    input_allow_alpha: service.input_allow_alpha, input_allow_bulk: service.input_allow_bulk,
-  };
-  const allowBulk = service.input_allow_bulk !== false;
-  const maxLen = Math.max(20, Number(service.input_max_length ?? 20));
 
   const submitSingle = async () => {
-    const parsed = validateServiceInput(imei, inputCfg);
-    if (parsed.ok !== true) { toast.error(parsed.error); return; }
-    const okValue = parsed.value;
+    const parsed = imeiSchema.safeParse(imei);
+    if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
     if (balance < price) { toast.error("Insufficient balance. Please top up."); return; }
     setSubmitting(true);
     const { data, error } = await supabase.functions.invoke("check-imei", {
-      body: { service_id: service.id, imei: okValue },
+      body: { service_id: service.id, imei: parsed.data },
     });
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
     onAfterRun?.();
     if (data?.status === "pending") {
       // Non-instant (supplier) order — show submitted screen with action buttons.
-      setSubmittedAsync({ imei: okValue });
+      setSubmittedAsync({ imei: parsed.data });
       return;
     }
     setResult(data);
@@ -93,7 +83,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
   };
 
   const bulkList = parseBulk();
-  const bulkValid = bulkList.filter((l) => validateServiceInput(l, inputCfg).ok === true);
+  const bulkValid = bulkList.filter((l) => imeiSchema.safeParse(l).success);
   const bulkInvalid = bulkList.length - bulkValid.length;
   const totalCost = bulkValid.length * price;
 
@@ -183,18 +173,15 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
           </div>
         ) : !result && rows.length === 0 ? (
           <Tabs value={tab} onValueChange={(v) => setTab(v as "single" | "bulk")}>
-            <TabsList className={`grid w-full ${allowBulk ? "grid-cols-2" : "grid-cols-1"}`}>
+            <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="single"><Smartphone className="w-4 h-4 mr-2" />Single</TabsTrigger>
-              {allowBulk && <TabsTrigger value="bulk"><List className="w-4 h-4 mr-2" />Bulk</TabsTrigger>}
+              <TabsTrigger value="bulk"><List className="w-4 h-4 mr-2" />Bulk</TabsTrigger>
             </TabsList>
 
             <TabsContent value="single" className="space-y-4 pt-4">
               <div>
-                <Label htmlFor="imei-single">{inputLabel}</Label>
-                <Input id="imei-single" value={imei} onChange={(e) => setImei(e.target.value)} placeholder={service.input_mode === "imei" ? "e.g. 356938035643809" : `e.g. ABC123 (${inputLabel})`} maxLength={maxLen} className="font-mono" />
-                {service.input_info && service.input_info.trim() && (
-                  <p className="text-xs text-muted-foreground mt-1">{service.input_info}</p>
-                )}
+                <Label htmlFor="imei-single">IMEI / Serial</Label>
+                <Input id="imei-single" value={imei} onChange={(e) => setImei(e.target.value)} placeholder="e.g. 356938035643809" maxLength={20} className="font-mono" />
               </div>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="glass rounded-md p-3 flex items-center justify-between gap-2">
@@ -229,7 +216,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
 
             <TabsContent value="bulk" className="space-y-4 pt-4">
               <div>
-                <Label htmlFor="imei-bulk">{inputLabel} list</Label>
+                <Label htmlFor="imei-bulk">IMEI / Serial list</Label>
                 <Textarea
                   id="imei-bulk"
                   value={bulkText}

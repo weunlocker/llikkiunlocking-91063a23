@@ -21,13 +21,13 @@ import { ColoredResult } from "@/components/ColoredResult";
 import { extractResponse } from "@/lib/extractResponse";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
-type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; sort_order: number | null; input_mode: string | null; input_label: string | null; input_min_length: number | null; input_max_length: number | null; input_regex: string | null; input_info: string | null; input_allow_alpha: boolean | null; input_allow_bulk: boolean | null };
+type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; sort_order: number | null };
 type Supplier = { id: string; name: string; type: "dhru" | "generic" | "ifree" | "goimeicheck"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
 type ProfileRow = { id: string; email: string | null; display_name: string | null; balance: number; banned: boolean; created_at: string };
 type OrderRow = { id: string; order_number: number; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null; profiles: { email: string | null } | null };
 type TxRow = { id: string; user_id: string; amount: number; type: string; balance_after: number; description: string | null; created_at: string; profiles?: { email: string | null } | null };
 
-const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", sample_result: "", result_font: "mono", result_color: "#e2e8f0", active: true, is_free: false, category: "general", success_rules: [], supplier_id: null, supplier_action: "", input_mode: "imei", input_label: "", input_min_length: 8, input_max_length: 20, input_regex: "", input_info: "", input_allow_alpha: true, input_allow_bulk: true };
+const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", sample_result: "", result_font: "mono", result_color: "#e2e8f0", active: true, is_free: false, category: "general", success_rules: [], supplier_id: null, supplier_action: "" };
 
 const FONT_OPTIONS = [
   { label: "Mono", value: "mono", css: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" },
@@ -454,14 +454,6 @@ function AdminServices() {
       success_rules: (editing.success_rules ?? []) as unknown as never,
       supplier_id: editing.supplier_id ?? null,
       supplier_action: editing.supplier_action || null,
-      input_mode: editing.input_mode || "imei",
-      input_label: editing.input_label?.trim() ? editing.input_label.trim() : null,
-      input_min_length: Math.max(1, Number(editing.input_min_length ?? 8)),
-      input_max_length: Math.max(1, Number(editing.input_max_length ?? 20)),
-      input_regex: editing.input_regex?.trim() ? editing.input_regex.trim() : null,
-      input_info: editing.input_info?.trim() ? editing.input_info.trim() : null,
-      input_allow_alpha: editing.input_allow_alpha !== false,
-      input_allow_bulk: editing.input_allow_bulk !== false,
     };
     const isUpdate = !!editing.id;
     const prevPrice = isUpdate ? services.find((x) => x.id === editing.id)?.price ?? null : null;
@@ -840,53 +832,6 @@ function AdminServices() {
                   <Textarea value={editing.api_request_body ?? ""} onChange={(e) => setEditing({ ...editing, api_request_body: e.target.value })} placeholder='{"username":"x","apikey":"y","imei":"{IMEI}"}' rows={3} className="font-mono text-xs" />
                 </div>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 rounded-md border border-border/40 p-3">
-                <div className="sm:col-span-4">
-                  <Label className="text-sm font-semibold">Input field configuration</Label>
-                </div>
-                <div className="sm:col-span-2">
-                  <Label>Input Type</Label>
-                  <Select value={editing.input_mode ?? "imei"} onValueChange={(v) => setEditing({ ...editing, input_mode: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="imei">IMEI (digits)</SelectItem>
-                      <SelectItem value="imei_sn">IMEI / SN (alphanumeric)</SelectItem>
-                      <SelectItem value="custom">Custom (your rules)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="sm:col-span-2">
-                  <Label>Custom Field Name (optional)</Label>
-                  <Input value={editing.input_label ?? ""} onChange={(e) => setEditing({ ...editing, input_label: e.target.value })} placeholder="e.g. Serial Number, Order ID" />
-                </div>
-                <div>
-                  <Label>Length Minimum</Label>
-                  <Input type="number" min={1} value={editing.input_min_length ?? 1} onChange={(e) => setEditing({ ...editing, input_min_length: Number(e.target.value) })} />
-                </div>
-                <div>
-                  <Label>Length Maximum</Label>
-                  <Input type="number" min={1} value={editing.input_max_length ?? 20} onChange={(e) => setEditing({ ...editing, input_max_length: Number(e.target.value) })} />
-                  <p className="text-xs text-muted-foreground mt-1">Optional — set above 20 if you need a wider range.</p>
-                </div>
-                <div className="sm:col-span-2 flex items-center gap-6 pt-5">
-                  <label className="flex items-center gap-2 text-sm">
-                    <Switch checked={editing.input_allow_alpha !== false} onCheckedChange={(v) => setEditing({ ...editing, input_allow_alpha: v })} />
-                    Accept letters
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <Switch checked={editing.input_allow_bulk !== false} onCheckedChange={(v) => setEditing({ ...editing, input_allow_bulk: v })} />
-                    Allow bulk
-                  </label>
-                </div>
-                <div className="sm:col-span-4">
-                  <Label>Regular Expression (optional)</Label>
-                  <Input value={editing.input_regex ?? ""} onChange={(e) => setEditing({ ...editing, input_regex: e.target.value })} placeholder="e.g. \d{15} — overrides length/alphabet rules when set" className="font-mono text-xs" />
-                </div>
-                <div className="sm:col-span-4">
-                  <Label>Help text shown to user (optional)</Label>
-                  <Input value={editing.input_info ?? ""} onChange={(e) => setEditing({ ...editing, input_info: e.target.value })} placeholder="e.g. Enter the 15-digit IMEI printed on the box" />
-                </div>
-              </div>
               <div>
                 <Label>Response Template (optional)</Label>
                 <Textarea value={editing.response_template ?? ""} onChange={(e) => setEditing({ ...editing, response_template: e.target.value })} placeholder="Model: {model}&#10;IMEI: {imei}" rows={3} />
