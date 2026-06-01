@@ -239,6 +239,7 @@ async function placeOrder(opts: {
   const { data: order, error: oErr } = await supabase.from("orders").insert({
     user_id: opts.userId, service_id: service.id, imei: opts.imei,
     status: "pending", price_charged: price, source: opts.source,
+    fields: opts.fields ?? null,
   }).select().single();
 
   if (oErr || !order) {
