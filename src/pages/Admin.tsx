@@ -1873,7 +1873,11 @@ function AdminSuppliers() {
                   </tbody>
                 </table>
               </div>
-              <p className="text-xs text-muted-foreground">These are now cached. Open <b>Services → New / Edit</b>, pick this supplier, and you'll see the searchable list.</p>
+              {syncResult.services.length === 0 ? (
+                <p className="text-xs text-destructive">No services returned. Check supplier endpoint URL & credentials — the API may be returning an HTML page instead of JSON.</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Showing {syncResult.services.length} services. Open <b>Services → New / Edit</b>, pick this supplier to use them.</p>
+              )}
             </div>
           )}
         </DialogContent>
