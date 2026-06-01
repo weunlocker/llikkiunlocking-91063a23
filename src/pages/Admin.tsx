@@ -795,13 +795,18 @@ function AdminServices() {
                                           name: prev.name || s.name,
                                           delivery_time: prev.delivery_time && prev.delivery_time !== "Instant" ? prev.delivery_time : (s.delivery_time || "Instant"),
                                           price: prev.price && Number(prev.price) > 0 ? prev.price : (s.credit != null ? Number(s.credit) : prev.price),
+                                          service_type: s.service_type ?? "imei",
+                                          custom_fields: s.service_type === "server" ? (s.fields ?? []) : [],
                                         }));
                                         setSupSvcQ("");
                                         setSupSvcOpen(false);
                                       }}
                                       className={`w-full text-left px-3 py-1.5 text-xs flex justify-between gap-2 hover:bg-primary/10 ${selected ? "bg-primary/20 ring-1 ring-primary" : ""}`}
                                     >
-                                      <span className="truncate"><span className="font-mono text-primary">#{s.action_code}</span> {s.name}</span>
+                                      <span className="truncate flex items-center gap-1.5">
+                                        {s.service_type === "server" && <span className="px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">SERVER</span>}
+                                        <span className="font-mono text-primary">#{s.action_code}</span> {s.name}
+                                      </span>
                                       <span className="text-muted-foreground whitespace-nowrap">{s.credit != null ? `${s.credit} cr` : ""}{s.delivery_time ? ` · ${s.delivery_time}` : ""}</span>
                                     </button>
                                   );
@@ -813,6 +818,24 @@ function AdminServices() {
                           </>
                         );
                       })()}
+
+                      {editing.service_type === "server" && (editing.custom_fields?.length ?? 0) > 0 && (
+                        <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-1">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/30">SERVER</span>
+                            Customer must fill {editing.custom_fields!.length} field{editing.custom_fields!.length === 1 ? "" : "s"} when ordering
+                          </div>
+                          <div className="grid grid-cols-2 gap-1 text-[11px]">
+                            {editing.custom_fields!.map((f) => (
+                              <div key={f.name} className="flex items-center gap-1 rounded bg-background/40 px-2 py-1">
+                                <span className="font-mono text-primary">{f.name}</span>
+                                <span className="text-muted-foreground truncate">· {f.label}</span>
+                                <span className="ml-auto text-muted-foreground">{f.type}{f.required ? " *" : ""}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
