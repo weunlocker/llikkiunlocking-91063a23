@@ -757,7 +757,7 @@ function AdminServices() {
                               onClick={() => { setSupSvcOpen(true); setSupSvcQ(""); }}
                               className="w-full text-left rounded-md border border-primary/40 bg-background/50 px-3 py-2 text-sm flex items-center justify-between gap-2 hover:bg-primary/10"
                             >
-                              <span className="truncate"><span className="font-mono text-primary">#{sel.action_code}</span> {sel.name}</span>
+                              <span className="truncate flex items-center gap-1.5">{sel.service_type === "server" && <span className="px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">SERVER</span>}<span className="font-mono text-primary">#{sel.action_code}</span> {sel.name}</span>
                               <span className="text-xs text-muted-foreground whitespace-nowrap">{sel.credit != null ? `${sel.credit} cr` : ""}{sel.delivery_time ? ` · ${sel.delivery_time}` : ""} · change ▾</span>
                             </button>
                           );
