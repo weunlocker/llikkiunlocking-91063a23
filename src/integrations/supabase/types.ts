@@ -1249,6 +1249,7 @@ export type Database = {
           active: boolean | null
           category: string | null
           created_at: string | null
+          custom_fields: Json | null
           delivery_time: string | null
           description: string | null
           id: string | null
@@ -1268,6 +1269,7 @@ export type Database = {
           result_font: string | null
           sample_result: string | null
           service_code: string | null
+          service_type: string | null
           sort_order: number | null
           updated_at: string | null
         }
