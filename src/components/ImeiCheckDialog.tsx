@@ -13,7 +13,8 @@ import { imeiSchema } from "@/lib/validation";
 import { extractResponse } from "@/lib/extractResponse";
 import { ColoredResult, fontCss } from "@/components/ColoredResult";
 
-type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null; result_font?: string | null; result_color?: string | null };
+export type CustomField = { name: string; label: string; type: string; required: boolean; default?: string; options?: string[] };
+type Service = { id: string; name: string; price: number; delivery_time: string; sample_result?: string | null; result_font?: string | null; result_color?: string | null; service_type?: "imei" | "server" | null; custom_fields?: CustomField[] | null };
 
 type SingleResult = { status: string; result?: string; error?: string } | null;
 
