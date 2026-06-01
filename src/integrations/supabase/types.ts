@@ -249,6 +249,7 @@ export type Database = {
         Row: {
           created_at: string
           error_message: string | null
+          fields: Json | null
           id: string
           imei: string
           last_polled_at: string | null
@@ -266,6 +267,7 @@ export type Database = {
         Insert: {
           created_at?: string
           error_message?: string | null
+          fields?: Json | null
           id?: string
           imei: string
           last_polled_at?: string | null
@@ -283,6 +285,7 @@ export type Database = {
         Update: {
           created_at?: string
           error_message?: string | null
+          fields?: Json | null
           id?: string
           imei?: string
           last_polled_at?: string | null
@@ -682,6 +685,7 @@ export type Database = {
           api_url: string | null
           category: string | null
           created_at: string
+          custom_fields: Json
           delivery_time: string
           description: string | null
           id: string
@@ -701,6 +705,7 @@ export type Database = {
           result_font: string | null
           sample_result: string | null
           service_code: string | null
+          service_type: string
           sort_order: number
           success_rules: Json | null
           supplier_action: string | null
@@ -715,6 +720,7 @@ export type Database = {
           api_url?: string | null
           category?: string | null
           created_at?: string
+          custom_fields?: Json
           delivery_time?: string
           description?: string | null
           id?: string
@@ -734,6 +740,7 @@ export type Database = {
           result_font?: string | null
           sample_result?: string | null
           service_code?: string | null
+          service_type?: string
           sort_order?: number
           success_rules?: Json | null
           supplier_action?: string | null
@@ -748,6 +755,7 @@ export type Database = {
           api_url?: string | null
           category?: string | null
           created_at?: string
+          custom_fields?: Json
           delivery_time?: string
           description?: string | null
           id?: string
@@ -767,6 +775,7 @@ export type Database = {
           result_font?: string | null
           sample_result?: string | null
           service_code?: string | null
+          service_type?: string
           sort_order?: number
           success_rules?: Json | null
           supplier_action?: string | null
@@ -884,10 +893,12 @@ export type Database = {
           action_code: string
           credit: number | null
           delivery_time: string | null
+          fields: Json
           id: string
           info: string | null
           name: string
           raw: Json | null
+          service_type: string
           supplier_id: string
           synced_at: string
         }
@@ -895,10 +906,12 @@ export type Database = {
           action_code: string
           credit?: number | null
           delivery_time?: string | null
+          fields?: Json
           id?: string
           info?: string | null
           name: string
           raw?: Json | null
+          service_type?: string
           supplier_id: string
           synced_at?: string
         }
@@ -906,10 +919,12 @@ export type Database = {
           action_code?: string
           credit?: number | null
           delivery_time?: string | null
+          fields?: Json
           id?: string
           info?: string | null
           name?: string
           raw?: Json | null
+          service_type?: string
           supplier_id?: string
           synced_at?: string
         }
