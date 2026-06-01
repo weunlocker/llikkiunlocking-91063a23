@@ -179,7 +179,7 @@ type PlacementCtx = {
 };
 
 async function placeOrder(opts: {
-  userId: string; serviceId: string; imei: string; source: "web" | "api";
+  userId: string; serviceId: string; imei: string; source: "web" | "api"; fields?: Record<string, string>;
 }): Promise<{ ok: false; status: number; body: any } | { ok: true; ctx: PlacementCtx }> {
   const supabase = makeServiceClient();
 
