@@ -8,7 +8,7 @@ import { Loader2, Smartphone, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
 
-type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null };
+type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; service_type?: "imei" | "server" | null; custom_fields?: { name: string; label: string; type: string; required: boolean; default?: string; options?: string[] }[] | null };
 type Category = { slug: string; name: string; sort_order: number };
 
 export default function Services() {
