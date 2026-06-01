@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS supplier_services_supplier_action_uniq ON public.supplier_services (supplier_id, action_code);
