@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, Briefcase, ListOrdered, Wallet, Settings,
-  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, Menu, X, Send, Network, CreditCard, Shield, Crown, Gift, BarChart3, MessageSquare, Activity, Download,
+  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, Menu, X, Send, Network, CreditCard, Shield, Crown, Gift, BarChart3, MessageSquare, Activity,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -27,7 +27,6 @@ const navItems = [
   { to: "/admin/notifications", label: "Notifications", icon: Bell },
   { to: "/admin/telegram-bot", label: "Telegram Bot", icon: Send },
   { to: "/admin/api-providers", label: "API Providers", icon: Network },
-  { to: "/admin/supplier-import", label: "Supplier Import", icon: Download },
   { to: "/admin/email-settings", label: "Email / SMTP", icon: Mail },
   { to: "/admin/turnstile", label: "Turnstile", icon: Shield },
   { to: "/admin/settings", label: "Settings", icon: Settings },

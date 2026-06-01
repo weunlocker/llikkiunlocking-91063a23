@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
 
     const { data: sup } = await admin.from("suppliers").select("*").eq("id", supplier_id).single();
     if (!sup) return json(404, { error: "Supplier not found" });
-    if (!["dhru", "goimeicheck"].includes(sup.type)) return json(400, { error: "Sync only supported for Dhru-compatible suppliers" });
+    if (sup.type !== "dhru") return json(400, { error: "Sync only supported for Dhru-type suppliers" });
 
     // DHRU has TWO formats:
     //  - Classic API: flat form fields (username, apikey, action)
