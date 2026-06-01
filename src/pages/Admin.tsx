@@ -1700,10 +1700,10 @@ function AdminSuppliers() {
       if (error) throw new Error(error.message);
       const res = data as { count?: number; error?: string; raw_sample?: string; action_used?: string; services?: Array<{ id: string; name: string; group?: string | null; price?: string | number | null; time?: string | null }> };
       if (res.error) {
-        toast.error(res.error + (res.raw_sample ? `\n\nRaw: ${res.raw_sample.slice(0, 200)}` : ""));
-        return;
+        toast.error(res.error);
+      } else {
+        toast.success(`Synced ${res.count ?? 0} services from ${s.name}`);
       }
-      toast.success(`Synced ${res.count ?? 0} services from ${s.name}`);
       let services = res.services ?? [];
       if (services.length === 0) {
         // Fall back to cached supplier_services from DB
