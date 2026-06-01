@@ -579,7 +579,7 @@ export async function executeCheckAsync(opts: {
 
 // Synchronous entrypoint (kept for API): waits for upstream and returns final status.
 export async function executeCheck(opts: {
-  userId: string; serviceId: string; imei: string; source: "web" | "api";
+  userId: string; serviceId: string; imei: string; source: "web" | "api"; fields?: Record<string, string>;
 }) {
   const placed = await placeOrder(opts);
   if (!placed.ok) return { ok: false, status: placed.status, body: placed.body };
