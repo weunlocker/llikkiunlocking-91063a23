@@ -43,13 +43,19 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
   const [submittedAsync, setSubmittedAsync] = useState<{ imei: string } | null>(null);
   const [rows, setRows] = useState<BulkRow[]>([]);
   const [showSample, setShowSample] = useState(false);
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
 
   const font = fontCss(service?.result_font);
-  
+  const isServer = service?.service_type === "server" && Array.isArray(service?.custom_fields) && service!.custom_fields!.length > 0;
+  const customFields = (isServer ? service!.custom_fields! : []) as CustomField[];
 
   useEffect(() => {
     if (service) {
       setTab("single"); setImei(""); setBulkText(""); setResult(null); setRows([]); setShowSample(false); setSubmittedAsync(null);
+      // Seed defaults for server fields
+      const seed: Record<string, string> = {};
+      (service.custom_fields ?? []).forEach((f) => { seed[f.name] = f.default ?? ""; });
+      setFieldValues(seed);
     }
   }, [service?.id]);
 
