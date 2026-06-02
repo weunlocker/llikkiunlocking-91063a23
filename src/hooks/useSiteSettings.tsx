@@ -21,6 +21,7 @@ export type SiteSettings = {
   footer_text: string | null;
   turnstile_site_key: string | null;
   turnstile_enabled: boolean;
+  service_types_enabled: boolean;
 };
 
 const DEFAULTS: SiteSettings = {
@@ -32,6 +33,7 @@ const DEFAULTS: SiteSettings = {
   telegram_url: null, whatsapp_number: null,
   contact_email: null, contact_phone: null, address: null, footer_text: null,
   turnstile_site_key: null, turnstile_enabled: false,
+  service_types_enabled: false,
 };
 
 type Ctx = { settings: SiteSettings; loading: boolean; refresh: () => Promise<void> };
