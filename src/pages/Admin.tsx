@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, useSearchParams } from "react-router-dom";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import AdminLayout from "@/components/AdminLayout";
 import Seo from "@/components/Seo";
 import { supabase } from "@/integrations/supabase/client";
@@ -339,6 +340,9 @@ function PaginationBar({ page, totalPages, pageSize, total, onPage, onPageSize }
 
 function AdminServices() {
   const confirm = useConfirm();
+  const { settings } = useSiteSettings();
+  const [searchParams] = useSearchParams();
+  const typeFilter = settings.service_types_enabled ? (searchParams.get("type") as "imei" | "server" | null) : null;
   const [services, setServices] = useState<Service[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -404,11 +408,12 @@ function AdminServices() {
   };
 
   const filtered = useMemo(() => services.filter((s) => {
+    if (typeFilter && (s.service_type ?? "imei") !== typeFilter) return false;
     if (fGroup !== "all" && (s.category ?? "") !== fGroup) return false;
     if (fSvcId !== "all" && s.id !== fSvcId) return false;
     if (q && !(s.name.toLowerCase().includes(q.toLowerCase()) || s.category?.toLowerCase().includes(q.toLowerCase()))) return false;
     return true;
-  }).sort(sortByCategoryOrder), [services, q, fGroup, fSvcId, catOrder]);
+  }).sort(sortByCategoryOrder), [services, q, fGroup, fSvcId, catOrder, typeFilter]);
 
   useEffect(() => { setPage(1); }, [q, fGroup, fSvcId, pageSize]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -533,15 +538,15 @@ function AdminServices() {
 
   return (
     <AdminLayout
-      title="Services"
-      subtitle={`${services.length} services configured`}
+      title={typeFilter === "imei" ? "IMEI Services" : typeFilter === "server" ? "Server Services" : "Services"}
+      subtitle={`${filtered.length} services${typeFilter ? ` (${typeFilter})` : " configured"}`}
       actions={
         <>
           <div className="relative w-64">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input className="pl-9" placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
-          <Button variant="hero" onClick={() => setEditing({ ...empty })}><Plus className="w-4 h-4 mr-1" />New Service</Button>
+          <Button variant="hero" onClick={() => setEditing({ ...empty, service_type: typeFilter ?? "imei" })}><Plus className="w-4 h-4 mr-1" />New Service</Button>
         </>
       }
     >
@@ -1465,6 +1470,7 @@ function AdminNotifications() {
 
 /* ---------- Settings ---------- */
 function AdminSettings() {
+  const { refresh: refreshSiteSettings } = useSiteSettings();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -1475,19 +1481,21 @@ function AdminSettings() {
     telegram_url: "", whatsapp_number: "",
     contact_email: "", contact_phone: "", address: "", footer_text: "",
   });
+  const [serviceTypesEnabled, setServiceTypesEnabled] = useState(false);
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from("site_settings").select("*").eq("id", 1).maybeSingle();
       if (data) {
-        const r = data as unknown as Record<string, string | null>;
+        const r = data as unknown as Record<string, string | boolean | null>;
         setS({
-          brand_name: r.brand_name ?? "", tagline: r.tagline ?? "", logo_url: r.logo_url ?? "", favicon_url: r.favicon_url ?? "",
-          seo_title: r.seo_title ?? "", seo_description: r.seo_description ?? "", seo_keywords: r.seo_keywords ?? "",
-          facebook_url: r.facebook_url ?? "", twitter_url: r.twitter_url ?? "", instagram_url: r.instagram_url ?? "", youtube_url: r.youtube_url ?? "",
-          telegram_url: r.telegram_url ?? "", whatsapp_number: r.whatsapp_number ?? "",
-          contact_email: r.contact_email ?? "", contact_phone: r.contact_phone ?? "", address: r.address ?? "", footer_text: r.footer_text ?? "",
+          brand_name: (r.brand_name as string) ?? "", tagline: (r.tagline as string) ?? "", logo_url: (r.logo_url as string) ?? "", favicon_url: (r.favicon_url as string) ?? "",
+          seo_title: (r.seo_title as string) ?? "", seo_description: (r.seo_description as string) ?? "", seo_keywords: (r.seo_keywords as string) ?? "",
+          facebook_url: (r.facebook_url as string) ?? "", twitter_url: (r.twitter_url as string) ?? "", instagram_url: (r.instagram_url as string) ?? "", youtube_url: (r.youtube_url as string) ?? "",
+          telegram_url: (r.telegram_url as string) ?? "", whatsapp_number: (r.whatsapp_number as string) ?? "",
+          contact_email: (r.contact_email as string) ?? "", contact_phone: (r.contact_phone as string) ?? "", address: (r.address as string) ?? "", footer_text: (r.footer_text as string) ?? "",
         });
+        setServiceTypesEnabled(!!r.service_types_enabled);
       }
       setLoading(false);
     })();
@@ -1497,11 +1505,12 @@ function AdminSettings() {
 
   const save = async () => {
     setSaving(true);
-    const payload = Object.fromEntries(Object.entries(s).map(([k, v]) => [k, v === "" ? null : v])) as never;
+    const stringPayload = Object.fromEntries(Object.entries(s).map(([k, v]) => [k, v === "" ? null : v]));
+    const payload = { ...stringPayload, service_types_enabled: serviceTypesEnabled } as never;
     const { error } = await supabase.from("site_settings").update(payload).eq("id", 1);
     setSaving(false);
     if (error) toast.error(error.message);
-    else { toast.success("Settings saved"); }
+    else { toast.success("Settings saved"); refreshSiteSettings(); }
   };
 
   const uploadTo = async (field: "logo_url" | "favicon_url", file: File, prefix: string) => {
@@ -1585,7 +1594,18 @@ function AdminSettings() {
             <div><Label>Instagram URL</Label><Input value={s.instagram_url} onChange={(e) => set("instagram_url", e.target.value)} placeholder="https://instagram.com/..." /></div>
             <div><Label>Twitter / X URL</Label><Input value={s.twitter_url} onChange={(e) => set("twitter_url", e.target.value)} placeholder="https://x.com/..." /></div>
             <div><Label>YouTube URL</Label><Input value={s.youtube_url} onChange={(e) => set("youtube_url", e.target.value)} placeholder="https://youtube.com/@..." /></div>
+        {/* Feature toggles */}
+        <div className="glass rounded-2xl p-6 space-y-3 lg:col-span-2">
+          <h3 className="font-bold">Feature Toggles</h3>
+          <div className="flex items-start justify-between gap-4 p-3 rounded-lg bg-secondary/30">
+            <div className="space-y-1">
+              <div className="font-semibold text-sm">Service Types (IMEI / Server)</div>
+              <p className="text-xs text-muted-foreground">When enabled, the admin sidebar shows Services as a dropdown with <b>IMEI Services</b> and <b>Server Services</b>, and the client dashboard shows two separate <b>Orders</b> tabs.</p>
+            </div>
+            <Switch checked={serviceTypesEnabled} onCheckedChange={setServiceTypesEnabled} />
           </div>
+        </div>
+      </div>
         </div>
       </div>
 

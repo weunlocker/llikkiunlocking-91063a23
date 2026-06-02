@@ -813,6 +813,7 @@ export type Database = {
           seo_description: string | null
           seo_keywords: string | null
           seo_title: string | null
+          service_types_enabled: boolean
           tagline: string | null
           telegram_channel_id: string | null
           telegram_group_id: string | null
@@ -844,6 +845,7 @@ export type Database = {
           seo_description?: string | null
           seo_keywords?: string | null
           seo_title?: string | null
+          service_types_enabled?: boolean
           tagline?: string | null
           telegram_channel_id?: string | null
           telegram_group_id?: string | null
@@ -875,6 +877,7 @@ export type Database = {
           seo_description?: string | null
           seo_keywords?: string | null
           seo_title?: string | null
+          service_types_enabled?: boolean
           tagline?: string | null
           telegram_channel_id?: string | null
           telegram_group_id?: string | null
@@ -1291,6 +1294,7 @@ export type Database = {
           seo_description: string | null
           seo_keywords: string | null
           seo_title: string | null
+          service_types_enabled: boolean | null
           tagline: string | null
           telegram_url: string | null
           turnstile_enabled: boolean | null
@@ -1315,6 +1319,7 @@ export type Database = {
           seo_description?: string | null
           seo_keywords?: string | null
           seo_title?: string | null
+          service_types_enabled?: boolean | null
           tagline?: string | null
           telegram_url?: string | null
           turnstile_enabled?: boolean | null
@@ -1339,6 +1344,7 @@ export type Database = {
           seo_description?: string | null
           seo_keywords?: string | null
           seo_title?: string | null
+          service_types_enabled?: boolean | null
           tagline?: string | null
           telegram_url?: string | null
           turnstile_enabled?: boolean | null

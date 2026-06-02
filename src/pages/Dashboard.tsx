@@ -50,7 +50,7 @@ function formatDuration(start: string, end: string, status: string): string {
   return `${hr}h ${min % 60}m`;
 }
 
-type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; updated_at: string; services: { name: string; category: string | null; delivery_time: string | null; result_font: string | null; result_color: string | null } | null };
+type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; updated_at: string; services: { name: string; category: string | null; delivery_time: string | null; result_font: string | null; result_color: string | null; service_type: string | null } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; is_free?: boolean | null };
 
@@ -58,9 +58,11 @@ export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
   const { settings } = useSiteSettings();
   const [searchParams, setSearchParams] = useSearchParams();
-  const validTabs = ["services", "orders", "wallet", "referrals", "support", "settings", "api"];
+  const validTabs = ["services", "orders", "orders_imei", "orders_server", "wallet", "referrals", "support", "settings", "api"];
   const tabParam = searchParams.get("tab") ?? "services";
-  const activeTab = validTabs.includes(tabParam) ? tabParam : "services";
+  const rawTab = validTabs.includes(tabParam) ? tabParam : "services";
+  const orderTypeFilter: "imei" | "server" | null = rawTab === "orders_imei" ? "imei" : rawTab === "orders_server" ? "server" : null;
+  
   const [orders, setOrders] = useState<Order[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -167,7 +169,7 @@ export default function Dashboard() {
   const load = async () => {
     if (!user) return;
     const [{ data: o }, { data: t }, { data: svc }, { data: ovs }, { data: cats }] = await Promise.all([
-      supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,updated_at,services(name,category,delivery_time,result_font,result_color)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1000),
+      supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,updated_at,services(name,category,delivery_time,result_font,result_color,service_type)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1000),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color,is_free").order("category").order("sort_order").order("price"),
       supabase.from("user_service_overrides").select("service_id,enabled,custom_price").eq("user_id", user.id),
@@ -327,16 +329,24 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setSearchParams(v === "services" ? {} : { tab: v }, { replace: true })}>
+        <Tabs value={rawTab} onValueChange={(v) => setSearchParams(v === "services" ? {} : { tab: v }, { replace: true })}>
           <TabsList className="glass flex-wrap h-auto">
             <TabsTrigger value="services"><Smartphone className="w-4 h-4 mr-2" />Services</TabsTrigger>
-            <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
+            {settings.service_types_enabled ? (
+              <>
+                <TabsTrigger value="orders_imei"><History className="w-4 h-4 mr-2" />IMEI Orders</TabsTrigger>
+                <TabsTrigger value="orders_server"><History className="w-4 h-4 mr-2" />Server Orders</TabsTrigger>
+              </>
+            ) : (
+              <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
+            )}
             <TabsTrigger value="wallet"><Wallet className="w-4 h-4 mr-2" />Wallet History</TabsTrigger>
             <TabsTrigger value="referrals"><Gift className="w-4 h-4 mr-2" />Referrals</TabsTrigger>
             <TabsTrigger value="support" className="relative"><MessageSquare className="w-4 h-4 mr-2" />Support{supportUnread > 0 && (<span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">{supportUnread > 99 ? "99+" : supportUnread}</span>)}</TabsTrigger>
             <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />Notifications</TabsTrigger>
             <TabsTrigger value="api"><Code2 className="w-4 h-4 mr-2" />API</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="services" className="mt-5">
             <div className="glass rounded-2xl p-4 mb-4 flex flex-col lg:flex-row gap-3">
@@ -474,13 +484,14 @@ export default function Dashboard() {
           </TabsContent>
 
 
-          <TabsContent value="orders" className="mt-5">
+          <TabsContent value={rawTab === "orders_imei" || rawTab === "orders_server" ? rawTab : "orders"} className="mt-5">
             <div className="flex items-center justify-end mb-3">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
                   const rows = orders.filter((o) => {
+                    if (orderTypeFilter && (o.services?.service_type ?? "imei") !== orderTypeFilter) return false;
                     if (orderStatus !== "all" && o.status !== orderStatus) return false;
                     const oid = String(o.order_number ?? "").padStart(4, "0");
                     if (oqOrderId.trim() && !oid.includes(oqOrderId.trim().replace(/^#/, ""))) return false;
@@ -553,6 +564,7 @@ export default function Dashboard() {
               {loading ? <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-primary" /></div> :
                 (() => {
                   const filteredOrders = orders.filter((o) => {
+                    if (orderTypeFilter && (o.services?.service_type ?? "imei") !== orderTypeFilter) return false;
                     if (orderStatus !== "all" && o.status !== orderStatus) return false;
                     const oid = String(o.order_number ?? "").padStart(4, "0");
                     if (oqOrderId.trim() && !oid.includes(oqOrderId.trim().replace(/^#/, ""))) return false;
