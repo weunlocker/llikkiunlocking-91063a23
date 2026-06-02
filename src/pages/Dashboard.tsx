@@ -62,7 +62,7 @@ export default function Dashboard() {
   const tabParam = searchParams.get("tab") ?? "services";
   const rawTab = validTabs.includes(tabParam) ? tabParam : "services";
   const orderTypeFilter: "imei" | "server" | null = rawTab === "orders_imei" ? "imei" : rawTab === "orders_server" ? "server" : null;
-  const activeTab = (rawTab === "orders_imei" || rawTab === "orders_server") ? "orders" : rawTab;
+  const activeTab = rawTab;
   const [orders, setOrders] = useState<Order[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [services, setServices] = useState<Service[]>([]);
