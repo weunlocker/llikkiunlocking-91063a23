@@ -408,11 +408,12 @@ function AdminServices() {
   };
 
   const filtered = useMemo(() => services.filter((s) => {
+    if (typeFilter && (s.service_type ?? "imei") !== typeFilter) return false;
     if (fGroup !== "all" && (s.category ?? "") !== fGroup) return false;
     if (fSvcId !== "all" && s.id !== fSvcId) return false;
     if (q && !(s.name.toLowerCase().includes(q.toLowerCase()) || s.category?.toLowerCase().includes(q.toLowerCase()))) return false;
     return true;
-  }).sort(sortByCategoryOrder), [services, q, fGroup, fSvcId, catOrder]);
+  }).sort(sortByCategoryOrder), [services, q, fGroup, fSvcId, catOrder, typeFilter]);
 
   useEffect(() => { setPage(1); }, [q, fGroup, fSvcId, pageSize]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
