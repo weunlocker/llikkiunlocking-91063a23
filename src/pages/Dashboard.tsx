@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { telegramChatIdSchema } from "@/lib/validation";
-import ImeiCheckDialog from "@/components/ImeiCheckDialog";
+import ImeiCheckDialog, { type CustomField } from "@/components/ImeiCheckDialog";
 import { extractResponse } from "@/lib/extractResponse";
 import { ColoredResult } from "@/components/ColoredResult";
 import ApiDocs from "@/pages/ApiDocs";
