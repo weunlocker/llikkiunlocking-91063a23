@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, useSearchParams } from "react-router-dom";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import AdminLayout from "@/components/AdminLayout";
 import Seo from "@/components/Seo";
 import { supabase } from "@/integrations/supabase/client";
