@@ -58,10 +58,11 @@ export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
   const { settings } = useSiteSettings();
   const [searchParams, setSearchParams] = useSearchParams();
-  const validTabs = ["services", "orders", "orders_imei", "orders_server", "wallet", "referrals", "support", "settings", "api"];
+  const validTabs = ["services", "services_imei", "services_server", "orders", "orders_imei", "orders_server", "wallet", "referrals", "support", "settings", "api"];
   const tabParam = searchParams.get("tab") ?? "services";
   const rawTab = validTabs.includes(tabParam) ? tabParam : "services";
   const orderTypeFilter: "imei" | "server" | null = rawTab === "orders_imei" ? "imei" : rawTab === "orders_server" ? "server" : null;
+  const serviceTypeFilter: "imei" | "server" | null = rawTab === "services_imei" ? "imei" : rawTab === "services_server" ? "server" : null;
   
   const [orders, setOrders] = useState<Order[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
