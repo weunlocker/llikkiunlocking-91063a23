@@ -1,16 +1,24 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, Briefcase, ListOrdered, Wallet, Settings,
-  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, Menu, X, Send, Network, CreditCard, Shield, Crown, Gift, BarChart3, MessageSquare, Activity,
+  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, Menu, X, Send, Network, CreditCard, Shield, Crown, Gift, BarChart3, MessageSquare, Activity, ChevronDown, Smartphone, Server,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { supabase } from "@/integrations/supabase/client";
 
-const navItems = [
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  end?: boolean;
+  children?: { to: string; label: string; icon: typeof LayoutDashboard }[];
+};
+
+const baseNavItems: NavItem[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/admin/users", label: "Users", icon: Users },
