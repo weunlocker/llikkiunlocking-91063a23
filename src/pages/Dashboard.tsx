@@ -491,6 +491,7 @@ export default function Dashboard() {
                 size="sm"
                 onClick={() => {
                   const rows = orders.filter((o) => {
+                    if (orderTypeFilter && (o.services?.service_type ?? "imei") !== orderTypeFilter) return false;
                     if (orderStatus !== "all" && o.status !== orderStatus) return false;
                     const oid = String(o.order_number ?? "").padStart(4, "0");
                     if (oqOrderId.trim() && !oid.includes(oqOrderId.trim().replace(/^#/, ""))) return false;
