@@ -527,7 +527,7 @@ export default function Dashboard() {
                   <SelectTrigger><SelectValue placeholder="All groups" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All groups</SelectItem>
-                    {Array.from(new Set(orders.map((o) => o.services?.category).filter(Boolean) as string[])).sort((a, b) => {
+                    {Array.from(new Set(orders.filter((o) => !orderTypeFilter || (o.services?.service_type ?? "imei") === orderTypeFilter).map((o) => o.services?.category).filter(Boolean) as string[])).sort((a, b) => {
                       if (a === "free") return -1;
                       if (b === "free") return 1;
                       const ao = categoryOrder[a] ?? 9999;
@@ -546,7 +546,7 @@ export default function Dashboard() {
                   <SelectTrigger><SelectValue placeholder="All services" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All services</SelectItem>
-                    {Array.from(new Set(orders.filter((o) => oqGroup === "all" || o.services?.category === oqGroup).map((o) => o.services?.name).filter(Boolean) as string[])).sort().map((n) => (
+                    {Array.from(new Set(orders.filter((o) => (!orderTypeFilter || (o.services?.service_type ?? "imei") === orderTypeFilter) && (oqGroup === "all" || o.services?.category === oqGroup)).map((o) => o.services?.name).filter(Boolean) as string[])).sort().map((n) => (
                       <SelectItem key={n} value={n}>{n}</SelectItem>
                     ))}
                   </SelectContent>
