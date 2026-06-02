@@ -329,16 +329,24 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setSearchParams(v === "services" ? {} : { tab: v }, { replace: true })}>
+        <Tabs value={rawTab} onValueChange={(v) => setSearchParams(v === "services" ? {} : { tab: v }, { replace: true })}>
           <TabsList className="glass flex-wrap h-auto">
             <TabsTrigger value="services"><Smartphone className="w-4 h-4 mr-2" />Services</TabsTrigger>
-            <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
+            {settings.service_types_enabled ? (
+              <>
+                <TabsTrigger value="orders_imei"><History className="w-4 h-4 mr-2" />IMEI Orders</TabsTrigger>
+                <TabsTrigger value="orders_server"><History className="w-4 h-4 mr-2" />Server Orders</TabsTrigger>
+              </>
+            ) : (
+              <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
+            )}
             <TabsTrigger value="wallet"><Wallet className="w-4 h-4 mr-2" />Wallet History</TabsTrigger>
             <TabsTrigger value="referrals"><Gift className="w-4 h-4 mr-2" />Referrals</TabsTrigger>
             <TabsTrigger value="support" className="relative"><MessageSquare className="w-4 h-4 mr-2" />Support{supportUnread > 0 && (<span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">{supportUnread > 99 ? "99+" : supportUnread}</span>)}</TabsTrigger>
             <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />Notifications</TabsTrigger>
             <TabsTrigger value="api"><Code2 className="w-4 h-4 mr-2" />API</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="services" className="mt-5">
             <div className="glass rounded-2xl p-4 mb-4 flex flex-col lg:flex-row gap-3">
