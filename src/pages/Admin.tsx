@@ -340,6 +340,9 @@ function PaginationBar({ page, totalPages, pageSize, total, onPage, onPageSize }
 
 function AdminServices() {
   const confirm = useConfirm();
+  const { settings } = useSiteSettings();
+  const [searchParams] = useSearchParams();
+  const typeFilter = settings.service_types_enabled ? (searchParams.get("type") as "imei" | "server" | null) : null;
   const [services, setServices] = useState<Service[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
