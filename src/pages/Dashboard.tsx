@@ -518,7 +518,9 @@ export default function Dashboard() {
             </div>
             <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2 items-end">
               <div><Label className="text-xs text-muted-foreground">Order ID</Label><Input value={oqOrderId} onChange={(e) => setOqOrderId(e.target.value)} placeholder="#0001" /></div>
-              <div><Label className="text-xs text-muted-foreground">IMEI/SN</Label><Input value={oqImei} onChange={(e) => setOqImei(e.target.value)} placeholder="IMEI" /></div>
+              {orderTypeFilter !== "server" && (
+                <div><Label className="text-xs text-muted-foreground">IMEI/SN</Label><Input value={oqImei} onChange={(e) => setOqImei(e.target.value)} placeholder="IMEI" /></div>
+              )}
               <div>
                 <Label className="text-xs text-muted-foreground">Group</Label>
                 <Select value={oqGroup} onValueChange={(v) => { setOqGroup(v); setOqService("all"); }}>
