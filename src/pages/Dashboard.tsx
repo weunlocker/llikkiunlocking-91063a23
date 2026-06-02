@@ -403,6 +403,7 @@ export default function Dashboard() {
               <div className="glass rounded-2xl p-12 text-center text-muted-foreground">No services available yet.</div>
             ) : (() => {
               const filtered = services.filter((s) => {
+                if (serviceTypeFilter && (s.service_type ?? "imei") !== serviceTypeFilter) return false;
                 const cat = (s.category ?? "general").trim() || "general";
                 if (svcGroup !== "all" && cat !== svcGroup) return false;
                 if (svcName !== "all" && s.name !== svcName) return false;
