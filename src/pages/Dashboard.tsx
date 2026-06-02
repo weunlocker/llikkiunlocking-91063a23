@@ -353,7 +353,7 @@ export default function Dashboard() {
           </TabsList>
 
 
-          <TabsContent value="services" className="mt-5">
+          <TabsContent value={rawTab === "services_imei" || rawTab === "services_server" ? rawTab : "services"} className="mt-5">
             <div className="glass rounded-2xl p-4 mb-4 flex flex-col lg:flex-row gap-3">
               <div className="relative flex-1 min-w-0">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
