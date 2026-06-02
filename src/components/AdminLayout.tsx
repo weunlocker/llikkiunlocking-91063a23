@@ -104,6 +104,50 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
+          if (item.children) {
+            return (
+              <div key={item.to}>
+                <button
+                  type="button"
+                  onClick={() => setServicesOpen((v) => !v)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    servicesActive
+                      ? "bg-primary/15 text-primary border border-primary/30"
+                      : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="flex-1 text-left">{item.label}</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${servicesOpen ? "rotate-180" : ""}`} />
+                </button>
+                {servicesOpen && (
+                  <div className="ml-3 mt-1 space-y-1 border-l border-border/60 pl-2">
+                    {item.children.map((c) => {
+                      const CIcon = c.icon;
+                      const typeParam = new URLSearchParams(c.to.split("?")[1] ?? "").get("type");
+                      const currentType = new URLSearchParams(location.search).get("type");
+                      const isActive = location.pathname.startsWith("/admin/services") && currentType === typeParam;
+                      return (
+                        <NavLink
+                          key={c.to}
+                          to={c.to}
+                          onClick={() => setOpen(false)}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                            isActive
+                              ? "bg-primary/15 text-primary border border-primary/30"
+                              : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground"
+                          }`}
+                        >
+                          <CIcon className="w-3.5 h-3.5" />
+                          <span className="flex-1">{c.label}</span>
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
           return (
             <NavLink
               key={item.to}
@@ -129,6 +173,7 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
           );
         })}
       </nav>
+
 
       <div className="p-3 border-t border-border/60 space-y-2">
         <div className="px-3 py-2 rounded-lg glass">
