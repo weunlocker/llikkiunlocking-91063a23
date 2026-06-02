@@ -546,7 +546,7 @@ export default function Dashboard() {
                   <SelectTrigger><SelectValue placeholder="All services" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All services</SelectItem>
-                    {Array.from(new Set(orders.filter((o) => oqGroup === "all" || o.services?.category === oqGroup).map((o) => o.services?.name).filter(Boolean) as string[])).sort().map((n) => (
+                    {Array.from(new Set(orders.filter((o) => (!orderTypeFilter || (o.services?.service_type ?? "imei") === orderTypeFilter) && (oqGroup === "all" || o.services?.category === oqGroup)).map((o) => o.services?.name).filter(Boolean) as string[])).sort().map((n) => (
                       <SelectItem key={n} value={n}>{n}</SelectItem>
                     ))}
                   </SelectContent>
