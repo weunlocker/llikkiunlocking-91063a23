@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { telegramChatIdSchema } from "@/lib/validation";
-import ImeiCheckDialog from "@/components/ImeiCheckDialog";
+import ImeiCheckDialog, { type CustomField } from "@/components/ImeiCheckDialog";
 import { extractResponse } from "@/lib/extractResponse";
 import { ColoredResult } from "@/components/ColoredResult";
 import ApiDocs from "@/pages/ApiDocs";
@@ -52,16 +52,17 @@ function formatDuration(start: string, end: string, status: string): string {
 
 type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; updated_at: string; services: { name: string; category: string | null; delivery_time: string | null; result_font: string | null; result_color: string | null; service_type: string | null } | null };
 type Tx = { id: string; type: string; amount: number; balance_after: number; description: string | null; created_at: string };
-type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; is_free?: boolean | null };
+type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; is_free?: boolean | null; service_type?: "imei" | "server" | null; custom_fields?: CustomField[] | null };
 
 export default function Dashboard() {
   const { profile, refreshProfile, user } = useAuth();
   const { settings } = useSiteSettings();
   const [searchParams, setSearchParams] = useSearchParams();
-  const validTabs = ["services", "orders", "orders_imei", "orders_server", "wallet", "referrals", "support", "settings", "api"];
-  const tabParam = searchParams.get("tab") ?? "services";
-  const rawTab = validTabs.includes(tabParam) ? tabParam : "services";
+  const validTabs = ["services", "services_imei", "services_server", "orders", "orders_imei", "orders_server", "wallet", "referrals", "support", "settings", "api"];
+  const tabParam = searchParams.get("tab") ?? (settings.service_types_enabled ? "services_imei" : "services");
+  const rawTab = validTabs.includes(tabParam) ? tabParam : (settings.service_types_enabled ? "services_imei" : "services");
   const orderTypeFilter: "imei" | "server" | null = rawTab === "orders_imei" ? "imei" : rawTab === "orders_server" ? "server" : null;
+  const serviceTypeFilter: "imei" | "server" | null = rawTab === "services_imei" ? "imei" : rawTab === "services_server" ? "server" : null;
   
   const [orders, setOrders] = useState<Order[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
@@ -171,7 +172,7 @@ export default function Dashboard() {
     const [{ data: o }, { data: t }, { data: svc }, { data: ovs }, { data: cats }] = await Promise.all([
       supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,updated_at,services(name,category,delivery_time,result_font,result_color,service_type)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1000),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
-      supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color,is_free").order("category").order("sort_order").order("price"),
+      supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color,is_free,service_type,custom_fields").order("category").order("sort_order").order("price"),
       supabase.from("user_service_overrides").select("service_id,enabled,custom_price").eq("user_id", user.id),
       supabase.from("categories").select("slug,name,sort_order"),
     ]);
@@ -331,14 +332,18 @@ export default function Dashboard() {
 
         <Tabs value={rawTab} onValueChange={(v) => setSearchParams(v === "services" ? {} : { tab: v }, { replace: true })}>
           <TabsList className="glass flex-wrap h-auto">
-            <TabsTrigger value="services"><Smartphone className="w-4 h-4 mr-2" />Services</TabsTrigger>
             {settings.service_types_enabled ? (
               <>
+                <TabsTrigger value="services_imei"><Smartphone className="w-4 h-4 mr-2" />IMEI Services</TabsTrigger>
+                <TabsTrigger value="services_server"><Smartphone className="w-4 h-4 mr-2" />Server Services</TabsTrigger>
                 <TabsTrigger value="orders_imei"><History className="w-4 h-4 mr-2" />IMEI Orders</TabsTrigger>
                 <TabsTrigger value="orders_server"><History className="w-4 h-4 mr-2" />Server Orders</TabsTrigger>
               </>
             ) : (
-              <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
+              <>
+                <TabsTrigger value="services"><Smartphone className="w-4 h-4 mr-2" />Services</TabsTrigger>
+                <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
+              </>
             )}
             <TabsTrigger value="wallet"><Wallet className="w-4 h-4 mr-2" />Wallet History</TabsTrigger>
             <TabsTrigger value="referrals"><Gift className="w-4 h-4 mr-2" />Referrals</TabsTrigger>
@@ -348,7 +353,7 @@ export default function Dashboard() {
           </TabsList>
 
 
-          <TabsContent value="services" className="mt-5">
+          <TabsContent value={rawTab === "services_imei" || rawTab === "services_server" ? rawTab : "services"} className="mt-5">
             <div className="glass rounded-2xl p-4 mb-4 flex flex-col lg:flex-row gap-3">
               <div className="relative flex-1 min-w-0">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -398,6 +403,7 @@ export default function Dashboard() {
               <div className="glass rounded-2xl p-12 text-center text-muted-foreground">No services available yet.</div>
             ) : (() => {
               const filtered = services.filter((s) => {
+                if (serviceTypeFilter && (s.service_type ?? "imei") !== serviceTypeFilter) return false;
                 const cat = (s.category ?? "general").trim() || "general";
                 if (svcGroup !== "all" && cat !== svcGroup) return false;
                 if (svcName !== "all" && s.name !== svcName) return false;
@@ -512,7 +518,9 @@ export default function Dashboard() {
             </div>
             <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2 items-end">
               <div><Label className="text-xs text-muted-foreground">Order ID</Label><Input value={oqOrderId} onChange={(e) => setOqOrderId(e.target.value)} placeholder="#0001" /></div>
-              <div><Label className="text-xs text-muted-foreground">IMEI/SN</Label><Input value={oqImei} onChange={(e) => setOqImei(e.target.value)} placeholder="IMEI" /></div>
+              {orderTypeFilter !== "server" && (
+                <div><Label className="text-xs text-muted-foreground">IMEI/SN</Label><Input value={oqImei} onChange={(e) => setOqImei(e.target.value)} placeholder="IMEI" /></div>
+              )}
               <div>
                 <Label className="text-xs text-muted-foreground">Group</Label>
                 <Select value={oqGroup} onValueChange={(v) => { setOqGroup(v); setOqService("all"); }}>
