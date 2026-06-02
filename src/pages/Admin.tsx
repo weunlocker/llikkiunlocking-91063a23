@@ -1594,7 +1594,18 @@ function AdminSettings() {
             <div><Label>Instagram URL</Label><Input value={s.instagram_url} onChange={(e) => set("instagram_url", e.target.value)} placeholder="https://instagram.com/..." /></div>
             <div><Label>Twitter / X URL</Label><Input value={s.twitter_url} onChange={(e) => set("twitter_url", e.target.value)} placeholder="https://x.com/..." /></div>
             <div><Label>YouTube URL</Label><Input value={s.youtube_url} onChange={(e) => set("youtube_url", e.target.value)} placeholder="https://youtube.com/@..." /></div>
+        {/* Feature toggles */}
+        <div className="glass rounded-2xl p-6 space-y-3 lg:col-span-2">
+          <h3 className="font-bold">Feature Toggles</h3>
+          <div className="flex items-start justify-between gap-4 p-3 rounded-lg bg-secondary/30">
+            <div className="space-y-1">
+              <div className="font-semibold text-sm">Service Types (IMEI / Server)</div>
+              <p className="text-xs text-muted-foreground">When enabled, the admin sidebar shows Services as a dropdown with <b>IMEI Services</b> and <b>Server Services</b>, and the client dashboard shows two separate <b>Orders</b> tabs.</p>
+            </div>
+            <Switch checked={serviceTypesEnabled} onCheckedChange={setServiceTypesEnabled} />
           </div>
+        </div>
+      </div>
         </div>
       </div>
 
