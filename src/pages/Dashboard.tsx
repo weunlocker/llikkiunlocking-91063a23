@@ -484,7 +484,7 @@ export default function Dashboard() {
           </TabsContent>
 
 
-          <TabsContent value="orders" className="mt-5">
+          <TabsContent value={rawTab === "orders_imei" || rawTab === "orders_server" ? rawTab : "orders"} className="mt-5">
             <div className="flex items-center justify-end mb-3">
               <Button
                 variant="outline"
