@@ -332,14 +332,18 @@ export default function Dashboard() {
 
         <Tabs value={rawTab} onValueChange={(v) => setSearchParams(v === "services" ? {} : { tab: v }, { replace: true })}>
           <TabsList className="glass flex-wrap h-auto">
-            <TabsTrigger value="services"><Smartphone className="w-4 h-4 mr-2" />Services</TabsTrigger>
             {settings.service_types_enabled ? (
               <>
+                <TabsTrigger value="services_imei"><Smartphone className="w-4 h-4 mr-2" />IMEI Services</TabsTrigger>
+                <TabsTrigger value="services_server"><Smartphone className="w-4 h-4 mr-2" />Server Services</TabsTrigger>
                 <TabsTrigger value="orders_imei"><History className="w-4 h-4 mr-2" />IMEI Orders</TabsTrigger>
                 <TabsTrigger value="orders_server"><History className="w-4 h-4 mr-2" />Server Orders</TabsTrigger>
               </>
             ) : (
-              <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
+              <>
+                <TabsTrigger value="services"><Smartphone className="w-4 h-4 mr-2" />Services</TabsTrigger>
+                <TabsTrigger value="orders"><History className="w-4 h-4 mr-2" />Orders</TabsTrigger>
+              </>
             )}
             <TabsTrigger value="wallet"><Wallet className="w-4 h-4 mr-2" />Wallet History</TabsTrigger>
             <TabsTrigger value="referrals"><Gift className="w-4 h-4 mr-2" />Referrals</TabsTrigger>
