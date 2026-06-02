@@ -46,9 +46,26 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
   const { profile, signOut } = useAuth();
   const { settings } = useSiteSettings();
   const navigate = useNavigate();
+  const location = useLocation();
   const logoSrc = settings.logo_url || logo;
   const [open, setOpen] = useState(false);
   const [supportPending, setSupportPending] = useState(0);
+  const servicesActive = location.pathname.startsWith("/admin/services");
+  const [servicesOpen, setServicesOpen] = useState(servicesActive);
+  useEffect(() => { if (servicesActive) setServicesOpen(true); }, [servicesActive]);
+
+  const navItems: NavItem[] = baseNavItems.map((item) => {
+    if (item.to === "/admin/services" && settings.service_types_enabled) {
+      return {
+        ...item,
+        children: [
+          { to: "/admin/services?type=imei", label: "IMEI Services", icon: Smartphone },
+          { to: "/admin/services?type=server", label: "Server Services", icon: Server },
+        ],
+      };
+    }
+    return item;
+  });
 
   useEffect(() => {
     const load = async () => {
