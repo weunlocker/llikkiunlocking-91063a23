@@ -26,7 +26,10 @@ const staticEntries: Entry[] = [
   { path: "/free-check", changefreq: "weekly", priority: "0.8" },
   { path: "/api-docs", changefreq: "weekly", priority: "0.7" },
   { path: "/login", changefreq: "monthly", priority: "0.4" },
+  { path: "/login-otp", changefreq: "monthly", priority: "0.3" },
   { path: "/register", changefreq: "monthly", priority: "0.5" },
+  { path: "/forgot-password", changefreq: "monthly", priority: "0.3" },
+  { path: "/reset-password", changefreq: "monthly", priority: "0.3" },
 ];
 
 async function main() {

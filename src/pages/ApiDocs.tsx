@@ -359,6 +359,7 @@ function ServiceIdTable({ title, hint, services, onCopy, instant, loading }: {
             className="bg-background/60"
           />
           <select
+            aria-label="Filter by category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="h-10 rounded-md border border-input bg-background/60 px-3 text-sm"
