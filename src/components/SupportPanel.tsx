@@ -60,7 +60,7 @@ function SignedImage({ refStr }: { refStr: string }) {
   if (!url) return <div className="h-32 w-48 rounded-lg bg-muted/50 animate-pulse" />;
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className="block">
-      <img src={url} alt="attachment" className="rounded-lg max-h-64 max-w-full border border-border/40" />
+      <img src={url} alt="Uploaded attachment" className="rounded-lg max-h-64 max-w-full border border-border/40" />
     </a>
   );
 }
