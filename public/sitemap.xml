@@ -6,7 +6,10 @@
   <url><loc>https://likkiunlocking.com/free-check</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://likkiunlocking.com/api-docs</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url><loc>https://likkiunlocking.com/login</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://likkiunlocking.com/login-otp</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
   <url><loc>https://likkiunlocking.com/register</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://likkiunlocking.com/forgot-password</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://likkiunlocking.com/reset-password</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
   <url><loc>https://likkiunlocking.com/services/blacklist-pro-check</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://likkiunlocking.com/services/apple-iphone-carrier-checker-imei-sn</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://likkiunlocking.com/services/universal-imei-info</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
