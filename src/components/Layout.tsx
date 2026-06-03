@@ -7,7 +7,7 @@ import defaultLogo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useTheme } from "@/hooks/useTheme";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import CurrencySwitcher from "@/components/CurrencySwitcher";
+
 import { useSupportNotifications } from "@/hooks/useSupportNotifications";
 import {
   DropdownMenu,
@@ -80,7 +80,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 Home
               </NavLink>
             )}
-            <CurrencySwitcher />
+            
             <LanguageSwitcher />
             <Button variant="ghost" size="icon" onClick={toggleTheme} title={theme === "dark" ? "Light mode" : "Dark mode"} aria-label="Toggle theme">
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
