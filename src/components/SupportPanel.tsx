@@ -254,7 +254,7 @@ export default function SupportPanel() {
                 {attachments.map((u, i) => (
                   <div key={u} className="relative group">
                     <img src={u} alt="" className="w-20 h-20 object-cover rounded border border-border" />
-                    <button type="button" onClick={() => setAttachments((a) => a.filter((_, idx) => idx !== i))}
+                    <button type="button" aria-label="Remove attachment" onClick={() => setAttachments((a) => a.filter((_, idx) => idx !== i))}
                       className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5">
                       <X className="w-3 h-3" />
                     </button>
@@ -391,7 +391,7 @@ export function TicketThread({ ticket, onClose, role }: { ticket: Ticket | null;
                 {pending.map((u, i) => (
                   <div key={u} className="relative">
                     <img src={u} alt="" className="w-16 h-16 object-cover rounded border border-border" />
-                    <button type="button" onClick={() => setPending((a) => a.filter((_, idx) => idx !== i))}
+                    <button type="button" aria-label="Remove attachment" onClick={() => setPending((a) => a.filter((_, idx) => idx !== i))}
                       className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5">
                       <X className="w-3 h-3" />
                     </button>
