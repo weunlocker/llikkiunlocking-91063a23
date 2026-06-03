@@ -83,7 +83,7 @@ async function buildLiveContext(supabase: any, userId: string | null, lastUserTe
     let q = supabase.from("orders")
       .select("order_number, imei, status, created_at, updated_at, result, error_message, services(name, delivery_time, price)")
       .eq("order_number", orderNumber).limit(1);
-    if (userId) q = q.eq("user_id", userId);
+    q = q.eq("user_id", userId!);
     const { data: rows } = await q;
     const o = rows?.[0];
     if (!o) {
