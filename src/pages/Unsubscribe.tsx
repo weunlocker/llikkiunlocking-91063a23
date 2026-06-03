@@ -73,7 +73,7 @@ export default function Unsubscribe() {
           {state === "valid" && (
             <>
               <MailX className="w-12 h-12 mx-auto text-primary" />
-              <h1 className="text-2xl font-bold">Unsubscribe from emails</h1>
+              <h2 className="text-2xl font-bold">Unsubscribe from emails</h2>
               <p className="text-muted-foreground text-sm">
                 You'll stop receiving emails from <strong>LIKKIUNLOCKING</strong>. You can re-subscribe anytime by contacting support.
               </p>
@@ -91,21 +91,21 @@ export default function Unsubscribe() {
           {state === "done" && (
             <>
               <CheckCircle2 className="w-12 h-12 mx-auto text-green-500" />
-              <h1 className="text-2xl font-bold">You're unsubscribed</h1>
+              <h2 className="text-2xl font-bold">You're unsubscribed</h2>
               <p className="text-muted-foreground text-sm">We won't send you emails anymore. Sorry to see you go.</p>
             </>
           )}
           {state === "already" && (
             <>
               <CheckCircle2 className="w-12 h-12 mx-auto text-green-500" />
-              <h1 className="text-2xl font-bold">Already unsubscribed</h1>
+              <h2 className="text-2xl font-bold">Already unsubscribed</h2>
               <p className="text-muted-foreground text-sm">This email address is already unsubscribed.</p>
             </>
           )}
           {(state === "invalid" || state === "error") && (
             <>
               <XCircle className="w-12 h-12 mx-auto text-destructive" />
-              <h1 className="text-2xl font-bold">Something went wrong</h1>
+              <h2 className="text-2xl font-bold">Something went wrong</h2>
               <p className="text-muted-foreground text-sm">{msg || "This unsubscribe link is invalid or has expired."}</p>
             </>
           )}
