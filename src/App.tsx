@@ -13,6 +13,7 @@ import FloatingContact from "@/components/FloatingContact";
 import { CurrencyProvider } from "@/hooks/useCurrency";
 import Home from "./pages/Home";
 import Services from "./pages/Services";
+import ServiceDetail from "./pages/ServiceDetail";
 import Pricing from "./pages/Pricing";
 import FreeCheck from "./pages/FreeCheck";
 import ApiDocs from "./pages/ApiDocs";
@@ -46,6 +47,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/services" element={<Services />} />
+            <Route path="/services/:slug" element={<ServiceDetail />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/free-check" element={<FreeCheck />} />
             <Route path="/api-docs" element={<ApiDocs />} />

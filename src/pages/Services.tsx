@@ -5,9 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Loader2, Smartphone, Clock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
 import { useCurrency } from "@/hooks/useCurrency";
+import { slugify } from "@/lib/slug";
 
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; service_type?: "imei" | "server" | null; custom_fields?: { name: string; label: string; type: string; required: boolean; default?: string; options?: string[] }[] | null };
 type Category = { slug: string; name: string; sort_order: number };
@@ -108,10 +109,9 @@ export default function Services() {
               </h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {items.map((s) => (
-                  <button
+                  <Link
                     key={s.id}
-                    type="button"
-                    onClick={() => openCheck(s)}
+                    to={`/services/${slugify(s.name)}`}
                     className="text-left glass rounded-lg p-3 sm:p-4 hover:border-primary/40 hover:shadow-elegant transition-all flex flex-col cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
                   >
                     <div className="flex items-start justify-between mb-2">
@@ -122,9 +122,9 @@ export default function Services() {
                     <p className="text-xs text-muted-foreground mb-3 flex-1 line-clamp-2">{s.description}</p>
                     <div className="flex items-center justify-between gap-2">
                       <div className="text-base font-bold font-mono">{format(Number(s.price))}</div>
-                      <Button variant="neon" size="sm" asChild={false} onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
+                      <Button variant="neon" size="sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
                     </div>
-                  </button>
+                  </Link>
                 ))}
               </div>
             </div>
