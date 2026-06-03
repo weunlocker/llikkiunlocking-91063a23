@@ -24,8 +24,12 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   return <CurrencyCtx.Provider value={value}>{children}</CurrencyCtx.Provider>;
 }
 
+const defaultCurrency: CurrencyInfo = { code: "USD", symbol: "$", rate: 1, name: "US Dollar" };
+const defaultFormat = (usd: number) =>
+  `$${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(Number(usd))}`;
+
 export function useCurrency() {
   const c = useContext(CurrencyCtx);
-  if (!c) throw new Error("useCurrency must be used within CurrencyProvider");
-  return c;
+  if (c) return c;
+  return { currency: defaultCurrency, setCurrency: () => {}, format: defaultFormat, all: [defaultCurrency] };
 }
