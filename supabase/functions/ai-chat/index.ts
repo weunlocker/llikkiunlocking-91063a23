@@ -69,9 +69,14 @@ async function buildLiveContext(supabase: any, userId: string | null, lastUserTe
   }
 
   // Order ID lookup — accept "#123", "order 123", or any standalone 1-7 digit number.
-  const orderMatches = Array.from(lastUserText.matchAll(/(?:order\s*(?:id|#|number)?\s*[:#]?\s*)?#?(\d{1,7})\b/gi))
-    .map(m => parseInt(m[1], 10))
-    .filter(n => n > 0 && n < 10_000_000);
+  // Only allow order lookup for authenticated users — guests cannot own orders, and
+  // order numbers are sequential integers (enumerable). Skipping entirely for guests
+  // prevents leaking other users' order details (IMEI, result, error_message).
+  const orderMatches = userId
+    ? Array.from(lastUserText.matchAll(/(?:order\s*(?:id|#|number)?\s*[:#]?\s*)?#?(\d{1,7})\b/gi))
+        .map(m => parseInt(m[1], 10))
+        .filter(n => n > 0 && n < 10_000_000)
+    : [];
   const uniqOrders = Array.from(new Set(orderMatches)).slice(0, 3);
 
   for (const orderNumber of uniqOrders) {
