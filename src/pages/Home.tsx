@@ -160,6 +160,8 @@ export default function Home() {
         </div>
       </section>
 
+      <LiveActivityFeed />
+
       {/* Features */}
       <section className="container py-14 sm:py-20 border-t border-border/40">
         <div className="max-w-2xl mx-auto text-center mb-12">
