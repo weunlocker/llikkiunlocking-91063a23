@@ -3,6 +3,7 @@ import Seo from "@/components/Seo";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Clock } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null };
 
@@ -13,13 +14,15 @@ const GROUPS = [
   { key: "diamond", label: "Diamond", discount: 0.50, color: "text-cyan-300" },
 ];
 
-const priceFor = (base: number, d: number) => (Number(base) * (1 - d)).toFixed(2);
 
 export default function Pricing() {
   const [services, setServices] = useState<Service[]>([]);
+  const { format } = useCurrency();
+  const priceFor = (base: number, d: number) => format(Number(base) * (1 - d));
   useEffect(() => {
     supabase.from("services_public").select("id,name,description,price,delivery_time,category").order("sort_order").order("price").then(({ data }) => setServices(data ?? []));
   }, []);
+
 
   return (
     <Layout>
@@ -47,7 +50,7 @@ export default function Pricing() {
                 {GROUPS.map((g) => (
                   <div key={g.key} className="rounded-md bg-secondary/40 py-1.5">
                     <div className="text-[9px] uppercase text-muted-foreground tracking-wide">{g.label}</div>
-                    <div className={`font-mono font-bold text-xs ${g.color}`}>${priceFor(s.price, g.discount)}</div>
+                    <div className={`font-mono font-bold text-xs ${g.color}`}>{priceFor(s.price, g.discount)}</div>
                   </div>
                 ))}
               </div>
@@ -76,7 +79,7 @@ export default function Pricing() {
                   <td className="px-6 py-4 font-semibold">{s.name}{s.category && <div className="text-xs text-muted-foreground font-mono uppercase">{s.category}</div>}</td>
                   <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{s.delivery_time}</td>
                   {GROUPS.map((g) => (
-                    <td key={g.key} className={`px-4 py-4 text-right font-mono font-bold ${g.color}`}>${priceFor(s.price, g.discount)}</td>
+                    <td key={g.key} className={`px-4 py-4 text-right font-mono font-bold ${g.color}`}>{priceFor(s.price, g.discount)}</td>
                   ))}
                 </tr>
               ))}

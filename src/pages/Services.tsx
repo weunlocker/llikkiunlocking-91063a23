@@ -119,7 +119,7 @@ export default function Services() {
                     <h3 className="text-sm font-semibold mb-1 hover:text-primary transition-colors">{s.name}</h3>
                     <p className="text-xs text-muted-foreground mb-3 flex-1 line-clamp-2">{s.description}</p>
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-base font-bold font-mono">${Number(s.price).toFixed(2)}</div>
+                      <div className="text-base font-bold font-mono">{format(Number(s.price))}</div>
                       <Button variant="neon" size="sm" asChild={false} onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
                     </div>
                   </button>
