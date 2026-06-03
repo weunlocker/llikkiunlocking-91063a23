@@ -64,16 +64,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // On load: if last activity exceeded idle window, force sign-out
+    // On load: if last activity exceeded idle window, or this is a new browser session
+    // (new tab/window opened after browser was fully closed), force sign-out.
     supabase.auth.getSession().then(async ({ data: { session: sess } }) => {
       const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || 0);
-      if (sess?.user && last && Date.now() - last > IDLE_MS) {
+      const SESSION_MARKER = "sessionAlive";
+      const isNewBrowserSession = !sessionStorage.getItem(SESSION_MARKER);
+      const idleExpired = sess?.user && last && Date.now() - last > IDLE_MS;
+      if (sess?.user && (idleExpired || isNewBrowserSession)) {
         await supabase.auth.signOut();
         localStorage.removeItem(LAST_ACTIVITY_KEY);
         setSession(null); setUser(null); setProfile(null); setIsAdmin(false);
+        sessionStorage.setItem(SESSION_MARKER, "1");
         setLoading(false);
         return;
       }
+      sessionStorage.setItem(SESSION_MARKER, "1");
       setSession(sess);
       setUser(sess?.user ?? null);
       if (sess?.user) {
@@ -81,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loadProfile(sess.user.id).finally(() => setLoading(false));
       } else setLoading(false);
     });
+
 
     return () => sub.subscription.unsubscribe();
   }, []);
