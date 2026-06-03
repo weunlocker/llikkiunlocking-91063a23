@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Smartphone, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
+import { useCurrency } from "@/hooks/useCurrency";
 
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; service_type?: "imei" | "server" | null; custom_fields?: { name: string; label: string; type: string; required: boolean; default?: string; options?: string[] }[] | null };
 type Category = { slug: string; name: string; sort_order: number };
@@ -18,6 +19,7 @@ export default function Services() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Service | null>(null);
+  const { format } = useCurrency();
 
   useEffect(() => {
     (async () => {
