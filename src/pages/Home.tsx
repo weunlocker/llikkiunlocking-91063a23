@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Shield, Zap, Lock, Globe, ArrowRight, CheckCircle2, Code2, Award, Clock, Users, TrendingUp, Star, Quote, ShieldCheck, BadgeCheck, Server, KeyRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrency } from "@/hooks/useCurrency";
+import LiveActivityFeed from "@/components/LiveActivityFeed";
 
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null };
 
@@ -32,6 +34,7 @@ const trustBadges = [
 
 export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
+  const { format } = useCurrency();
   useEffect(() => {
     supabase.from("services_public").select("id,name,description,price,delivery_time,category").order("sort_order").order("price").limit(6).then(({ data }) => setServices(data ?? []));
   }, []);
@@ -157,6 +160,8 @@ export default function Home() {
         </div>
       </section>
 
+      <LiveActivityFeed />
+
       {/* Features */}
       <section className="container py-14 sm:py-20 border-t border-border/40">
         <div className="max-w-2xl mx-auto text-center mb-12">
@@ -206,7 +211,7 @@ export default function Home() {
               <h3 className="font-semibold mb-2">{s.name}</h3>
               <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{s.description}</p>
               <div className="flex items-center justify-between gap-2 pt-3 border-t border-border/40">
-                <div className="text-xl sm:text-2xl font-bold font-mono">${Number(s.price).toFixed(2)}</div>
+                <div className="text-xl sm:text-2xl font-bold font-mono">{format(Number(s.price))}</div>
                 <Button asChild variant="neon" size="sm"><Link to="/services">Check</Link></Button>
               </div>
             </div>

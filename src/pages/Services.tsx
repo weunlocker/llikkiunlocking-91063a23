@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Smartphone, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ImeiCheckDialog from "@/components/ImeiCheckDialog";
+import { useCurrency } from "@/hooks/useCurrency";
 
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; service_type?: "imei" | "server" | null; custom_fields?: { name: string; label: string; type: string; required: boolean; default?: string; options?: string[] }[] | null };
 type Category = { slug: string; name: string; sort_order: number };
@@ -18,6 +19,7 @@ export default function Services() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Service | null>(null);
+  const { format } = useCurrency();
 
   useEffect(() => {
     (async () => {
@@ -119,7 +121,7 @@ export default function Services() {
                     <h3 className="text-sm font-semibold mb-1 hover:text-primary transition-colors">{s.name}</h3>
                     <p className="text-xs text-muted-foreground mb-3 flex-1 line-clamp-2">{s.description}</p>
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-base font-bold font-mono">${Number(s.price).toFixed(2)}</div>
+                      <div className="text-base font-bold font-mono">{format(Number(s.price))}</div>
                       <Button variant="neon" size="sm" asChild={false} onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
                     </div>
                   </button>
