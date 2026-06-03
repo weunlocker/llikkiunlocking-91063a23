@@ -10,7 +10,8 @@ import { SiteSettingsProvider } from "@/hooks/useSiteSettings";
 import AIChatWidget from "@/components/AIChatWidget";
 import NewSiteWelcomeDialog from "@/components/NewSiteWelcomeDialog";
 import FloatingContact from "@/components/FloatingContact";
-import { CurrencyProvider } from "@/hooks/useCurrency";
+
+
 import Home from "./pages/Home";
 import Services from "./pages/Services";
 import ServiceDetail from "./pages/ServiceDetail";
@@ -39,7 +40,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <SiteSettingsProvider>
-          <CurrencyProvider>
+          
           <ConfirmProvider>
           <AIChatWidget />
           <NewSiteWelcomeDialog />
@@ -65,7 +66,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </ConfirmProvider>
-          </CurrencyProvider>
+          
           </SiteSettingsProvider>
         </AuthProvider>
       </BrowserRouter>
