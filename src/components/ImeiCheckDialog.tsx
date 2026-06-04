@@ -168,6 +168,25 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
               </Button>
             </div>
           </div>
+        ) : bulkSubmitted ? (
+          <div className="space-y-4 py-4 text-center">
+            <CheckCircle2 className="w-14 h-14 text-success mx-auto" />
+            <div>
+              <h3 className="text-lg font-bold">Orders Placed Successfully</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                <span className="font-bold text-foreground">{bulkSubmitted.count}</span> order{bulkSubmitted.count === 1 ? "" : "s"} sent to supplier · <span className="font-mono text-primary">${bulkSubmitted.total.toFixed(2)}</span>
+                <br />Processing in background — results will appear in your Orders page.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <Button variant="glass" className="flex-1" onClick={() => { navigate("/dashboard?tab=orders"); onClose(); }}>
+                <HistoryIcon className="w-4 h-4" /> View Orders
+              </Button>
+              <Button variant="hero" className="flex-1" onClick={() => { setBulkSubmitted(null); setBulkText(""); }}>
+                Place More
+              </Button>
+            </div>
+          </div>
         ) : !result && rows.length === 0 ? (
           <Tabs value={tab} onValueChange={(v) => setTab(v as "single" | "bulk")}>
             <TabsList className={`grid w-full ${isServer ? "grid-cols-1" : "grid-cols-2"}`}>
