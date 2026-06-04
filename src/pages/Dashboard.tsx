@@ -905,10 +905,10 @@ export default function Dashboard() {
       </Dialog>
 
       <Dialog open={!!invoiceOrder} onOpenChange={(o) => !o && setInvoiceOrder(null)}>
-        <DialogContent className="glass max-w-3xl max-h-[92vh] p-0 overflow-hidden flex flex-col">
-          <DialogHeader className="px-4 pt-4 pb-2 border-b">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5" /> Invoice Preview</DialogTitle>
+        <DialogContent className="glass w-[100vw] sm:w-auto max-w-3xl h-[100dvh] sm:h-auto sm:max-h-[92vh] rounded-none sm:rounded-lg p-0 overflow-hidden flex flex-col gap-0">
+          <DialogHeader className="px-3 py-3 border-b shrink-0">
+            <div className="flex items-center justify-between gap-2">
+              <DialogTitle className="flex items-center gap-2 text-base"><FileText className="w-5 h-5" /> Invoice</DialogTitle>
               <Button
                 variant="hero"
                 size="sm"
@@ -936,40 +936,42 @@ export default function Dashboard() {
                   }
                 }}
               >
-                <FileText className="w-4 h-4 mr-2" /> {invoiceDownloading ? "Preparing…" : "Download PDF"}
+                <FileText className="w-4 h-4 mr-1.5" /> {invoiceDownloading ? "Preparing…" : "Download"}
               </Button>
             </div>
           </DialogHeader>
           {invoiceOrder && (
-            <div className="overflow-y-auto bg-muted/30 p-4">
-              <div className="mx-auto max-w-[640px] bg-white text-black rounded-md shadow-sm p-6 text-sm">
-                <div className="flex items-start justify-between gap-4 pb-4 border-b">
-                  <div className="flex items-center gap-3">
+            <div className="flex-1 overflow-y-auto bg-muted/30 p-3 sm:p-4">
+              <div className="mx-auto max-w-[640px] bg-white text-black rounded-md shadow-sm p-4 sm:p-6 text-sm">
+                <div className="flex items-start justify-between gap-3 pb-3 border-b">
+                  <div className="flex items-center gap-3 min-w-0">
                     {settings.logo_url && (
-                      <img src={settings.logo_url} alt={settings.brand_name} className="h-14 w-auto object-contain" />
+                      <img src={settings.logo_url} alt={settings.brand_name} className="h-10 sm:h-14 w-auto object-contain" />
                     )}
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">INVOICE</div>
-                    <div className="text-xs text-gray-500">Order #{String(invoiceOrder.order_number ?? 0).padStart(4, "0")}</div>
-                    <div className="text-xs text-gray-500">{new Date(invoiceOrder.created_at).toLocaleString()}</div>
+                  <div className="text-right shrink-0">
+                    <div className="text-lg sm:text-2xl font-bold">INVOICE</div>
+                    <div className="text-[10px] sm:text-xs text-gray-500">Order #{String(invoiceOrder.order_number ?? 0).padStart(4, "0")}</div>
+                    <div className="text-[10px] sm:text-xs text-gray-500">{new Date(invoiceOrder.created_at).toLocaleString()}</div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 py-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-3 text-[11px] sm:text-xs">
                   <div>
                     <div className="text-gray-500 uppercase tracking-wide mb-1">From</div>
                     <div className="font-semibold">{settings.brand_name}</div>
-                    {settings.contact_email && <div>{settings.contact_email}</div>}
+                    {settings.contact_email && <div className="break-all">{settings.contact_email}</div>}
                     {settings.contact_phone && <div>{settings.contact_phone}</div>}
                     {settings.address && <div className="whitespace-pre-line">{settings.address}</div>}
                   </div>
                   <div>
                     <div className="text-gray-500 uppercase tracking-wide mb-1">Bill To</div>
-                    <div className="font-semibold">{profile?.display_name || profile?.email || user?.email || "Customer"}</div>
-                    {(profile?.email || user?.email) && <div>{profile?.email || user?.email}</div>}
+                    <div className="font-semibold break-all">{profile?.display_name || profile?.email || user?.email || "Customer"}</div>
+                    {(profile?.email || user?.email) && <div className="break-all">{profile?.email || user?.email}</div>}
                   </div>
                 </div>
-                <table className="w-full text-xs border-collapse">
+
+                {/* Desktop table */}
+                <table className="hidden sm:table w-full text-xs border-collapse">
                   <thead>
                     <tr className="bg-gray-900 text-white">
                       <th className="text-left p-2">Service</th>
@@ -987,18 +989,29 @@ export default function Dashboard() {
                     </tr>
                   </tbody>
                 </table>
-                <div className="flex justify-end pt-3 text-sm">
-                  <div className="font-bold">TOTAL&nbsp;&nbsp;${Number(invoiceOrder.price_charged).toFixed(2)}</div>
+
+                {/* Mobile stacked item */}
+                <div className="sm:hidden rounded-md border bg-gray-50 p-3 text-[12px] space-y-1.5">
+                  <div className="bg-gray-900 text-white -m-3 mb-2 p-2 text-[11px] font-semibold uppercase tracking-wide rounded-t-md">Item</div>
+                  <div><span className="text-gray-500">Service: </span><span>{invoiceOrder.services?.name ?? "—"}</span></div>
+                  <div><span className="text-gray-500">IMEI/SN: </span><span className="font-mono break-all">{invoiceOrder.imei}</span></div>
+                  <div><span className="text-gray-500">Status: </span><span>{invoiceOrder.status.toUpperCase()}</span></div>
+                  <div><span className="text-gray-500">Amount: </span><span className="font-mono">${Number(invoiceOrder.price_charged).toFixed(2)}</span></div>
+                </div>
+
+                <div className="flex justify-between sm:justify-end items-center pt-3 text-sm">
+                  <span className="sm:hidden text-gray-500 text-xs">TOTAL</span>
+                  <div className="font-bold">${Number(invoiceOrder.price_charged).toFixed(2)}</div>
                 </div>
                 {(invoiceOrder.result || invoiceOrder.error_message) && (
                   <div className="mt-4 pt-3 border-t">
-                    <div className="font-semibold mb-1">Result</div>
-                    <pre className="font-mono text-[11px] whitespace-pre-wrap break-all text-gray-700">
+                    <div className="font-semibold mb-1 text-[12px]">Result</div>
+                    <pre className="font-mono text-[10.5px] sm:text-[11px] whitespace-pre-wrap break-all text-gray-700">
                       {(invoiceOrder.result || invoiceOrder.error_message || "").replace(/\[\[c:[^\]]+\]\]/g, "").replace(/\[\[\/c\]\]/g, "")}
                     </pre>
                   </div>
                 )}
-                <div className="mt-6 pt-3 border-t text-center text-[10px] text-gray-400">
+                <div className="mt-5 pt-3 border-t text-center text-[10px] text-gray-400">
                   Generated {new Date().toLocaleString()} — {settings.brand_name}
                 </div>
               </div>
@@ -1006,6 +1019,7 @@ export default function Dashboard() {
           )}
         </DialogContent>
       </Dialog>
+
 
 
 
