@@ -904,46 +904,109 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!invoicePreview} onOpenChange={(o) => {
-        if (!o && invoicePreview) {
-          URL.revokeObjectURL(invoicePreview.url);
-          setInvoicePreview(null);
-        }
-      }}>
-        <DialogContent className="glass max-w-4xl max-h-[92vh] p-0 overflow-hidden">
-          <DialogHeader className="px-4 pt-4 pb-2">
+      <Dialog open={!!invoiceOrder} onOpenChange={(o) => !o && setInvoiceOrder(null)}>
+        <DialogContent className="glass max-w-3xl max-h-[92vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="px-4 pt-4 pb-2 border-b">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5" /> Invoice Preview</DialogTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="hero"
-                  size="sm"
-                  onClick={() => {
-                    if (!invoicePreview) return;
-                    const a = document.createElement("a");
-                    a.href = invoicePreview.url;
-                    a.download = invoicePreview.filename;
-                    a.click();
-                  }}
-                >
-                  <FileText className="w-4 h-4 mr-2" /> Download PDF
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => {
-                  if (invoicePreview) URL.revokeObjectURL(invoicePreview.url);
-                  setInvoicePreview(null);
-                }}>Close</Button>
-              </div>
+              <Button
+                variant="hero"
+                size="sm"
+                disabled={invoiceDownloading}
+                onClick={async () => {
+                  if (!invoiceOrder) return;
+                  try {
+                    setInvoiceDownloading(true);
+                    await downloadOrderInvoice(
+                      invoiceOrder,
+                      {
+                        brand_name: settings.brand_name,
+                        tagline: settings.tagline,
+                        logo_url: settings.logo_url,
+                        contact_email: settings.contact_email,
+                        contact_phone: settings.contact_phone,
+                        address: settings.address,
+                      },
+                      { display_name: profile?.display_name ?? null, email: profile?.email ?? user?.email ?? null },
+                    );
+                  } catch {
+                    toast.error("Failed to generate invoice");
+                  } finally {
+                    setInvoiceDownloading(false);
+                  }
+                }}
+              >
+                <FileText className="w-4 h-4 mr-2" /> {invoiceDownloading ? "Preparing…" : "Download PDF"}
+              </Button>
             </div>
           </DialogHeader>
-          {invoicePreview && (
-            <iframe
-              title="Invoice preview"
-              src={invoicePreview.url}
-              className="w-full h-[78vh] border-0 bg-white"
-            />
+          {invoiceOrder && (
+            <div className="overflow-y-auto bg-muted/30 p-4">
+              <div className="mx-auto max-w-[640px] bg-white text-black rounded-md shadow-sm p-6 text-sm">
+                <div className="flex items-start justify-between gap-4 pb-4 border-b">
+                  <div className="flex items-center gap-3">
+                    {settings.logo_url && (
+                      <img src={settings.logo_url} alt={settings.brand_name} className="h-14 w-auto object-contain" />
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold">INVOICE</div>
+                    <div className="text-xs text-gray-500">Order #{String(invoiceOrder.order_number ?? 0).padStart(4, "0")}</div>
+                    <div className="text-xs text-gray-500">{new Date(invoiceOrder.created_at).toLocaleString()}</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 py-4 text-xs">
+                  <div>
+                    <div className="text-gray-500 uppercase tracking-wide mb-1">From</div>
+                    <div className="font-semibold">{settings.brand_name}</div>
+                    {settings.contact_email && <div>{settings.contact_email}</div>}
+                    {settings.contact_phone && <div>{settings.contact_phone}</div>}
+                    {settings.address && <div className="whitespace-pre-line">{settings.address}</div>}
+                  </div>
+                  <div>
+                    <div className="text-gray-500 uppercase tracking-wide mb-1">Bill To</div>
+                    <div className="font-semibold">{profile?.display_name || profile?.email || user?.email || "Customer"}</div>
+                    {(profile?.email || user?.email) && <div>{profile?.email || user?.email}</div>}
+                  </div>
+                </div>
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-gray-900 text-white">
+                      <th className="text-left p-2">Service</th>
+                      <th className="text-left p-2">IMEI / SN</th>
+                      <th className="text-left p-2">Status</th>
+                      <th className="text-right p-2">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="bg-gray-50">
+                      <td className="p-2 align-top">{invoiceOrder.services?.name ?? "—"}</td>
+                      <td className="p-2 align-top font-mono">{invoiceOrder.imei}</td>
+                      <td className="p-2 align-top">{invoiceOrder.status.toUpperCase()}</td>
+                      <td className="p-2 align-top text-right font-mono">${Number(invoiceOrder.price_charged).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div className="flex justify-end pt-3 text-sm">
+                  <div className="font-bold">TOTAL&nbsp;&nbsp;${Number(invoiceOrder.price_charged).toFixed(2)}</div>
+                </div>
+                {(invoiceOrder.result || invoiceOrder.error_message) && (
+                  <div className="mt-4 pt-3 border-t">
+                    <div className="font-semibold mb-1">Result</div>
+                    <pre className="font-mono text-[11px] whitespace-pre-wrap break-all text-gray-700">
+                      {(invoiceOrder.result || invoiceOrder.error_message || "").replace(/\[\[c:[^\]]+\]\]/g, "").replace(/\[\[\/c\]\]/g, "")}
+                    </pre>
+                  </div>
+                )}
+                <div className="mt-6 pt-3 border-t text-center text-[10px] text-gray-400">
+                  Generated {new Date().toLocaleString()} — {settings.brand_name}
+                </div>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
+
 
 
       <ImeiCheckDialog
