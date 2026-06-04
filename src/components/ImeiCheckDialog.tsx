@@ -52,7 +52,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
 
   useEffect(() => {
     if (service) {
-      setTab("single"); setImei(""); setBulkText(""); setResult(null); setRows([]); setShowSample(false); setSubmittedAsync(null);
+      setTab("single"); setImei(""); setBulkText(""); setResult(null); setRows([]); setShowSample(false); setSubmittedAsync(null); setBulkSubmitted(null);
       // Seed defaults for server fields
       const seed: Record<string, string> = {};
       (service.custom_fields ?? []).forEach((f) => { seed[f.name] = f.default ?? ""; });
