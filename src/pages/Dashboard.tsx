@@ -858,31 +858,9 @@ export default function Dashboard() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={invoiceBuilding}
-                  onClick={async () => {
-                    try {
-                      setInvoiceBuilding(true);
-                      const { url, filename } = await buildOrderInvoice(
-                        orderDetail,
-                        {
-                          brand_name: settings.brand_name,
-                          tagline: settings.tagline,
-                          logo_url: settings.logo_url,
-                          contact_email: settings.contact_email,
-                          contact_phone: settings.contact_phone,
-                          address: settings.address,
-                        },
-                        { display_name: profile?.display_name ?? null, email: profile?.email ?? user?.email ?? null },
-                      );
-                      setInvoicePreview({ url, filename });
-                    } catch (e) {
-                      toast.error("Failed to generate invoice");
-                    } finally {
-                      setInvoiceBuilding(false);
-                    }
-                  }}
+                  onClick={() => setInvoiceOrder(orderDetail)}
                 >
-                  <FileText className="w-4 h-4 mr-2" /> {invoiceBuilding ? "Loading…" : "Invoice"}
+                  <FileText className="w-4 h-4 mr-2" /> Invoice
                 </Button>
               )}
             </div>
