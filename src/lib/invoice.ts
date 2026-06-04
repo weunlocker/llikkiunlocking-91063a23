@@ -58,25 +58,22 @@ export async function downloadOrderInvoice(
   const margin = 40;
   let y = margin;
 
-  // Logo
+  // Logo (enlarged; brand name/tagline omitted next to it)
+  let logoRendered = false;
   if (brand.logo_url) {
     const dataUrl = await loadImageAsDataUrl(brand.logo_url);
     if (dataUrl) {
       try {
-        doc.addImage(dataUrl, "PNG", margin, y, 50, 50);
+        doc.addImage(dataUrl, "PNG", margin, y, 180, 60);
+        logoRendered = true;
       } catch { /* ignore */ }
     }
   }
-
-  // Brand block
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(brand.brand_name, margin + 60, y + 18);
-  if (brand.tagline) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(120);
-    doc.text(brand.tagline, margin + 60, y + 32);
+  if (!logoRendered) {
+    // Fallback to brand name if logo can't load
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text(brand.brand_name, margin, y + 30);
   }
 
   // Invoice title (right)
