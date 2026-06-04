@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Wallet, History, Plus, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings, Code2, LayoutGrid, List, Gift, Download, FileText, MessageSquare } from "lucide-react";
-import { downloadOrderInvoice, exportOrdersCsv } from "@/lib/invoice";
+import { buildOrderInvoice, downloadOrderInvoice, exportOrdersCsv } from "@/lib/invoice";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
@@ -77,6 +77,8 @@ export default function Dashboard() {
   const [now, setNow] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
+  const [invoicePreview, setInvoicePreview] = useState<{ url: string; filename: string } | null>(null);
+  const [invoiceBuilding, setInvoiceBuilding] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [serviceQuery, setServiceQuery] = useState("");
   const [svcGroup, setSvcGroup] = useState("all");
@@ -856,9 +858,11 @@ export default function Dashboard() {
                 <Button
                   variant="outline"
                   size="sm"
+                  disabled={invoiceBuilding}
                   onClick={async () => {
                     try {
-                      await downloadOrderInvoice(
+                      setInvoiceBuilding(true);
+                      const { url, filename } = await buildOrderInvoice(
                         orderDetail,
                         {
                           brand_name: settings.brand_name,
@@ -870,12 +874,15 @@ export default function Dashboard() {
                         },
                         { display_name: profile?.display_name ?? null, email: profile?.email ?? user?.email ?? null },
                       );
+                      setInvoicePreview({ url, filename });
                     } catch (e) {
                       toast.error("Failed to generate invoice");
+                    } finally {
+                      setInvoiceBuilding(false);
                     }
                   }}
                 >
-                  <FileText className="w-4 h-4 mr-2" /> Invoice
+                  <FileText className="w-4 h-4 mr-2" /> {invoiceBuilding ? "Loading…" : "Invoice"}
                 </Button>
               )}
             </div>
@@ -918,6 +925,48 @@ export default function Dashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!invoicePreview} onOpenChange={(o) => {
+        if (!o && invoicePreview) {
+          URL.revokeObjectURL(invoicePreview.url);
+          setInvoicePreview(null);
+        }
+      }}>
+        <DialogContent className="glass max-w-4xl max-h-[92vh] p-0 overflow-hidden">
+          <DialogHeader className="px-4 pt-4 pb-2">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5" /> Invoice Preview</DialogTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="hero"
+                  size="sm"
+                  onClick={() => {
+                    if (!invoicePreview) return;
+                    const a = document.createElement("a");
+                    a.href = invoicePreview.url;
+                    a.download = invoicePreview.filename;
+                    a.click();
+                  }}
+                >
+                  <FileText className="w-4 h-4 mr-2" /> Download PDF
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => {
+                  if (invoicePreview) URL.revokeObjectURL(invoicePreview.url);
+                  setInvoicePreview(null);
+                }}>Close</Button>
+              </div>
+            </div>
+          </DialogHeader>
+          {invoicePreview && (
+            <iframe
+              title="Invoice preview"
+              src={invoicePreview.url}
+              className="w-full h-[78vh] border-0 bg-white"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
 
       <ImeiCheckDialog
         service={selectedService}

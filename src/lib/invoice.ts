@@ -48,11 +48,12 @@ async function loadImageAsDataUrl(url: string): Promise<string | null> {
   }
 }
 
-export async function downloadOrderInvoice(
+export async function buildOrderInvoice(
   order: InvoiceOrder,
   brand: InvoiceBrand,
   customer: InvoiceCustomer,
-) {
+): Promise<{ blob: Blob; url: string; filename: string }> {
+
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 40;
@@ -165,7 +166,21 @@ export async function downloadOrderInvoice(
     { align: "center" },
   );
 
-  doc.save(`invoice-${orderId.replace("#", "")}.pdf`);
+  const filename = `invoice-${orderId.replace("#", "")}.pdf`;
+  const blob = doc.output("blob");
+  const url = URL.createObjectURL(blob);
+  return { blob, url, filename };
+}
+
+export async function downloadOrderInvoice(
+  order: InvoiceOrder,
+  brand: InvoiceBrand,
+  customer: InvoiceCustomer,
+) {
+  const { url, filename } = await buildOrderInvoice(order, brand, customer);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 export function exportOrdersCsv(rows: InvoiceOrder[], filename = "orders.csv") {
