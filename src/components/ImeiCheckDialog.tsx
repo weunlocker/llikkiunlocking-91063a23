@@ -41,6 +41,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SingleResult>(null);
   const [submittedAsync, setSubmittedAsync] = useState<{ imei: string } | null>(null);
+  const [bulkSubmitted, setBulkSubmitted] = useState<{ count: number; total: number } | null>(null);
   const [rows, setRows] = useState<BulkRow[]>([]);
   const [showSample, setShowSample] = useState(false);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
@@ -51,7 +52,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
 
   useEffect(() => {
     if (service) {
-      setTab("single"); setImei(""); setBulkText(""); setResult(null); setRows([]); setShowSample(false); setSubmittedAsync(null);
+      setTab("single"); setImei(""); setBulkText(""); setResult(null); setRows([]); setShowSample(false); setSubmittedAsync(null); setBulkSubmitted(null);
       // Seed defaults for server fields
       const seed: Record<string, string> = {};
       (service.custom_fields ?? []).forEach((f) => { seed[f.name] = f.default ?? ""; });
@@ -112,49 +113,24 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
     if (bulkValid.length === 0) { toast.error("Add at least one valid IMEI/Serial"); return; }
     if (balance < totalCost) { toast.error(`Need $${totalCost.toFixed(2)} — top up your wallet first.`); return; }
 
-    const initial: BulkRow[] = bulkValid.map((imei) => ({ imei, status: "pending" }));
-    setRows(initial);
     setSubmitting(true);
-
-    const PER_CHECK_TIMEOUT_MS = 60_000;
-    const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> =>
-      new Promise((resolve, reject) => {
-        const t = setTimeout(() => reject(new Error("Request timed out — moved on")), ms);
-        p.then((v) => { clearTimeout(t); resolve(v); }).catch((e) => { clearTimeout(t); reject(e); });
-      });
-
-    let remainingBalance = balance;
-    let okCount = 0;
-    for (let i = 0; i < bulkValid.length; i++) {
-      if (remainingBalance < price) {
-        setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "failed", error: "Insufficient balance" } : r));
-        break;
-      }
-      setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "running" } : r));
-      try {
-        const { data, error } = await withTimeout(
-          supabase.functions.invoke("check-imei", { body: { service_id: service.id, imei: bulkValid[i] } }),
-          PER_CHECK_TIMEOUT_MS,
-        );
-        if (error) {
-          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "failed", error: error.message } : r));
-        } else if (data?.status === "completed") {
-          remainingBalance -= price; okCount++;
-          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "successful", result: data.result } : r));
-        } else if (data?.status === "pending") {
-          remainingBalance -= price;
-          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "queued", result: "Order placed — track in Orders tab" } : r));
-        } else {
-          setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "rejected", error: data?.error ?? "Failed" } : r));
-        }
-      } catch (e) {
-        setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: "failed", error: (e as Error).message } : r));
-      }
-      onAfterRun?.();
+    // Fire all orders in parallel, don't await — they continue in background
+    // even after the dialog closes or the user navigates away.
+    for (const imeiVal of bulkValid) {
+      supabase.functions
+        .invoke("check-imei", { body: { service_id: service.id, imei: imeiVal } })
+        .then(() => onAfterRun?.())
+        .catch(() => { /* errors will surface in Orders page */ });
     }
+    // Tiny delay so the user perceives the submit
+    await new Promise((r) => setTimeout(r, 350));
     setSubmitting(false);
-    toast.success(`Bulk done — ${okCount}/${bulkValid.length} successful`);
+    setBulkSubmitted({ count: bulkValid.length, total: totalCost });
+    onBulkStarted?.();
+    onAfterRun?.();
+    toast.success(`${bulkValid.length} order${bulkValid.length === 1 ? "" : "s"} placed — processing in background`);
   };
+
 
   const reset = () => { setResult(null); setRows([]); setImei(""); setBulkText(""); };
 
@@ -189,6 +165,25 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
               </Button>
               <Button variant="hero" className="flex-1" onClick={() => { setSubmittedAsync(null); setImei(""); }}>
                 Place Another Order
+              </Button>
+            </div>
+          </div>
+        ) : bulkSubmitted ? (
+          <div className="space-y-4 py-4 text-center">
+            <CheckCircle2 className="w-14 h-14 text-success mx-auto" />
+            <div>
+              <h3 className="text-lg font-bold">Orders Placed Successfully</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                <span className="font-bold text-foreground">{bulkSubmitted.count}</span> order{bulkSubmitted.count === 1 ? "" : "s"} sent to supplier · <span className="font-mono text-primary">${bulkSubmitted.total.toFixed(2)}</span>
+                <br />Processing in background — results will appear in your Orders page.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <Button variant="glass" className="flex-1" onClick={() => { navigate("/dashboard?tab=orders"); onClose(); }}>
+                <HistoryIcon className="w-4 h-4" /> View Orders
+              </Button>
+              <Button variant="hero" className="flex-1" onClick={() => { setBulkSubmitted(null); setBulkText(""); }}>
+                Place More
               </Button>
             </div>
           </div>
