@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Wallet, History, Plus, Loader2, Smartphone, Clock, CheckCircle2, XCircle, Search, Send, Settings, Code2, LayoutGrid, List, Gift, Download, FileText, MessageSquare } from "lucide-react";
-import { downloadOrderInvoice, exportOrdersCsv } from "@/lib/invoice";
+import { buildOrderInvoice, downloadOrderInvoice, exportOrdersCsv } from "@/lib/invoice";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
