@@ -48,11 +48,12 @@ async function loadImageAsDataUrl(url: string): Promise<string | null> {
   }
 }
 
-export async function downloadOrderInvoice(
+export async function buildOrderInvoice(
   order: InvoiceOrder,
   brand: InvoiceBrand,
   customer: InvoiceCustomer,
-) {
+): Promise<{ blob: Blob; url: string; filename: string }> {
+
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 40;
