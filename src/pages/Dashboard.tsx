@@ -77,8 +77,8 @@ export default function Dashboard() {
   const [now, setNow] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
-  const [invoicePreview, setInvoicePreview] = useState<{ url: string; filename: string } | null>(null);
-  const [invoiceBuilding, setInvoiceBuilding] = useState(false);
+  const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
+  const [invoiceDownloading, setInvoiceDownloading] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [serviceQuery, setServiceQuery] = useState("");
   const [svcGroup, setSvcGroup] = useState("all");
