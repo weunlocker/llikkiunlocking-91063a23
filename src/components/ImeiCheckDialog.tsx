@@ -41,6 +41,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<SingleResult>(null);
   const [submittedAsync, setSubmittedAsync] = useState<{ imei: string } | null>(null);
+  const [bulkSubmitted, setBulkSubmitted] = useState<{ count: number; total: number } | null>(null);
   const [rows, setRows] = useState<BulkRow[]>([]);
   const [showSample, setShowSample] = useState(false);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
