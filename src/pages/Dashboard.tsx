@@ -926,6 +926,48 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!invoicePreview} onOpenChange={(o) => {
+        if (!o && invoicePreview) {
+          URL.revokeObjectURL(invoicePreview.url);
+          setInvoicePreview(null);
+        }
+      }}>
+        <DialogContent className="glass max-w-4xl max-h-[92vh] p-0 overflow-hidden">
+          <DialogHeader className="px-4 pt-4 pb-2">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <DialogTitle className="flex items-center gap-2"><FileText className="w-5 h-5" /> Invoice Preview</DialogTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="hero"
+                  size="sm"
+                  onClick={() => {
+                    if (!invoicePreview) return;
+                    const a = document.createElement("a");
+                    a.href = invoicePreview.url;
+                    a.download = invoicePreview.filename;
+                    a.click();
+                  }}
+                >
+                  <FileText className="w-4 h-4 mr-2" /> Download PDF
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => {
+                  if (invoicePreview) URL.revokeObjectURL(invoicePreview.url);
+                  setInvoicePreview(null);
+                }}>Close</Button>
+              </div>
+            </div>
+          </DialogHeader>
+          {invoicePreview && (
+            <iframe
+              title="Invoice preview"
+              src={invoicePreview.url}
+              className="w-full h-[78vh] border-0 bg-white"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+
       <ImeiCheckDialog
         service={selectedService}
         balance={Number(profile?.balance ?? 0)}
