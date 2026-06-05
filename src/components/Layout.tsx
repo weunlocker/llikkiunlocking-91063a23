@@ -93,7 +93,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                     <span className="font-mono font-semibold">${Number(profile.balance).toFixed(2)}</span>
                   </div>
                 )}
-                <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => navigate("/dashboard")}>
+                <Button variant="ghost" size="sm" className="hidden sm:inline-flex" aria-label="Dashboard" onClick={() => navigate("/dashboard")}>
                   <LayoutDashboard className="w-4 h-4" />
                   <span className="hidden md:inline ml-2">Dashboard</span>
                 </Button>
