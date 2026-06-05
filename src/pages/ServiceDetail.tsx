@@ -71,7 +71,7 @@ export default function ServiceDetail() {
   }
 
   const path = `/services/${slug}`;
-  const title = `${service.name} — IMEI Check & Unlock | LIKKI UNLOCKING`;
+  const title = `${service.name} | LIKKI UNLOCKING`;
   const description = (service.description ?? `${service.name}. Wholesale IMEI check & unlock service. Delivery ${service.delivery_time}.`).slice(0, 158);
   const keywords = `${service.name}, ${service.category ?? "imei"}, IMEI check, phone unlock, ${service.name} online, ${service.name} price`;
 
