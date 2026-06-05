@@ -3,5 +3,8 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /profile
+Disallow: /analytics
+Disallow: /unsubscribe
+Disallow: /email-unsubscribe
 
 Sitemap: https://likkiunlocking.com/sitemap.xml

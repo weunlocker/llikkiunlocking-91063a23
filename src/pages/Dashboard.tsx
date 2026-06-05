@@ -1011,7 +1011,7 @@ export default function Dashboard() {
                     </pre>
                   </div>
                 )}
-                <div className="mt-5 pt-3 border-t text-center text-[10px] text-gray-400">
+                <div className="mt-5 pt-3 border-t text-center text-[10px] text-muted-foreground">
                   Generated {new Date().toLocaleString()} — {settings.brand_name}
                 </div>
               </div>
