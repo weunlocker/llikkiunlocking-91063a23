@@ -344,6 +344,7 @@ function AdminServices() {
   const [searchParams] = useSearchParams();
   const typeFilter = settings.service_types_enabled ? (searchParams.get("type") as "imei" | "server" | null) : null;
   const [services, setServices] = useState<Service[]>([]);
+  const [supplierOriginalPrices, setSupplierOriginalPrices] = useState<Record<string, number | null>>({});
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -367,7 +368,22 @@ function AdminServices() {
       supabase.from("suppliers").select("id,name,type,endpoint_url,dhru_username,dhru_api_key,active,notes").order("name"),
       supabase.from("categories").select("id,slug,name,sort_order").order("sort_order").order("name"),
     ]);
-    setServices((svc ?? []) as unknown as Service[]);
+    const loadedServices = (svc ?? []) as unknown as Service[];
+    const connectedSupplierIds = Array.from(new Set(loadedServices.map((s) => s.supplier_id).filter(Boolean) as string[]));
+    if (connectedSupplierIds.length > 0) {
+      const { data: supplierServices } = await supabase
+        .from("supplier_services")
+        .select("supplier_id,action_code,credit")
+        .in("supplier_id", connectedSupplierIds);
+      const prices: Record<string, number | null> = {};
+      (supplierServices ?? []).forEach((row: { supplier_id: string; action_code: string; credit: number | null }) => {
+        prices[`${row.supplier_id}:${row.action_code}`] = row.credit;
+      });
+      setSupplierOriginalPrices(prices);
+    } else {
+      setSupplierOriginalPrices({});
+    }
+    setServices(loadedServices);
     setSuppliers((sup ?? []) as unknown as Supplier[]);
     setCategories((cats ?? []) as Category[]);
     setLoading(false);
