@@ -340,6 +340,7 @@ function PaginationBar({ page, totalPages, pageSize, total, onPage, onPageSize }
 
 function AdminServices() {
   const confirm = useConfirm();
+  const navigate = useNavigate();
   const { settings } = useSiteSettings();
   const [searchParams] = useSearchParams();
   const typeFilter = settings.service_types_enabled ? (searchParams.get("type") as "imei" | "server" | null) : null;
@@ -562,7 +563,7 @@ function AdminServices() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input className="pl-9" placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
-          <Button variant="hero" onClick={() => setEditing({ ...empty, service_type: typeFilter ?? "imei" })}><Plus className="w-4 h-4 mr-1" />New Service</Button>
+          <Button variant="hero" onClick={() => navigate(`/admin/services/new${typeFilter ? `?type=${typeFilter}` : ""}`)}><Plus className="w-4 h-4 mr-1" />New Service</Button>
         </>
       }
     >
@@ -615,7 +616,7 @@ function AdminServices() {
                 >
                   <td className="px-3 py-3 text-muted-foreground cursor-grab active:cursor-grabbing" title="Drag to reorder"><GripVertical className="w-4 h-4" /></td>
                   <td className="px-5 py-3 font-mono font-semibold text-primary">{s.service_code ?? "—"}</td>
-                  <td className="px-5 py-3 font-medium cursor-pointer hover:text-primary transition-colors min-w-[320px] whitespace-normal break-words" title={s.name} onClick={() => setEditing(s)}>{s.name}</td>
+                  <td className="px-5 py-3 font-medium cursor-pointer hover:text-primary transition-colors min-w-[320px] whitespace-normal break-words" title={s.name} onClick={() => navigate(`/admin/services/${s.id}`)}>{s.name}</td>
                   <td className="px-5 py-3"><span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">{s.category}</span></td>
                   <td className="px-3 py-3 font-mono text-right">${Number(s.price).toFixed(2)}</td>
                   <td className="px-3 py-3 font-mono text-right text-slate-300">${(Number(s.price) * 0.90).toFixed(2)}</td>
@@ -629,7 +630,7 @@ function AdminServices() {
                   </td>
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
-                    <Button size="icon" variant="ghost" onClick={() => setEditing(s)}><Edit className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => navigate(`/admin/services/${s.id}`)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => delService(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </td>
                 </tr>
@@ -2294,6 +2295,7 @@ import AdminReferrals from "./AdminReferrals";
 import AdminAnalytics from "./AdminAnalytics";
 import AdminSupport from "./AdminSupport";
 import AdminLoginActivity from "./AdminLoginActivity";
+import AdminServiceEdit from "./AdminServiceEdit";
 export default function Admin() {
   return (
     <Routes>
@@ -2309,6 +2311,8 @@ export default function Admin() {
       <Route path="suppliers" element={<AdminSuppliers />} />
       <Route path="categories" element={<AdminCategories />} />
       <Route path="services" element={<AdminServices />} />
+      <Route path="services/new" element={<AdminServiceEdit />} />
+      <Route path="services/:id" element={<AdminServiceEdit />} />
       <Route path="orders" element={<AdminOrders />} />
       <Route path="transactions" element={<AdminTransactions />} />
       <Route path="notifications" element={<AdminNotifications />} />
