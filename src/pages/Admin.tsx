@@ -344,6 +344,7 @@ function AdminServices() {
   const [searchParams] = useSearchParams();
   const typeFilter = settings.service_types_enabled ? (searchParams.get("type") as "imei" | "server" | null) : null;
   const [services, setServices] = useState<Service[]>([]);
+  const [supplierOriginalPrices, setSupplierOriginalPrices] = useState<Record<string, number | null>>({});
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -367,7 +368,22 @@ function AdminServices() {
       supabase.from("suppliers").select("id,name,type,endpoint_url,dhru_username,dhru_api_key,active,notes").order("name"),
       supabase.from("categories").select("id,slug,name,sort_order").order("sort_order").order("name"),
     ]);
-    setServices((svc ?? []) as unknown as Service[]);
+    const loadedServices = (svc ?? []) as unknown as Service[];
+    const connectedSupplierIds = Array.from(new Set(loadedServices.map((s) => s.supplier_id).filter(Boolean) as string[]));
+    if (connectedSupplierIds.length > 0) {
+      const { data: supplierServices } = await supabase
+        .from("supplier_services")
+        .select("supplier_id,action_code,credit")
+        .in("supplier_id", connectedSupplierIds);
+      const prices: Record<string, number | null> = {};
+      (supplierServices ?? []).forEach((row: { supplier_id: string; action_code: string; credit: number | null }) => {
+        prices[`${row.supplier_id}:${row.action_code}`] = row.credit;
+      });
+      setSupplierOriginalPrices(prices);
+    } else {
+      setSupplierOriginalPrices({});
+    }
+    setServices(loadedServices);
     setSuppliers((sup ?? []) as unknown as Supplier[]);
     setCategories((cats ?? []) as Category[]);
     setLoading(false);
@@ -584,7 +600,9 @@ function AdminServices() {
               <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-3 py-3 text-right">Default</th><th className="px-3 py-3 text-right text-slate-300">Silver −10%</th><th className="px-3 py-3 text-right text-yellow-400">Gold −30%</th><th className="px-3 py-3 text-right text-cyan-300">Diamond −50%</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
             </thead>
             <tbody>
-              {pageItems.map((s) => (
+              {pageItems.map((s) => {
+                const originalPrice = s.supplier_id && s.supplier_action ? supplierOriginalPrices[`${s.supplier_id}:${s.supplier_action}`] : null;
+                return (
                 <tr
                   key={s.id}
                   draggable
@@ -604,9 +622,9 @@ function AdminServices() {
                   <td className="px-3 py-3 font-mono text-right text-yellow-400">${(Number(s.price) * 0.70).toFixed(2)}</td>
                   <td className="px-3 py-3 font-mono text-right text-cyan-300">${(Number(s.price) * 0.50).toFixed(2)}</td>
                   <td className="px-5 py-3 text-muted-foreground text-xs">{s.delivery_time}</td>
-                  <td className="px-5 py-3 text-xs text-muted-foreground truncate max-w-[200px]">
+                  <td className="px-5 py-3 text-xs text-muted-foreground max-w-[240px]">
                     {s.supplier_id
-                      ? <span className="text-primary">via {suppliers.find((x) => x.id === s.supplier_id)?.name ?? "supplier"}{s.supplier_action ? ` · #${s.supplier_action}` : ""}</span>
+                      ? <span className="text-primary break-words">via {suppliers.find((x) => x.id === s.supplier_id)?.name ?? "supplier"}{s.supplier_action ? ` · #${s.supplier_action}` : ""}{originalPrice != null ? <span className="block font-mono text-muted-foreground">API original: {Number(originalPrice).toFixed(3)} credit</span> : null}</span>
                       : (s.api_url || <span className="text-warning">⚠ not set</span>)}
                   </td>
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
@@ -615,7 +633,8 @@ function AdminServices() {
                     <Button size="icon" variant="ghost" onClick={() => delService(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {filtered.length === 0 && <tr><td colSpan={12} className="px-5 py-10 text-center text-muted-foreground">No services.</td></tr>}
             </tbody>
           </table>
