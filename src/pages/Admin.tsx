@@ -600,7 +600,9 @@ function AdminServices() {
               <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-3 py-3 text-right">Default</th><th className="px-3 py-3 text-right text-slate-300">Silver −10%</th><th className="px-3 py-3 text-right text-yellow-400">Gold −30%</th><th className="px-3 py-3 text-right text-cyan-300">Diamond −50%</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
             </thead>
             <tbody>
-              {pageItems.map((s) => (
+              {pageItems.map((s) => {
+                const originalPrice = s.supplier_id && s.supplier_action ? supplierOriginalPrices[`${s.supplier_id}:${s.supplier_action}`] : null;
+                return (
                 <tr
                   key={s.id}
                   draggable
@@ -620,9 +622,9 @@ function AdminServices() {
                   <td className="px-3 py-3 font-mono text-right text-yellow-400">${(Number(s.price) * 0.70).toFixed(2)}</td>
                   <td className="px-3 py-3 font-mono text-right text-cyan-300">${(Number(s.price) * 0.50).toFixed(2)}</td>
                   <td className="px-5 py-3 text-muted-foreground text-xs">{s.delivery_time}</td>
-                  <td className="px-5 py-3 text-xs text-muted-foreground truncate max-w-[200px]">
+                  <td className="px-5 py-3 text-xs text-muted-foreground max-w-[240px]">
                     {s.supplier_id
-                      ? <span className="text-primary">via {suppliers.find((x) => x.id === s.supplier_id)?.name ?? "supplier"}{s.supplier_action ? ` · #${s.supplier_action}` : ""}</span>
+                      ? <span className="text-primary break-words">via {suppliers.find((x) => x.id === s.supplier_id)?.name ?? "supplier"}{s.supplier_action ? ` · #${s.supplier_action}` : ""}{originalPrice != null ? <span className="block font-mono text-muted-foreground">Original: ${Number(originalPrice).toFixed(3)}</span> : null}</span>
                       : (s.api_url || <span className="text-warning">⚠ not set</span>)}
                   </td>
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
@@ -631,7 +633,8 @@ function AdminServices() {
                     <Button size="icon" variant="ghost" onClick={() => delService(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {filtered.length === 0 && <tr><td colSpan={12} className="px-5 py-10 text-center text-muted-foreground">No services.</td></tr>}
             </tbody>
           </table>
