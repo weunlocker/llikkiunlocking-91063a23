@@ -562,7 +562,7 @@ function AdminServices() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input className="pl-9" placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
-          <Button variant="hero" onClick={() => setEditing({ ...empty, service_type: typeFilter ?? "imei" })}><Plus className="w-4 h-4 mr-1" />New Service</Button>
+          <Button variant="hero" onClick={() => navigate(`/admin/services/new${typeFilter ? `?type=${typeFilter}` : ""}`)}><Plus className="w-4 h-4 mr-1" />New Service</Button>
         </>
       }
     >
