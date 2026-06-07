@@ -2294,6 +2294,7 @@ import AdminReferrals from "./AdminReferrals";
 import AdminAnalytics from "./AdminAnalytics";
 import AdminSupport from "./AdminSupport";
 import AdminLoginActivity from "./AdminLoginActivity";
+import AdminServiceEdit from "./AdminServiceEdit";
 export default function Admin() {
   return (
     <Routes>
