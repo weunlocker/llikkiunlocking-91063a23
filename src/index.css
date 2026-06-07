@@ -117,6 +117,7 @@
 
 @layer base {
   * { @apply border-border; }
+  html, body { overflow-x: hidden; max-width: 100%; }
   html { scroll-behavior: smooth; font-size: 16px; }
   body {
     @apply bg-background text-foreground antialiased;
@@ -125,6 +126,7 @@
     background-attachment: fixed;
     min-height: 100vh;
   }
+  #root { overflow-x: hidden; max-width: 100%; }
 
   ::selection { background: hsl(var(--primary) / 0.3); color: hsl(var(--primary-glow)); }
 
