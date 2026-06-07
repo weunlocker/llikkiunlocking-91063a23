@@ -807,7 +807,7 @@ function AdminServices() {
                               <span className="truncate flex items-center gap-1.5">
                                 <span className="font-mono text-primary">#{s.action_code}</span> {s.name}
                               </span>
-                              <span className="text-muted-foreground whitespace-nowrap">{s.credit != null ? `${s.credit} cr` : ""}{s.delivery_time ? ` · ${s.delivery_time}` : ""}</span>
+                              <span className="text-muted-foreground whitespace-nowrap">{s.delivery_time ?? ""}</span>
                             </button>
                           );
                         };
