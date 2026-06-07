@@ -624,7 +624,7 @@ function AdminServices() {
                   <td className="px-5 py-3 text-muted-foreground text-xs">{s.delivery_time}</td>
                   <td className="px-5 py-3 text-xs text-muted-foreground max-w-[240px]">
                     {s.supplier_id
-                      ? <span className="text-primary break-words">via {suppliers.find((x) => x.id === s.supplier_id)?.name ?? "supplier"}{s.supplier_action ? ` · #${s.supplier_action}` : ""}{originalPrice != null ? <span className="block font-mono text-muted-foreground">Original: ${Number(originalPrice).toFixed(3)}</span> : null}</span>
+                      ? <span className="text-primary break-words">via {suppliers.find((x) => x.id === s.supplier_id)?.name ?? "supplier"}{s.supplier_action ? ` · #${s.supplier_action}` : ""}{originalPrice != null ? <span className="block font-mono text-muted-foreground">API original: {Number(originalPrice).toFixed(3)} credit</span> : null}</span>
                       : (s.api_url || <span className="text-warning">⚠ not set</span>)}
                   </td>
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
