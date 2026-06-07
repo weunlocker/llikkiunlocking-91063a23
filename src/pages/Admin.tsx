@@ -630,7 +630,7 @@ function AdminServices() {
                   </td>
                   <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
-                    <Button size="icon" variant="ghost" onClick={() => setEditing(s)}><Edit className="w-4 h-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => navigate(`/admin/services/${s.id}`)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => delService(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                   </td>
                 </tr>
