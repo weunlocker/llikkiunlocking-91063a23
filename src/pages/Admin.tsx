@@ -272,9 +272,14 @@ function AdminUsers() {
       title="Users"
       subtitle={`${users.length} registered clients`}
       actions={
-        <div className="relative w-72">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search email or name…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant={onlyUnverified ? "hero" : "ghost"} onClick={() => setOnlyUnverified((v) => !v)}>
+            {onlyUnverified ? "Showing unverified" : "Unverified only"}
+          </Button>
+          <div className="relative w-72">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input className="pl-9" placeholder="Search email or name…" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
         </div>
       }
     >
@@ -282,25 +287,40 @@ function AdminUsers() {
         <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
-              <tr><th className="px-5 py-3">Email</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Group</th><th className="px-5 py-3 text-right">Balance</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Joined</th><th></th></tr>
+              <tr><th className="px-5 py-3">Email</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Group</th><th className="px-5 py-3 text-right">Balance</th><th className="px-5 py-3">Verified</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Joined</th><th></th></tr>
             </thead>
             <tbody>
-              {filtered.map((u) => (
+              {filtered.map((u) => {
+                const st = authStatus[u.id];
+                const verified = !!st?.email_confirmed_at;
+                return (
                 <tr key={u.id} className="border-t border-border/50 hover:bg-secondary/20">
                   <td className="px-5 py-3">{u.email}</td>
                   <td className="px-5 py-3 text-muted-foreground">{u.display_name}</td>
                   <td className="px-5 py-3">{groupBadge((u as ProfileRow & { user_group?: string }).user_group)}</td>
                   <td className="px-5 py-3 text-right font-mono font-bold">${Number(u.balance).toFixed(2)}</td>
+                  <td className="px-5 py-3">
+                    {st === undefined
+                      ? <span className="text-xs text-muted-foreground">…</span>
+                      : verified
+                        ? <span className="text-success text-xs">● Verified</span>
+                        : <span className="text-warning text-xs">● Unverified</span>}
+                  </td>
                   <td className="px-5 py-3">{u.banned ? <span className="text-destructive">● Banned</span> : <span className="text-success">● Active</span>}</td>
                   <td className="px-5 py-3 text-xs text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</td>
                   <td className="px-5 py-3 text-right space-x-1 whitespace-nowrap">
+                    {!verified && st !== undefined && (
+                      <Button size="sm" variant="hero" disabled={verifyingId === u.id} onClick={() => verifyUser(u)}>
+                        {verifyingId === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Verify"}
+                      </Button>
+                    )}
                     <Button size="sm" variant="neon" onClick={() => setEditUser(u)}>Edit</Button>
                     <Button size="sm" variant="ghost" onClick={() => { setCreditUser(u); setCreditAmount("10"); }}>Refill</Button>
                     <Button size="sm" variant="ghost" onClick={() => toggleBan(u)}>{u.banned ? "Unban" : "Ban"}</Button>
                   </td>
                 </tr>
-              ))}
-              {filtered.length === 0 && <tr><td colSpan={7} className="px-5 py-10 text-center text-muted-foreground">No users found.</td></tr>}
+              );})}
+              {filtered.length === 0 && <tr><td colSpan={8} className="px-5 py-10 text-center text-muted-foreground">No users found.</td></tr>}
             </tbody>
           </table>
         </div>
