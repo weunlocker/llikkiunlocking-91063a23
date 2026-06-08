@@ -221,9 +221,11 @@ function AdminUsers() {
     load();
   };
 
-  const filtered = useMemo(() => users.filter((u) =>
-    !q || u.email?.toLowerCase().includes(q.toLowerCase()) || u.display_name?.toLowerCase().includes(q.toLowerCase())
-  ), [users, q]);
+  const filtered = useMemo(() => users.filter((u) => {
+    if (q && !(u.email?.toLowerCase().includes(q.toLowerCase()) || u.display_name?.toLowerCase().includes(q.toLowerCase()))) return false;
+    if (onlyUnverified && authStatus[u.id]?.email_confirmed_at) return false;
+    return true;
+  }), [users, q, onlyUnverified, authStatus]);
 
   const adjustCredit = async (delta: number) => {
     if (!creditUser || creditBusy) return;
