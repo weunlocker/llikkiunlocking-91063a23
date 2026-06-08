@@ -188,12 +188,38 @@ function AdminUsers() {
   const [creditAmount, setCreditAmount] = useState("10");
   const [creditBusy, setCreditBusy] = useState<null | "add" | "deduct">(null);
   const [editUser, setEditUser] = useState<ProfileRow | null>(null);
+  const [authStatus, setAuthStatus] = useState<Record<string, { email_confirmed_at: string | null; last_sign_in_at: string | null }>>({});
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [onlyUnverified, setOnlyUnverified] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-    setUsers((data ?? []) as ProfileRow[]); setLoading(false);
+    const rows = (data ?? []) as ProfileRow[];
+    setUsers(rows); setLoading(false);
+    const ids = rows.map((r) => r.id);
+    if (ids.length) {
+      const { data: s } = await supabase.functions.invoke("admin-verify-user", {
+        body: { action: "list_status", ids },
+      });
+      if (s && typeof s === "object" && "statuses" in s) {
+        setAuthStatus((s as { statuses: Record<string, { email_confirmed_at: string | null; last_sign_in_at: string | null }> }).statuses);
+      }
+    }
   };
   useEffect(() => { load(); }, []);
+
+  const verifyUser = async (u: ProfileRow) => {
+    setVerifyingId(u.id);
+    const { data, error } = await supabase.functions.invoke("admin-verify-user", {
+      body: { action: "verify", user_id: u.id },
+    });
+    setVerifyingId(null);
+    const errMsg = (data && typeof data === "object" && "error" in (data as Record<string, unknown>))
+      ? String((data as { error: unknown }).error) : error?.message;
+    if (errMsg) { toast.error(errMsg); return; }
+    toast.success(`${u.email} verified`);
+    load();
+  };
 
   const filtered = useMemo(() => users.filter((u) =>
     !q || u.email?.toLowerCase().includes(q.toLowerCase()) || u.display_name?.toLowerCase().includes(q.toLowerCase())
