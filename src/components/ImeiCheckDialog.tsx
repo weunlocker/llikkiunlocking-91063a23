@@ -10,7 +10,7 @@ import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone, Copy, 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { imeiSchema } from "@/lib/validation";
-import { extractResponse } from "@/lib/extractResponse";
+import { extractResponse, stripColorMarkers } from "@/lib/extractResponse";
 import { ColoredResult, fontCss } from "@/components/ColoredResult";
 
 export type CustomField = { name: string; label: string; type: string; required: boolean; default?: string; options?: string[] };
