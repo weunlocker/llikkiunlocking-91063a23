@@ -345,7 +345,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
                       <Button
                         variant="glass"
                         size="sm"
-                        onClick={() => { navigator.clipboard.writeText(extractResponse(r.result)); toast.success("Copied"); }}
+                        onClick={() => { navigator.clipboard.writeText(stripColorMarkers(extractResponse(r.result))); toast.success("Copied"); }}
                       >
                         <Copy className="w-4 h-4" /> Copy
                       </Button>
