@@ -307,7 +307,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
                 variant="glass"
                 size="sm"
                 onClick={() => {
-                  navigator.clipboard.writeText(extractResponse(result.result) || result.error || "");
+                  navigator.clipboard.writeText(stripColorMarkers(extractResponse(result.result)) || result.error || "");
                   toast.success("Copied");
                 }}
               >
