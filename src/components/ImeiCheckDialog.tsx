@@ -10,7 +10,7 @@ import { Loader2, Wallet, CheckCircle2, XCircle, Clock, List, Smartphone, Copy, 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { imeiSchema } from "@/lib/validation";
-import { extractResponse } from "@/lib/extractResponse";
+import { extractResponse, stripColorMarkers } from "@/lib/extractResponse";
 import { ColoredResult, fontCss } from "@/components/ColoredResult";
 
 export type CustomField = { name: string; label: string; type: string; required: boolean; default?: string; options?: string[] };
@@ -307,7 +307,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
                 variant="glass"
                 size="sm"
                 onClick={() => {
-                  navigator.clipboard.writeText(extractResponse(result.result) || result.error || "");
+                  navigator.clipboard.writeText(stripColorMarkers(extractResponse(result.result)) || result.error || "");
                   toast.success("Copied");
                 }}
               >
@@ -345,7 +345,7 @@ export default function ImeiCheckDialog({ service, balance, onClose, onAfterRun,
                       <Button
                         variant="glass"
                         size="sm"
-                        onClick={() => { navigator.clipboard.writeText(extractResponse(r.result)); toast.success("Copied"); }}
+                        onClick={() => { navigator.clipboard.writeText(stripColorMarkers(extractResponse(r.result))); toast.success("Copied"); }}
                       >
                         <Copy className="w-4 h-4" /> Copy
                       </Button>

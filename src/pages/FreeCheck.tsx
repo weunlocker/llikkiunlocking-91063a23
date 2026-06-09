@@ -10,6 +10,7 @@ import { Loader2, Gift, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { imeiSchema } from "@/lib/validation";
 import { ColoredResult } from "@/components/ColoredResult";
+import { stripColorMarkers } from "@/lib/extractResponse";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 type FreeService = {
@@ -163,7 +164,7 @@ export default function FreeCheck() {
             </DialogHeader>
             {result && <ColoredResult text={result} font={selected?.result_font ?? undefined} />}
             <DialogFooter>
-              <Button variant="outline" onClick={() => navigator.clipboard.writeText(result)}>Copy</Button>
+              <Button variant="outline" onClick={() => navigator.clipboard.writeText(stripColorMarkers(result))}>Copy</Button>
               <Button variant="hero" onClick={() => setOpen(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>

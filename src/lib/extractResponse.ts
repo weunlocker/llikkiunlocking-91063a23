@@ -1,3 +1,10 @@
+// Strip [[c:...]]...[[/c]] and [[f:...]]...[[/f]] markers used by ColoredResult
+// so copied text contains only the plain human-readable content.
+export function stripColorMarkers(s?: string | null): string {
+  if (!s) return "";
+  return s.replace(/\[\[\/?[cf](?::[^\]]+)?\]\]/g, "");
+}
+
 // Extract just the human-readable response from a result that may be a JSON
 // envelope (possibly nested) or a plain string. Tries common field names used
 // by Dhru / IMEI-check APIs and falls back to the original text.
