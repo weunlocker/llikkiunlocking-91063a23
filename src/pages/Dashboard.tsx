@@ -880,7 +880,7 @@ export default function Dashboard() {
                 <div className="text-sm text-muted-foreground">Result</div>
                 {(orderDetail?.result || orderDetail?.error_message) && (
                   <Button variant="outline" size="sm" onClick={async () => {
-                    const txt = orderDetail?.result ? extractResponse(orderDetail.result).replace(/\[\[\/?(c:[^\]]+|f:[^\]]+|c|f)\]\]/g, "") : sanitizeError(orderDetail?.error_message);
+                    const txt = orderDetail?.result ? stripColorMarkers(extractResponse(orderDetail.result)) : sanitizeError(orderDetail?.error_message);
                     try {
                       await navigator.clipboard.writeText(txt);
                       toast.success("Copied!", { description: "Result copied to clipboard" });
