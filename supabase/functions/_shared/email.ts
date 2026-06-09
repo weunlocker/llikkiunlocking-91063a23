@@ -13,14 +13,17 @@ export type EmailEvent =
   | "balance_topup"
   | "referral_bonus";
 
-const LOVABLE_TEMPLATE_MAP: Partial<Record<EmailEvent, string>> = {
+// Map every app event to one of the 4 admin SMTP templates configured in
+// Admin → Email Settings (welcome / order_success / order_rejected / balance_update).
+// Events without a dedicated template fall back to the closest match.
+const SMTP_EVENT_MAP: Record<EmailEvent, "welcome" | "order_success" | "order_rejected" | "balance_update"> = {
   welcome: "welcome",
-  order_placed: "order-placed",
-  order_success: "order-success",
-  order_rejected: "order-rejected",
-  balance_update: "balance-update",
-  balance_topup: "balance-topup",
-  referral_bonus: "referral-bonus",
+  order_placed: "order_success",
+  order_success: "order_success",
+  order_rejected: "order_rejected",
+  balance_update: "balance_update",
+  balance_topup: "balance_update",
+  referral_bonus: "balance_update",
 };
 
 // Maps each event to the per-user toggle column controlling it.
@@ -63,51 +66,32 @@ export async function notifyUserEmail(
       return;
     }
 
-    const templateName = LOVABLE_TEMPLATE_MAP[event];
     const recipientName = prof.display_name ?? prof.email;
+    const smtpEvent = SMTP_EVENT_MAP[event] ?? "welcome";
 
-    if (templateName) {
-      const templateData: Record<string, unknown> = { name: recipientName };
-      const keys: Array<[string, string]> = [
-        ["order_number", "orderNumber"], ["imei", "imei"], ["service", "service"],
-        ["result", "result"], ["charged", "charged"], ["balance", "balance"],
-        ["error", "error"], ["refund", "refund"], ["amount", "amount"], ["note", "note"],
-        ["method", "method"], ["reference", "reference"], ["bonus", "bonus"],
-        ["percent", "percent"], ["topup_amount", "topupAmount"], ["referred_name", "referredName"],
-      ];
-      for (const [from, to] of keys) {
-        if (data[from] !== undefined) templateData[to] = data[from];
-      }
-
-      const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`;
-      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${serviceKey}`,
-          "apikey": serviceKey,
-        },
-        body: JSON.stringify({
-          templateName,
-          recipientEmail: prof.email,
-          idempotencyKey: `${event}-${userId}-${data.order_number ?? data.reference ?? Date.now()}`,
-          templateData,
-        }),
-      });
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        console.error(`[notifyUserEmail] ${event} → ${res.status}: ${txt.slice(0, 300)}`);
-      } else {
-        console.log(`[notifyUserEmail] ${event} queued for ${prof.email}`);
-      }
-      return;
-    }
-
-    // Legacy SMTP fallback for events without a queued app-email template.
-    await sb.functions.invoke("send-email", {
-      body: { event, to: prof.email, data: { name: recipientName, ...data } },
+    // Always send via admin SMTP (configured in Admin → Email Settings).
+    // Use direct fetch so the call survives after the parent function returns.
+    const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+        "apikey": serviceKey,
+      },
+      body: JSON.stringify({
+        event: smtpEvent,
+        to: prof.email,
+        data: { name: recipientName, ...data },
+      }),
     });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      console.error(`[notifyUserEmail] ${event} (smtp=${smtpEvent}) → ${res.status}: ${txt.slice(0, 300)}`);
+    } else {
+      console.log(`[notifyUserEmail] ${event} sent via SMTP to ${prof.email}`);
+    }
   } catch (e) {
     console.error("notifyUserEmail failed", event, e);
   }
