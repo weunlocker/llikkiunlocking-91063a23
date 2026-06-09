@@ -23,6 +23,7 @@ import ReferralsPanel from "@/components/ReferralsPanel";
 import SupportPanel from "@/components/SupportPanel";
 import WhatsNewBanner from "@/components/WhatsNewBanner";
 import Seo from "@/components/Seo";
+import InstallAppButton from "@/components/InstallAppButton";
 
 function sanitizeError(msg: string | null | undefined): string {
   if (!msg) return "";
