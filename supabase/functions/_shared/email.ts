@@ -13,14 +13,17 @@ export type EmailEvent =
   | "balance_topup"
   | "referral_bonus";
 
-const LOVABLE_TEMPLATE_MAP: Partial<Record<EmailEvent, string>> = {
+// Map every app event to one of the 4 admin SMTP templates configured in
+// Admin → Email Settings (welcome / order_success / order_rejected / balance_update).
+// Events without a dedicated template fall back to the closest match.
+const SMTP_EVENT_MAP: Record<EmailEvent, "welcome" | "order_success" | "order_rejected" | "balance_update"> = {
   welcome: "welcome",
-  order_placed: "order-placed",
-  order_success: "order-success",
-  order_rejected: "order-rejected",
-  balance_update: "balance-update",
-  balance_topup: "balance-topup",
-  referral_bonus: "referral-bonus",
+  order_placed: "order_success",
+  order_success: "order_success",
+  order_rejected: "order_rejected",
+  balance_update: "balance_update",
+  balance_topup: "balance_update",
+  referral_bonus: "balance_update",
 };
 
 // Maps each event to the per-user toggle column controlling it.
