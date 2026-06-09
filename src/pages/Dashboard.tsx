@@ -23,6 +23,7 @@ import ReferralsPanel from "@/components/ReferralsPanel";
 import SupportPanel from "@/components/SupportPanel";
 import WhatsNewBanner from "@/components/WhatsNewBanner";
 import Seo from "@/components/Seo";
+import InstallAppButton from "@/components/InstallAppButton";
 
 function sanitizeError(msg: string | null | undefined): string {
   if (!msg) return "";
@@ -674,7 +675,9 @@ export default function Dashboard() {
 
           <TabsContent value="settings" className="mt-5">
             <div className="glass rounded-2xl p-6 space-y-6 max-w-2xl">
+              <InstallAppButton />
               <TelegramPairCard />
+
 
               <div className="flex items-center justify-between rounded-lg border border-border/60 p-3">
                 <div>
