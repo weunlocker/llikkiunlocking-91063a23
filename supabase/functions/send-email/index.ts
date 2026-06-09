@@ -140,6 +140,10 @@ Deno.serve(async (req) => {
       },
     });
 
+    const domain = fromEmail.split("@")[1] || "localhost";
+    const messageId = `<${crypto.randomUUID()}@${domain}>`;
+    const dateHeader = new Date().toUTCString();
+
     try {
       await client.send({
         from: `${fromName} <${fromEmail}>`,
@@ -148,6 +152,11 @@ Deno.serve(async (req) => {
         subject,
         html,
         content: html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+        headers: {
+          "Message-ID": messageId,
+          "Date": dateHeader,
+          "MIME-Version": "1.0",
+        },
       });
     } finally {
       try {
