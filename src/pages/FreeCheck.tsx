@@ -164,7 +164,7 @@ export default function FreeCheck() {
             </DialogHeader>
             {result && <ColoredResult text={result} font={selected?.result_font ?? undefined} />}
             <DialogFooter>
-              <Button variant="outline" onClick={() => navigator.clipboard.writeText(result)}>Copy</Button>
+              <Button variant="outline" onClick={() => navigator.clipboard.writeText(stripColorMarkers(result))}>Copy</Button>
               <Button variant="hero" onClick={() => setOpen(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>
