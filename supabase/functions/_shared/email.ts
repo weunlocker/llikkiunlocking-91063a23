@@ -67,13 +67,60 @@ export async function notifyUserEmail(
     }
 
     const recipientName = prof.display_name ?? prof.email;
-    const smtpEvent = SMTP_EVENT_MAP[event] ?? "welcome";
 
-    // Always send via admin SMTP (configured in Admin → Email Settings).
-    // Use direct fetch so the call survives after the parent function returns.
-    const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`;
+    // Read provider from email_settings (smtp | lovable). Default smtp.
+    const { data: cfg } = await sb
+      .from("email_settings")
+      .select("provider, enabled")
+      .eq("id", 1)
+      .maybeSingle();
+    if (cfg && cfg.enabled === false) {
+      console.log(`[notifyUserEmail] skip ${event}: email_settings.enabled=false`);
+      return;
+    }
+    const provider = (cfg?.provider as string) ?? "smtp";
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const res = await fetch(url, {
+
+    if (provider === "lovable") {
+      // Map app events to registered transactional template names
+      const LOVABLE_TPL: Record<EmailEvent, string> = {
+        welcome: "welcome",
+        order_placed: "order-placed",
+        order_success: "order-success",
+        order_rejected: "order-rejected",
+        balance_update: "balance-update",
+        balance_topup: "balance-topup",
+        referral_bonus: "referral-bonus",
+      };
+      const templateName = LOVABLE_TPL[event] ?? "welcome";
+      const res = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${serviceKey}`,
+          "apikey": serviceKey,
+        },
+        body: JSON.stringify({
+          templateName,
+          recipientEmail: prof.email,
+          idempotencyKey: `${event}-${userId}-${Date.now()}`,
+          templateData: { name: recipientName, ...data },
+        }),
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        console.error(`[notifyUserEmail] ${event} (lovable=${templateName}) → ${res.status}: ${txt.slice(0, 300)}`);
+      } else {
+        console.log(`[notifyUserEmail] ${event} sent via Lovable to ${prof.email}`);
+      }
+      return;
+    }
+
+    // SMTP path (default)
+    const smtpEvent = SMTP_EVENT_MAP[event] ?? "welcome";
+    const res = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -92,6 +139,7 @@ export async function notifyUserEmail(
     } else {
       console.log(`[notifyUserEmail] ${event} sent via SMTP to ${prof.email}`);
     }
+
   } catch (e) {
     console.error("notifyUserEmail failed", event, e);
   }
