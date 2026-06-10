@@ -71,7 +71,26 @@ Deno.serve(async (req) => {
 
   const bearerToken = authorization.replace(/^Bearer\s+/i, '')
   const allowedKeys = configuredSecretKeys(supabaseServiceKey)
-  if (!allowedKeys.has(bearerToken) && !allowedKeys.has(apiKey)) {
+  let authorized = allowedKeys.has(bearerToken) || allowedKeys.has(apiKey)
+
+  // Also allow authenticated admin users (for test-send from Admin UI)
+  if (!authorized && bearerToken) {
+    try {
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey)
+      const { data: userData } = await adminClient.auth.getUser(bearerToken)
+      if (userData?.user?.id) {
+        const { data: isAdmin } = await adminClient.rpc('has_role', {
+          _user_id: userData.user.id,
+          _role: 'admin',
+        })
+        if (isAdmin === true) authorized = true
+      }
+    } catch (e) {
+      console.error('admin auth check failed', e)
+    }
+  }
+
+  if (!authorized) {
     return new Response(
       JSON.stringify({ error: 'Unauthorized' }),
       {
