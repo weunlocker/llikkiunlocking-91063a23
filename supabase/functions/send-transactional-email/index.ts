@@ -10,7 +10,9 @@ import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 // and notify.likkiunlocking.com) by just updating the secret.
 const SITE_NAME = "LIKKI UNLOCKING"
 const SENDER_DOMAIN = Deno.env.get('EMAIL_SENDER_DOMAIN') || "notify.mail.likkiunlocking.com"
-const FROM_DOMAIN = Deno.env.get('EMAIL_FROM_DOMAIN') || "likkiunlocking.com"
+// FROM_DOMAIN must align with SENDER_DOMAIN (Mailgun sender_domain_mismatch otherwise).
+// Defaults to SENDER_DOMAIN if EMAIL_FROM_DOMAIN secret is not set.
+const FROM_DOMAIN = Deno.env.get('EMAIL_FROM_DOMAIN') || SENDER_DOMAIN
 
 // Generate a cryptographically random 32-byte hex token
 function generateToken(): string {
