@@ -14,6 +14,7 @@ type Tpl = { subject: string; html: string };
 type Settings = {
   id: number;
   enabled: boolean;
+  provider: "smtp" | "lovable";
   otp_login_enabled: boolean;
   smtp_host: string | null;
   smtp_port: number;
@@ -28,6 +29,7 @@ type Settings = {
   tpl_order_rejected: Tpl;
   tpl_balance_update: Tpl;
 };
+
 
 const TPL_FIELDS = [
   { key: "tpl_welcome", label: "Welcome", vars: "{{name}}, {{site_name}}" },
@@ -62,6 +64,7 @@ export default function AdminEmailSettings() {
     setSaving(true);
     const { error } = await supabase.from("email_settings").update({
       enabled: s.enabled,
+      provider: s.provider,
       otp_login_enabled: s.otp_login_enabled,
       smtp_host: s.smtp_host, smtp_port: s.smtp_port,
       smtp_user: s.smtp_user, smtp_password: s.smtp_password, smtp_secure: s.smtp_secure,
@@ -69,6 +72,7 @@ export default function AdminEmailSettings() {
       tpl_welcome: s.tpl_welcome, tpl_order_success: s.tpl_order_success,
       tpl_order_rejected: s.tpl_order_rejected, tpl_balance_update: s.tpl_balance_update,
     }).eq("id", 1);
+
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Email settings saved");
@@ -77,6 +81,22 @@ export default function AdminEmailSettings() {
   const sendTest = async () => {
     if (!testTo.trim()) return toast.error("Enter test recipient");
     setTesting(true);
+    if (s?.provider === "lovable") {
+      const { data, error } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "welcome",
+          recipientEmail: testTo.trim(),
+          idempotencyKey: `test-${Date.now()}`,
+          templateData: { name: "Test User" },
+        },
+      });
+      setTesting(false);
+      if (error) return toast.error(error.message);
+      const r = data as { success?: boolean; queued?: boolean; reason?: string; error?: string } | null;
+      if (r?.success || r?.queued) toast.success("Test queued via Lovable ✓ — check Cloud → Emails");
+      else toast.error(r?.reason ?? r?.error ?? "Lovable test failed");
+      return;
+    }
     const { data, error } = await supabase.functions.invoke("send-email", {
       body: { event: "test", to: testTo.trim() },
     });
@@ -86,6 +106,7 @@ export default function AdminEmailSettings() {
     if (result?.ok) toast.success("Test sent ✓");
     else toast.error(result?.error ?? "Email test failed");
   };
+
 
   if (loading || !s) {
     return (
@@ -111,6 +132,32 @@ export default function AdminEmailSettings() {
           </div>
           <Switch checked={s.otp_login_enabled} onCheckedChange={(v) => set("otp_login_enabled", v)} />
         </div>
+
+        <div className="glass rounded-2xl p-5 space-y-3">
+          <div>
+            <div className="font-bold flex items-center gap-2"><Send className="w-4 h-4 text-primary" /> Email Provider</div>
+            <p className="text-xs text-muted-foreground">Choose how outgoing app emails are delivered.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => set("provider", "smtp")}
+              className={`rounded-xl border p-3 text-left text-sm transition ${s.provider === "smtp" ? "border-primary bg-primary/10" : "border-border/50 hover:bg-muted/30"}`}
+            >
+              <div className="font-semibold">SMTP</div>
+              <div className="text-xs text-muted-foreground">Use the SMTP server below</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => set("provider", "lovable")}
+              className={`rounded-xl border p-3 text-left text-sm transition ${s.provider === "lovable" ? "border-primary bg-primary/10" : "border-border/50 hover:bg-muted/30"}`}
+            >
+              <div className="font-semibold">Lovable Email</div>
+              <div className="text-xs text-muted-foreground">Send via your verified Lovable domain</div>
+            </button>
+          </div>
+        </div>
+
 
         <Tabs defaultValue="smtp">
           <TabsList className="glass">

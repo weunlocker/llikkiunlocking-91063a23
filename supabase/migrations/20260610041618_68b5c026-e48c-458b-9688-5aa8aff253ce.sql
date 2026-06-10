@@ -1,0 +1,1 @@
+ALTER TABLE public.email_settings ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'smtp' CHECK (provider IN ('smtp', 'lovable'));
