@@ -64,6 +64,7 @@ export default function AdminEmailSettings() {
     setSaving(true);
     const { error } = await supabase.from("email_settings").update({
       enabled: s.enabled,
+      provider: s.provider,
       otp_login_enabled: s.otp_login_enabled,
       smtp_host: s.smtp_host, smtp_port: s.smtp_port,
       smtp_user: s.smtp_user, smtp_password: s.smtp_password, smtp_secure: s.smtp_secure,
@@ -71,6 +72,7 @@ export default function AdminEmailSettings() {
       tpl_welcome: s.tpl_welcome, tpl_order_success: s.tpl_order_success,
       tpl_order_rejected: s.tpl_order_rejected, tpl_balance_update: s.tpl_balance_update,
     }).eq("id", 1);
+
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Email settings saved");
