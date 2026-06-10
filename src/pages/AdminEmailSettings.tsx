@@ -133,6 +133,32 @@ export default function AdminEmailSettings() {
           <Switch checked={s.otp_login_enabled} onCheckedChange={(v) => set("otp_login_enabled", v)} />
         </div>
 
+        <div className="glass rounded-2xl p-5 space-y-3">
+          <div>
+            <div className="font-bold flex items-center gap-2"><Send className="w-4 h-4 text-primary" /> Email Provider</div>
+            <p className="text-xs text-muted-foreground">Choose how outgoing app emails are delivered.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => set("provider", "smtp")}
+              className={`rounded-xl border p-3 text-left text-sm transition ${s.provider === "smtp" ? "border-primary bg-primary/10" : "border-border/50 hover:bg-muted/30"}`}
+            >
+              <div className="font-semibold">SMTP</div>
+              <div className="text-xs text-muted-foreground">Use the SMTP server below</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => set("provider", "lovable")}
+              className={`rounded-xl border p-3 text-left text-sm transition ${s.provider === "lovable" ? "border-primary bg-primary/10" : "border-border/50 hover:bg-muted/30"}`}
+            >
+              <div className="font-semibold">Lovable Email</div>
+              <div className="text-xs text-muted-foreground">Send via your verified Lovable domain</div>
+            </button>
+          </div>
+        </div>
+
+
         <Tabs defaultValue="smtp">
           <TabsList className="glass">
             <TabsTrigger value="smtp">SMTP</TabsTrigger>
