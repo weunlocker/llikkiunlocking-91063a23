@@ -14,6 +14,7 @@ type Tpl = { subject: string; html: string };
 type Settings = {
   id: number;
   enabled: boolean;
+  provider: "smtp" | "lovable";
   otp_login_enabled: boolean;
   smtp_host: string | null;
   smtp_port: number;
@@ -28,6 +29,7 @@ type Settings = {
   tpl_order_rejected: Tpl;
   tpl_balance_update: Tpl;
 };
+
 
 const TPL_FIELDS = [
   { key: "tpl_welcome", label: "Welcome", vars: "{{name}}, {{site_name}}" },
