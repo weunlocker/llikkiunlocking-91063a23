@@ -81,6 +81,22 @@ export default function AdminEmailSettings() {
   const sendTest = async () => {
     if (!testTo.trim()) return toast.error("Enter test recipient");
     setTesting(true);
+    if (s?.provider === "lovable") {
+      const { data, error } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "welcome",
+          recipientEmail: testTo.trim(),
+          idempotencyKey: `test-${Date.now()}`,
+          templateData: { name: "Test User" },
+        },
+      });
+      setTesting(false);
+      if (error) return toast.error(error.message);
+      const r = data as { success?: boolean; queued?: boolean; reason?: string; error?: string } | null;
+      if (r?.success || r?.queued) toast.success("Test queued via Lovable ✓ — check Cloud → Emails");
+      else toast.error(r?.reason ?? r?.error ?? "Lovable test failed");
+      return;
+    }
     const { data, error } = await supabase.functions.invoke("send-email", {
       body: { event: "test", to: testTo.trim() },
     });
@@ -90,6 +106,7 @@ export default function AdminEmailSettings() {
     if (result?.ok) toast.success("Test sent ✓");
     else toast.error(result?.error ?? "Email test failed");
   };
+
 
   if (loading || !s) {
     return (
