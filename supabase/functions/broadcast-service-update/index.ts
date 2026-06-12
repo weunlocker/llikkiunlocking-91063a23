@@ -42,17 +42,36 @@ Deno.serve(async (req) => {
       .select("name, price, service_code").eq("id", service_id).maybeSingle();
     if (!svc) return json(404, { error: "Service not found" });
 
-    const title = kind === "new"
-      ? `🆕 New service available: ${svc.name}`
-      : `💲 Price updated: ${svc.name}`;
-    const lines: string[] = [];
+    const fmt = (n: number) => `${Number(n).toFixed(2)} USD`;
+    const curPrice = Number(new_price ?? svc.price ?? 0);
+
+    let title: string;
+    let text: string;
+    const bodyLines: string[] = [];
+
     if (kind === "new") {
-      lines.push(`Price: $${Number(svc.price ?? 0).toFixed(2)}`);
+      title = `🆕 New service available: ${svc.name}`;
+      bodyLines.push(`Price: $${curPrice.toFixed(2)}`);
+      text =
+        `🆕 <b>New Service Available</b> 🎯\n\n` +
+        `🛍️ <b>${escapeHtml(svc.name)}</b>\n` +
+        `💰 Price: ${fmt(curPrice)}`;
     } else {
-      if (old_price != null) lines.push(`Old price: $${old_price.toFixed(2)}`);
-      lines.push(`New price: $${Number(new_price ?? svc.price ?? 0).toFixed(2)}`);
+      title = `💲 Price updated: ${svc.name}`;
+      const decreased = old_price != null && curPrice < old_price;
+      const trendLine = decreased ? `📉 Price decreased 🛒` : `📈 Price increased 🛒`;
+      if (old_price != null) bodyLines.push(`Old price: $${old_price.toFixed(2)}`);
+      bodyLines.push(`New price: $${curPrice.toFixed(2)}`);
+      const oldLine = old_price != null ? `💵 Old Price: ${fmt(old_price)}\n` : "";
+      text =
+        `🔄 <b>Latest Price Updates</b> 💰\n\n` +
+        `Stay informed about our latest product adjustments! 🎯\n\n` +
+        `🛍️ <b>${escapeHtml(svc.name)}</b>\n` +
+        `${trendLine}\n` +
+        oldLine +
+        `💰 New Price: ${fmt(curPrice)}`;
     }
-    const bodyText = lines.join("\n");
+    const bodyText = bodyLines.join("\n");
 
     // 1. Save announcement
     await supabase.from("service_announcements").insert({
@@ -63,9 +82,18 @@ Deno.serve(async (req) => {
     const cfg = await getBotConfig(supabase);
     const tok = cfg?.client_bot_token;
     let sent = 0, skipped = 0, failed = 0;
+    let channel_posted = false;
     if (tok) {
-      const text = `<b>${escapeHtml(title)}</b>\n<pre>${escapeHtml(bodyText)}</pre>`;
-      // Page through subscribers
+      // Post to channel if configured
+      const { data: site } = await supabase.from("site_settings")
+        .select("telegram_channel_id").eq("id", 1).maybeSingle();
+      const channelId = (site as { telegram_channel_id?: string | null } | null)?.telegram_channel_id?.trim();
+      if (channelId) {
+        const r = await sendMessage(tok, channelId, text);
+        channel_posted = !!r.ok;
+      }
+
+      // Page through subscribers (DM linked clients)
       let from = 0;
       const PAGE = 500;
       while (true) {
@@ -88,7 +116,8 @@ Deno.serve(async (req) => {
       skipped = -1; // no client bot configured
     }
 
-    return json(200, { ok: true, sent, skipped, failed });
+    return json(200, { ok: true, sent, skipped, failed, channel_posted });
+
   } catch (e) {
     return json(500, { error: e instanceof Error ? e.message : "unknown" });
   }
