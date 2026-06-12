@@ -1,39 +1,39 @@
-## Goal
-Make Telegram price-change / new-service broadcasts look like the screenshot, and also post them to the channel already configured in Admin (`site_settings.telegram_channel_id`).
+## All 20 features — phased rollout
 
-## New message format
+Building 20 features at once would be unstable. I'll ship in 3 reviewable batches.
 
-For price change (decrease):
-```
-🔄 Latest Price Updates 💰
+### Batch 1 — Mobile shell & engagement (this turn)
+1. Bottom navigation bar (mobile only) — Home, Services, Orders, Profile
+2. Loading skeletons on Dashboard & Services lists
+4. Standardize toast feedback (already partly done — sweep remaining alerts)
+6. Floating "Help" button → opens support / FAQ (extend existing FloatingContact)
+15. In-app notifications center (bell icon in header) — uses existing support events + new `user_notifications` table
+17. Profile completion progress card (Dashboard)
+18. Live chat / support button — already exists, polish & always-visible on mobile
+19. FAQ / Help center page (`/help`) — admin-editable later
 
-Stay informed about our latest product adjustments! 🎯
+### Batch 2 — Order flow polish
+10. Quick reorder button on past orders
+13. Price calculator dialog before placing order
+14. Order tracking page with real-time status (Realtime subscription)
+20. Order tracking page polish
 
-🛍️ <b>{Service Name}</b>
-📉 Price decreased 🛒
-💵 Old Price: 20.19 USD
-💰 New Price: 18.69 USD
-```
+### Batch 3 — Nice-to-haves
+3. Empty states with illustrations
+5. Pull-to-refresh on mobile lists
+7. Recently viewed services
+8. Favorites / wishlist
+9. Search history
+11. Saved payment shortcut
+12. Currency switcher polish
+16. Onboarding tour for new users
 
-For price increase: swap line to `📈 Price increased 🛒`.
+### Technical notes
+- New table: `user_notifications` (id, user_id, type, title, body, link, read_at, created_at) with RLS — user reads own only.
+- New component: `BottomNav.tsx` shown only on mobile + authenticated pages.
+- New page: `Help.tsx` with collapsible FAQ from existing site_settings or hardcoded initially.
+- New component: `NotificationsBell.tsx` in Layout header.
+- Profile completion: compute % from filled fields in profile (phone, address, city, country).
+- All new colors use existing design tokens (no hardcoded colors).
 
-For new service:
-```
-🆕 New Service Available 🎯
-
-🛍️ <b>{Service Name}</b>
-💰 Price: 18.69 USD
-```
-
-All amounts shown as `X.XX USD` (matches screenshot).
-
-## Changes
-
-**`supabase/functions/broadcast-service-update/index.ts`**
-1. Build the formatted HTML message using the template above (decide decreased vs increased from `old_price` vs `new_price`).
-2. Fetch `telegram_channel_id` from `site_settings` (id=1).
-3. If `telegram_channel_id` is set and client bot token exists: send one message to that channel via `sendMessage` (chat_id = channel id).
-4. Keep existing per-user DM broadcast to linked clients (unchanged behavior, just the new formatted text).
-5. Return counts including `channel_posted: true/false`.
-
-No DB changes, no UI changes, no other files touched. Admin's existing "Channel ID" setting is reused as-is.
+Reply "go" to start Batch 1, or tell me to reorder/skip items.
