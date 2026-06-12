@@ -116,7 +116,54 @@ Deno.serve(async (req) => {
       skipped = -1; // no client bot configured
     }
 
-    return json(200, { ok: true, sent, skipped, failed, channel_posted });
+    // 3. Email subscribers via send-transactional-email (per-user, with idempotency)
+    let emails_sent = 0, emails_failed = 0;
+    try {
+      const SERVICE_KEY2 = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const SUPABASE_URL2 = Deno.env.get("SUPABASE_URL")!;
+      const annKey = `${service_id}-${kind}-${Date.now()}`;
+      let efrom = 0;
+      const EPAGE = 200;
+      while (true) {
+        const { data: erows, error: eerr } = await supabase.from("profiles")
+          .select("id, email, display_name, notify_email")
+          .not("email", "is", null)
+          .neq("notify_email", false)
+          .range(efrom, efrom + EPAGE - 1);
+        if (eerr || !erows?.length) break;
+        for (const u of erows) {
+          if (!u.email) continue;
+          const res = await fetch(`${SUPABASE_URL2}/functions/v1/send-transactional-email`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${SERVICE_KEY2}`,
+              "apikey": SERVICE_KEY2,
+            },
+            body: JSON.stringify({
+              templateName: "service-update",
+              recipientEmail: u.email,
+              idempotencyKey: `service-update-${annKey}-${u.id}`,
+              templateData: {
+                name: u.display_name ?? u.email,
+                kind,
+                serviceName: svc.name,
+                oldPrice: old_price ?? undefined,
+                newPrice: curPrice,
+              },
+            }),
+          });
+          if (res.ok) emails_sent++; else emails_failed++;
+        }
+        if (erows.length < EPAGE) break;
+        efrom += EPAGE;
+      }
+    } catch (e) {
+      console.error("service-update email broadcast failed", e);
+    }
+
+    return json(200, { ok: true, sent, skipped, failed, channel_posted, emails_sent, emails_failed });
+
 
   } catch (e) {
     return json(500, { error: e instanceof Error ? e.message : "unknown" });

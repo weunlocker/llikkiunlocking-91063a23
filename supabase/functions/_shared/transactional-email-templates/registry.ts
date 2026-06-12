@@ -17,6 +17,7 @@ import { template as balanceUpdate } from './balance-update.tsx'
 import { template as balanceTopup } from './balance-topup.tsx'
 import { template as referralBonus } from './referral-bonus.tsx'
 import { template as supportReply } from './support-reply.tsx'
+import { template as serviceUpdate } from './service-update.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'welcome': welcome,
@@ -27,4 +28,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'balance-topup': balanceTopup,
   'referral-bonus': referralBonus,
   'support-reply': supportReply,
+  'service-update': serviceUpdate,
 }
