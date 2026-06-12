@@ -24,7 +24,6 @@ import SupportPanel from "@/components/SupportPanel";
 import WhatsNewBanner from "@/components/WhatsNewBanner";
 import Seo from "@/components/Seo";
 import InstallAppButton from "@/components/InstallAppButton";
-import ProfileCompletionCard from "@/components/ProfileCompletionCard";
 
 function sanitizeError(msg: string | null | undefined): string {
   if (!msg) return "";
@@ -283,7 +282,6 @@ export default function Dashboard() {
       <div className="container py-10">
         <h1 className="sr-only">Customer Dashboard</h1>
         <WhatsNewBanner />
-        <div className="mb-5"><ProfileCompletionCard /></div>
         {customMessage && !msgDismissed && localStorage.getItem("seenAdminMsg") !== customMessage && (
           <button
             type="button"
