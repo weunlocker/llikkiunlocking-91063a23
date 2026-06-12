@@ -22,7 +22,7 @@ export default function FloatingContact() {
   const tgHref = tg ? `https://t.me/${tgUser}?text=${tgMsg}` : null;
 
   return (
-    <div className="fixed right-3 bottom-3 sm:right-4 sm:bottom-4 z-40 flex flex-col gap-2 sm:gap-3">
+    <div className="fixed right-3 bottom-[72px] md:bottom-4 sm:right-4 z-40 flex flex-col gap-2 sm:gap-3">
       {tgHref && (
         <a
           href={tgHref}
