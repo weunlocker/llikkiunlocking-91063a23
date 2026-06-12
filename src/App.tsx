@@ -10,6 +10,8 @@ import { SiteSettingsProvider } from "@/hooks/useSiteSettings";
 import AIChatWidget from "@/components/AIChatWidget";
 import NewSiteWelcomeDialog from "@/components/NewSiteWelcomeDialog";
 import FloatingContact from "@/components/FloatingContact";
+import BottomNav from "@/components/BottomNav";
+import Help from "./pages/Help";
 
 
 import Home from "./pages/Home";
@@ -18,6 +20,7 @@ import ServiceDetail from "./pages/ServiceDetail";
 import Pricing from "./pages/Pricing";
 import FreeCheck from "./pages/FreeCheck";
 import ApiDocs from "./pages/ApiDocs";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -45,6 +48,7 @@ const App = () => (
           <AIChatWidget />
           <NewSiteWelcomeDialog />
           <FloatingContact />
+          <BottomNav />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/services" element={<Services />} />
