@@ -120,7 +120,7 @@ export default function AdminStock() {
   };
 
   const removeItem = async (it: Item) => {
-    const ok = await confirm({ title: "Delete key?", description: it.status === "sold" ? "This key was sold — deletion is for cleanup only." : "Remove this key from stock.", confirmText: "Delete", destructive: true });
+    const ok = await confirm({ title: "Delete key?", description: it.status === "sold" ? "This key was sold — deletion is for cleanup only." : "Remove this key from stock.", confirmText: "Delete", tone: "danger" });
     if (!ok) return;
     const { error } = await supabase.from("stock_items").delete().eq("id", it.id);
     if (error) { toast.error(error.message); return; }
@@ -129,16 +129,14 @@ export default function AdminStock() {
 
   const exportSold = () => {
     if (!sold.length) { toast.error("Nothing to export"); return; }
-    exportRowsCsv(
-      `sold-stock-${new Date().toISOString().slice(0,10)}.csv`,
-      ["Order #", "Sold at", "License key"],
-      sold.map((s) => [
-        orders[s.sold_order_id ?? ""]?.order_number?.toString() ?? "—",
-        s.sold_at ?? "",
-        s.license_key,
-      ]),
-    );
+    const rows = sold.map((s) => ({
+      order_number: orders[s.sold_order_id ?? ""]?.order_number ?? "",
+      sold_at: s.sold_at ?? "",
+      license_key: s.license_key,
+    }));
+    exportRowsCsv(rows, `sold-stock-${new Date().toISOString().slice(0,10)}.csv`);
   };
+
 
   return (
     <AdminLayout title="Digital Stock" subtitle="License-key inventory used by services. Each line is one key.">
