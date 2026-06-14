@@ -27,6 +27,8 @@ const baseNavItems: NavItem[] = [
   { to: "/admin/groups", label: "Client Groups", icon: Crown },
   { to: "/admin/categories", label: "Categories", icon: Tags },
   { to: "/admin/services", label: "Services", icon: Briefcase },
+  { to: "/admin/stock", label: "Digital Stock", icon: Package },
+
   { to: "/admin/orders", label: "Orders", icon: ListOrdered },
   { to: "/admin/transactions", label: "Transactions", icon: Wallet },
   { to: "/admin/support", label: "Support", icon: MessageSquare },
