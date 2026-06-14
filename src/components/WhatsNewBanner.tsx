@@ -45,17 +45,8 @@ export default function WhatsNewBanner() {
     };
   }, [user]);
 
-  const handleClose = async () => {
+  const handleClose = () => {
     setOpen(false);
-    if (!user || !items.length) return;
-    // Mark all currently shown announcements as dismissed so they don't re-appear
-    const rows = items.map((a) => ({
-      user_id: user.id,
-      announcement_id: a.id,
-    }));
-    await supabase
-      .from("service_announcement_dismissals")
-      .upsert(rows, { onConflict: "user_id,announcement_id", ignoreDuplicates: true });
   };
 
   if (!items.length) return null;
