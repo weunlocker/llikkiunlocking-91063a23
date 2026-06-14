@@ -126,6 +126,8 @@ export default function AdminServiceEdit() {
       success_rules: (service.success_rules ?? []) as unknown as never,
       supplier_id: service.supplier_id ?? null,
       supplier_action: service.supplier_action || null,
+      stock_group_id: service.stock_group_id ?? null,
+
       service_type: service.service_type ?? "imei",
       custom_fields: (service.custom_fields ?? []) as unknown as never,
     };
