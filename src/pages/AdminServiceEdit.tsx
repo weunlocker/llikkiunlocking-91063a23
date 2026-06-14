@@ -63,15 +63,19 @@ export default function AdminServiceEdit() {
   const [supSvc, setSupSvc] = useState<SupplierService[]>([]);
   const [supSvcQ, setSupSvcQ] = useState("");
   const [apiOriginalPrice, setApiOriginalPrice] = useState<number | null>(null);
+  const [stockGroups, setStockGroups] = useState<StockGroup[]>([]);
 
   useEffect(() => {
     (async () => {
-      const [{ data: sup }, { data: cats }] = await Promise.all([
+      const [{ data: sup }, { data: cats }, { data: sg }] = await Promise.all([
         supabase.from("suppliers").select("id,name,type").order("name"),
         supabase.from("categories").select("id,slug,name").order("sort_order").order("name"),
+        supabase.from("stock_groups").select("id,name").order("name"),
       ]);
       setSuppliers((sup ?? []) as Supplier[]);
       setCategories((cats ?? []) as Category[]);
+      setStockGroups((sg ?? []) as StockGroup[]);
+
 
       if (!isNew && id) {
         const { data } = await supabase.from("services").select("*").eq("id", id).maybeSingle();
