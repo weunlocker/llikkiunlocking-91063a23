@@ -96,7 +96,7 @@ export default function AdminStock() {
   };
 
   const removeGroup = async (g: Group) => {
-    const ok = await confirm({ title: `Delete "${g.name}"?`, description: "All keys (available + sold) in this group are removed.", confirmText: "Delete", destructive: true });
+    const ok = await confirm({ title: `Delete "${g.name}"?`, description: "All keys (available + sold) in this group are removed.", confirmText: "Delete", tone: "danger" });
     if (!ok) return;
     const { error } = await supabase.from("stock_groups").delete().eq("id", g.id);
     if (error) { toast.error(error.message); return; }
