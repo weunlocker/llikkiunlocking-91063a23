@@ -27,25 +27,16 @@ export default function WhatsNewBanner() {
     if (!user) return;
     let cancelled = false;
     (async () => {
-      // Only show announcements created in the last 24 hours
+      // Show all announcements from the last 24 hours on every launch/refresh
       const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-      const [{ data: anns }, { data: dism }] = await Promise.all([
-        supabase
-          .from("service_announcements")
-          .select("id,kind,title,body,created_at")
-          .gte("created_at", since)
-          .order("created_at", { ascending: false })
-          .limit(20),
-        supabase
-          .from("service_announcement_dismissals")
-          .select("announcement_id")
-          .eq("user_id", user.id),
-      ]);
+      const { data: anns } = await supabase
+        .from("service_announcements")
+        .select("id,kind,title,body,created_at")
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(20);
       if (cancelled) return;
-      const dismissed = new Set((dism ?? []).map((d) => d.announcement_id));
-      const visible = ((anns ?? []) as Announcement[]).filter(
-        (a) => !dismissed.has(a.id),
-      );
+      const visible = (anns ?? []) as Announcement[];
       setItems(visible);
       if (visible.length) setOpen(true);
     })();
@@ -54,17 +45,8 @@ export default function WhatsNewBanner() {
     };
   }, [user]);
 
-  const handleClose = async () => {
+  const handleClose = () => {
     setOpen(false);
-    if (!user || !items.length) return;
-    // Mark all currently shown announcements as dismissed so they don't re-appear
-    const rows = items.map((a) => ({
-      user_id: user.id,
-      announcement_id: a.id,
-    }));
-    await supabase
-      .from("service_announcement_dismissals")
-      .upsert(rows, { onConflict: "user_id,announcement_id", ignoreDuplicates: true });
   };
 
   if (!items.length) return null;
