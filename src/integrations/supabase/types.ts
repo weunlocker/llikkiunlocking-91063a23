@@ -710,6 +710,7 @@ export type Database = {
           service_code: string | null
           service_type: string
           sort_order: number
+          stock_group_id: string | null
           success_rules: Json | null
           supplier_action: string | null
           supplier_id: string | null
@@ -745,6 +746,7 @@ export type Database = {
           service_code?: string | null
           service_type?: string
           sort_order?: number
+          stock_group_id?: string | null
           success_rules?: Json | null
           supplier_action?: string | null
           supplier_id?: string | null
@@ -780,12 +782,20 @@ export type Database = {
           service_code?: string | null
           service_type?: string
           sort_order?: number
+          stock_group_id?: string | null
           success_rules?: Json | null
           supplier_action?: string | null
           supplier_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "services_stock_group_id_fkey"
+            columns: ["stock_group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "services_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -893,6 +903,78 @@ export type Database = {
           youtube_url?: string | null
         }
         Relationships: []
+      }
+      stock_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stock_items: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          license_key: string
+          sold_at: string | null
+          sold_order_id: string | null
+          sold_user_id: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          license_key: string
+          sold_at?: string | null
+          sold_order_id?: string | null
+          sold_user_id?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          license_key?: string
+          sold_at?: string | null
+          sold_order_id?: string | null
+          sold_user_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "stock_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_items_sold_order_id_fkey"
+            columns: ["sold_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       supplier_services: {
         Row: {
@@ -1368,6 +1450,10 @@ export type Database = {
           p_topup_amount: number
         }
         Returns: Json
+      }
+      consume_stock: {
+        Args: { p_group_id: string; p_order_id: string; p_user_id: string }
+        Returns: string
       }
       credit_balance: {
         Args: { p_amount: number; p_user_id: string }

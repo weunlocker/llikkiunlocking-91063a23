@@ -14,9 +14,10 @@ import { serviceSchema } from "@/lib/validation";
 import type { CustomField } from "@/pages/Admin";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
-type Service = { id?: string; service_code?: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
+type Service = { id?: string; service_code?: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; stock_group_id: string | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
 type Supplier = { id: string; name: string; type: string };
 type Category = { id: string; slug: string; name: string };
+type StockGroup = { id: string; name: string };
 type SupplierService = { action_code: string; name: string; credit: number | null; delivery_time: string | null; service_type?: "imei" | "server"; fields?: CustomField[] };
 
 const emptyService: Service = {
@@ -25,8 +26,10 @@ const emptyService: Service = {
   sample_result: "", result_font: "mono", result_color: "#e2e8f0",
   active: true, is_free: false, category: "general",
   success_rules: [], supplier_id: null, supplier_action: "",
+  stock_group_id: null,
   service_type: "imei", custom_fields: [],
 };
+
 
 type TabId =
   | "overview" | "field" | "api" | "retail" | "inventory"
@@ -60,15 +63,19 @@ export default function AdminServiceEdit() {
   const [supSvc, setSupSvc] = useState<SupplierService[]>([]);
   const [supSvcQ, setSupSvcQ] = useState("");
   const [apiOriginalPrice, setApiOriginalPrice] = useState<number | null>(null);
+  const [stockGroups, setStockGroups] = useState<StockGroup[]>([]);
 
   useEffect(() => {
     (async () => {
-      const [{ data: sup }, { data: cats }] = await Promise.all([
+      const [{ data: sup }, { data: cats }, { data: sg }] = await Promise.all([
         supabase.from("suppliers").select("id,name,type").order("name"),
         supabase.from("categories").select("id,slug,name").order("sort_order").order("name"),
+        supabase.from("stock_groups").select("id,name").order("name"),
       ]);
       setSuppliers((sup ?? []) as Supplier[]);
       setCategories((cats ?? []) as Category[]);
+      setStockGroups((sg ?? []) as StockGroup[]);
+
 
       if (!isNew && id) {
         const { data } = await supabase.from("services").select("*").eq("id", id).maybeSingle();
@@ -119,6 +126,8 @@ export default function AdminServiceEdit() {
       success_rules: (service.success_rules ?? []) as unknown as never,
       supplier_id: service.supplier_id ?? null,
       supplier_action: service.supplier_action || null,
+      stock_group_id: service.stock_group_id ?? null,
+
       service_type: service.service_type ?? "imei",
       custom_fields: (service.custom_fields ?? []) as unknown as never,
     };
@@ -346,6 +355,25 @@ export default function AdminServiceEdit() {
           {tab === "api" && (
             <div className="space-y-4">
               <h2 className="text-lg font-bold">API Connection (Primary)</h2>
+
+              <div className="rounded-lg border border-success/30 bg-success/5 p-3 space-y-2">
+                <Label className="text-sm">Deliver from Digital Stock</Label>
+                <Select
+                  value={service.stock_group_id ?? "none"}
+                  onValueChange={(v) => update({ stock_group_id: v === "none" ? null : v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="None — use API instead" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None — use API instead</SelectItem>
+                    {stockGroups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  When set, orders for this service deliver one license key from the selected stock group instead of calling any API. If stock runs out, orders fail and refund automatically.
+                </p>
+              </div>
+
+
 
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
                 <div>

@@ -279,8 +279,26 @@ async function runUpstream(ctx: PlacementCtx) {
   let rawData: unknown = null;
   let instantRefId: string | null = null;
 
-  const hasUpstream = !!supplier || !!service.api_url;
-  if (!hasUpstream) {
+  const hasStock = !!service.stock_group_id;
+  const hasUpstream = !hasStock && (!!supplier || !!service.api_url);
+  if (hasStock) {
+    const { data: key, error: stockErr } = await supabase.rpc("consume_stock", {
+      p_group_id: service.stock_group_id,
+      p_order_id: order.id,
+      p_user_id: userId,
+    });
+    if (stockErr) {
+      errorMsg = `Stock error: ${stockErr.message}`;
+    } else if (!key) {
+      errorMsg = "Out of stock — please try again later.";
+    } else {
+      resultText = service.response_template
+        ? applyTemplate(service.response_template, { license_key: key, key, imei })
+        : String(key);
+      resultText = normalizeHtml(resultText) || String(key);
+      success = true;
+    }
+  } else if (!hasUpstream) {
     resultText = `Demo mode — no upstream API configured for "${service.name}".\nIMEI: ${imei}\nResult: simulated success.`;
     success = true;
   } else if (supplier && supplier.type === "dhru") {
@@ -293,6 +311,7 @@ async function runUpstream(ctx: PlacementCtx) {
       `IMEI: ${imei}\nYour order has been queued. You'll be notified when it's processed.`,
     );
     return; // remain pending; cron will place + poll
+
   } else {
     try {
       let url: string;

@@ -2344,6 +2344,8 @@ import AdminAnalytics from "./AdminAnalytics";
 import AdminSupport from "./AdminSupport";
 import AdminLoginActivity from "./AdminLoginActivity";
 import AdminServiceEdit from "./AdminServiceEdit";
+import AdminStock from "./AdminStock";
+
 export default function Admin() {
   return (
     <Routes>
@@ -2361,6 +2363,8 @@ export default function Admin() {
       <Route path="services" element={<AdminServices />} />
       <Route path="services/new" element={<AdminServiceEdit />} />
       <Route path="services/:id" element={<AdminServiceEdit />} />
+      <Route path="stock" element={<AdminStock />} />
+
       <Route path="orders" element={<AdminOrders />} />
       <Route path="transactions" element={<AdminTransactions />} />
       <Route path="notifications" element={<AdminNotifications />} />
