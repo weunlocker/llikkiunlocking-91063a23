@@ -14,9 +14,10 @@ import { serviceSchema } from "@/lib/validation";
 import type { CustomField } from "@/pages/Admin";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
-type Service = { id?: string; service_code?: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
+type Service = { id?: string; service_code?: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; stock_group_id: string | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
 type Supplier = { id: string; name: string; type: string };
 type Category = { id: string; slug: string; name: string };
+type StockGroup = { id: string; name: string };
 type SupplierService = { action_code: string; name: string; credit: number | null; delivery_time: string | null; service_type?: "imei" | "server"; fields?: CustomField[] };
 
 const emptyService: Service = {
@@ -25,8 +26,10 @@ const emptyService: Service = {
   sample_result: "", result_font: "mono", result_color: "#e2e8f0",
   active: true, is_free: false, category: "general",
   success_rules: [], supplier_id: null, supplier_action: "",
+  stock_group_id: null,
   service_type: "imei", custom_fields: [],
 };
+
 
 type TabId =
   | "overview" | "field" | "api" | "retail" | "inventory"
