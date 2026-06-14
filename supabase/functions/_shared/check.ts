@@ -301,7 +301,7 @@ async function runUpstream(ctx: PlacementCtx) {
   } else if (!hasUpstream) {
     resultText = `Demo mode — no upstream API configured for "${service.name}".\nIMEI: ${imei}\nResult: simulated success.`;
     success = true;
-
+  } else if (supplier && supplier.type === "dhru") {
     // Dhru: do NOT place order instantly — cron worker will place it and poll.
     await supabase.from("orders").update({
       result: "Queued — order will be placed with supplier shortly.",
@@ -311,6 +311,7 @@ async function runUpstream(ctx: PlacementCtx) {
       `IMEI: ${imei}\nYour order has been queued. You'll be notified when it's processed.`,
     );
     return; // remain pending; cron will place + poll
+
   } else {
     try {
       let url: string;
