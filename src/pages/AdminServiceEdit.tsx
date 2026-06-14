@@ -356,6 +356,25 @@ export default function AdminServiceEdit() {
             <div className="space-y-4">
               <h2 className="text-lg font-bold">API Connection (Primary)</h2>
 
+              <div className="rounded-lg border border-success/30 bg-success/5 p-3 space-y-2">
+                <Label className="text-sm">Deliver from Digital Stock</Label>
+                <Select
+                  value={service.stock_group_id ?? "none"}
+                  onValueChange={(v) => update({ stock_group_id: v === "none" ? null : v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="None — use API instead" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None — use API instead</SelectItem>
+                    {stockGroups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  When set, orders for this service deliver one license key from the selected stock group instead of calling any API. If stock runs out, orders fail and refund automatically.
+                </p>
+              </div>
+
+
+
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
                 <div>
                   <Label className="text-sm">Connect API (Supplier)</Label>
