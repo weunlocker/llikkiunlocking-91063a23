@@ -2361,6 +2361,8 @@ export default function Admin() {
       <Route path="services" element={<AdminServices />} />
       <Route path="services/new" element={<AdminServiceEdit />} />
       <Route path="services/:id" element={<AdminServiceEdit />} />
+      <Route path="stock" element={<AdminStock />} />
+
       <Route path="orders" element={<AdminOrders />} />
       <Route path="transactions" element={<AdminTransactions />} />
       <Route path="notifications" element={<AdminNotifications />} />
