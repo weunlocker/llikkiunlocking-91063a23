@@ -2344,6 +2344,8 @@ import AdminAnalytics from "./AdminAnalytics";
 import AdminSupport from "./AdminSupport";
 import AdminLoginActivity from "./AdminLoginActivity";
 import AdminServiceEdit from "./AdminServiceEdit";
+import AdminStock from "./AdminStock";
+
 export default function Admin() {
   return (
     <Routes>
