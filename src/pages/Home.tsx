@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrency } from "@/hooks/useCurrency";
 import LiveActivityFeed from "@/components/LiveActivityFeed";
+import PlatformUpgradeModal from "@/components/PlatformUpgradeModal";
 
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null };
 
