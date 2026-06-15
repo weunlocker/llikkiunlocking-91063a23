@@ -459,9 +459,9 @@ function AdminServices() {
       const { error } = await supabase.functions.invoke("supplier-sync", { body: { supplier_id: sid } });
       if (error) throw error;
       await loadSupSvc(sid);
-      toast({ title: "Synced", description: "Supplier prices refreshed. Your sale price was kept." });
+      toast.success("Supplier prices refreshed — your sale price was kept");
     } catch (e) {
-      toast({ title: "Sync failed", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+      toast.error(e instanceof Error ? e.message : "Sync failed");
     } finally { setSupSvcSyncing(false); }
   };
   useEffect(() => {
