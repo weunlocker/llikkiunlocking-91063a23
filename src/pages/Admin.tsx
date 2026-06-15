@@ -1550,6 +1550,7 @@ function AdminSettings() {
     contact_email: "", contact_phone: "", address: "", footer_text: "",
   });
   const [serviceTypesEnabled, setServiceTypesEnabled] = useState(false);
+  const [popupEnabled, setPopupEnabled] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -1564,6 +1565,7 @@ function AdminSettings() {
           contact_email: (r.contact_email as string) ?? "", contact_phone: (r.contact_phone as string) ?? "", address: (r.address as string) ?? "", footer_text: (r.footer_text as string) ?? "",
         });
         setServiceTypesEnabled(!!r.service_types_enabled);
+        setPopupEnabled(r.platform_upgrade_popup_enabled !== false);
       }
       setLoading(false);
     })();
