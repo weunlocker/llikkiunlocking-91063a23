@@ -1576,7 +1576,7 @@ function AdminSettings() {
   const save = async () => {
     setSaving(true);
     const stringPayload = Object.fromEntries(Object.entries(s).map(([k, v]) => [k, v === "" ? null : v]));
-    const payload = { ...stringPayload, service_types_enabled: serviceTypesEnabled } as never;
+    const payload = { ...stringPayload, service_types_enabled: serviceTypesEnabled, platform_upgrade_popup_enabled: popupEnabled } as never;
     const { error } = await supabase.from("site_settings").update(payload).eq("id", 1);
     setSaving(false);
     if (error) toast.error(error.message);
