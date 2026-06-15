@@ -16,9 +16,9 @@ export default function PlatformUpgradeModal() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    // Always show on every mount — no persistence
+    if (!settings.platform_upgrade_popup_enabled) return;
     setOpen(true);
-  }, []);
+  }, [settings.platform_upgrade_popup_enabled]);
 
   const handleClose = () => setOpen(false);
 
