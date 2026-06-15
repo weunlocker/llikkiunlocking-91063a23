@@ -76,6 +76,7 @@ export default function Home() {
 
   return (
     <Layout>
+      <PlatformUpgradeModal />
       <Seo
         title="LIKKI UNLOCKING — Wholesale IMEI Check & Phone Unlock"
         description="Direct supplier for IMEI checks, iCloud, carrier, blacklist & phone unlocking. Instant results, wholesale pricing, full API."
