@@ -440,14 +440,34 @@ function AdminServices() {
   useEffect(() => { load(); }, []);
 
   // Load supplier's cached services whenever picked supplier changes in the editor
+  const loadSupSvc = async (sid: string) => {
+    setSupSvcLoading(true);
+    const { data } = await supabase.from("supplier_services").select("action_code,name,credit,delivery_time,service_type,fields").eq("supplier_id", sid).order("name");
+    setSupSvc((data ?? []) as SupplierService[]);
+    setSupSvcLoading(false);
+    // also refresh the original-price map for the listing
+    const map: Record<string, number | null> = {};
+    (data ?? []).forEach((row: { action_code: string; credit: number | null }) => { map[`${sid}:${row.action_code}`] = row.credit; });
+    setSupplierOriginalPrices((prev) => ({ ...prev, ...map }));
+  };
+  const [supSvcSyncing, setSupSvcSyncing] = useState(false);
+  const syncSupplierNow = async () => {
+    const sid = editing?.supplier_id;
+    if (!sid) return;
+    setSupSvcSyncing(true);
+    try {
+      const { error } = await supabase.functions.invoke("supplier-sync", { body: { supplier_id: sid } });
+      if (error) throw error;
+      await loadSupSvc(sid);
+      toast.success("Supplier prices refreshed — your sale price was kept");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Sync failed");
+    } finally { setSupSvcSyncing(false); }
+  };
   useEffect(() => {
     const sid = editing?.supplier_id;
     if (!sid) { setSupSvc([]); setSupSvcQ(""); return; }
-    setSupSvcLoading(true);
-    supabase.from("supplier_services").select("action_code,name,credit,delivery_time,service_type,fields").eq("supplier_id", sid).order("name").then(({ data }) => {
-      setSupSvc((data ?? []) as SupplierService[]);
-      setSupSvcLoading(false);
-    });
+    loadSupSvc(sid);
   }, [editing?.supplier_id]);
 
   const catOrder = useMemo(() => {
@@ -813,7 +833,13 @@ function AdminServices() {
 
                   {editing.supplier_id && (
                     <div className="space-y-2">
-                      <Label className="text-xs">Supplier service</Label>
+                      <div className="flex items-center justify-between gap-2">
+                        <Label className="text-xs">Supplier service</Label>
+                        <Button type="button" size="sm" variant="outline" className="h-7 text-xs" disabled={supSvcSyncing} onClick={syncSupplierNow}>
+                          {supSvcSyncing ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                          Sync prices
+                        </Button>
+                      </div>
                       {supSvcLoading ? (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />Loading supplier services…</div>
                       ) : supSvc.length === 0 ? (
