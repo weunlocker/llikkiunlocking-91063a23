@@ -1674,6 +1674,13 @@ function AdminSettings() {
             </div>
             <Switch checked={serviceTypesEnabled} onCheckedChange={setServiceTypesEnabled} />
           </div>
+          <div className="flex items-start justify-between gap-4 p-3 rounded-lg bg-secondary/30">
+            <div className="space-y-1">
+              <div className="font-semibold text-sm">Platform Upgrade Popup</div>
+              <p className="text-xs text-muted-foreground">When enabled, the Platform Upgrade modal shows on every page load for all visitors. Turn off to hide it completely.</p>
+            </div>
+            <Switch checked={popupEnabled} onCheckedChange={setPopupEnabled} />
+          </div>
         </div>
       </div>
         </div>
