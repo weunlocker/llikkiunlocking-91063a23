@@ -831,9 +831,13 @@ function AdminServices() {
                     </SelectContent>
                   </Select>
 
-                  {editing.supplier_id && (
-                    <div className="space-y-2">
-                      <Label className="text-xs">Supplier service</Label>
+                       <div className="flex items-center justify-between gap-2">
+                         <Label className="text-xs">Supplier service</Label>
+                         <Button type="button" size="sm" variant="outline" className="h-7 text-xs" disabled={supSvcSyncing} onClick={syncSupplierNow}>
+                           {supSvcSyncing ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                           Sync prices
+                         </Button>
+                       </div>
                       {supSvcLoading ? (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="w-3 h-3 animate-spin" />Loading supplier services…</div>
                       ) : supSvc.length === 0 ? (
