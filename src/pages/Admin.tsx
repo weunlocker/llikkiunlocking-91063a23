@@ -1550,6 +1550,7 @@ function AdminSettings() {
     contact_email: "", contact_phone: "", address: "", footer_text: "",
   });
   const [serviceTypesEnabled, setServiceTypesEnabled] = useState(false);
+  const [popupEnabled, setPopupEnabled] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -1564,6 +1565,7 @@ function AdminSettings() {
           contact_email: (r.contact_email as string) ?? "", contact_phone: (r.contact_phone as string) ?? "", address: (r.address as string) ?? "", footer_text: (r.footer_text as string) ?? "",
         });
         setServiceTypesEnabled(!!r.service_types_enabled);
+        setPopupEnabled(r.platform_upgrade_popup_enabled !== false);
       }
       setLoading(false);
     })();
@@ -1574,7 +1576,7 @@ function AdminSettings() {
   const save = async () => {
     setSaving(true);
     const stringPayload = Object.fromEntries(Object.entries(s).map(([k, v]) => [k, v === "" ? null : v]));
-    const payload = { ...stringPayload, service_types_enabled: serviceTypesEnabled } as never;
+    const payload = { ...stringPayload, service_types_enabled: serviceTypesEnabled, platform_upgrade_popup_enabled: popupEnabled } as never;
     const { error } = await supabase.from("site_settings").update(payload).eq("id", 1);
     setSaving(false);
     if (error) toast.error(error.message);
@@ -1671,6 +1673,13 @@ function AdminSettings() {
               <p className="text-xs text-muted-foreground">When enabled, the admin sidebar shows Services as a dropdown with <b>IMEI Services</b> and <b>Server Services</b>, and the client dashboard shows two separate <b>Orders</b> tabs.</p>
             </div>
             <Switch checked={serviceTypesEnabled} onCheckedChange={setServiceTypesEnabled} />
+          </div>
+          <div className="flex items-start justify-between gap-4 p-3 rounded-lg bg-secondary/30">
+            <div className="space-y-1">
+              <div className="font-semibold text-sm">Platform Upgrade Popup</div>
+              <p className="text-xs text-muted-foreground">When enabled, the Platform Upgrade modal shows on every page load for all visitors. Turn off to hide it completely.</p>
+            </div>
+            <Switch checked={popupEnabled} onCheckedChange={setPopupEnabled} />
           </div>
         </div>
       </div>

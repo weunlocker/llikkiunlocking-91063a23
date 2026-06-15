@@ -823,6 +823,7 @@ export type Database = {
           id: number
           instagram_url: string | null
           logo_url: string | null
+          platform_upgrade_popup_enabled: boolean
           seo_description: string | null
           seo_keywords: string | null
           seo_title: string | null
@@ -855,6 +856,7 @@ export type Database = {
           id?: number
           instagram_url?: string | null
           logo_url?: string | null
+          platform_upgrade_popup_enabled?: boolean
           seo_description?: string | null
           seo_keywords?: string | null
           seo_title?: string | null
@@ -887,6 +889,7 @@ export type Database = {
           id?: number
           instagram_url?: string | null
           logo_url?: string | null
+          platform_upgrade_popup_enabled?: boolean
           seo_description?: string | null
           seo_keywords?: string | null
           seo_title?: string | null
@@ -1376,6 +1379,7 @@ export type Database = {
           id: number | null
           instagram_url: string | null
           logo_url: string | null
+          platform_upgrade_popup_enabled: boolean | null
           seo_description: string | null
           seo_keywords: string | null
           seo_title: string | null
@@ -1401,6 +1405,7 @@ export type Database = {
           id?: number | null
           instagram_url?: string | null
           logo_url?: string | null
+          platform_upgrade_popup_enabled?: boolean | null
           seo_description?: string | null
           seo_keywords?: string | null
           seo_title?: string | null
@@ -1426,6 +1431,7 @@ export type Database = {
           id?: number | null
           instagram_url?: string | null
           logo_url?: string | null
+          platform_upgrade_popup_enabled?: boolean | null
           seo_description?: string | null
           seo_keywords?: string | null
           seo_title?: string | null
