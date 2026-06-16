@@ -684,11 +684,18 @@ function AdminServices() {
         <div className="glass rounded-2xl overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider">
-              <tr><th className="px-3 py-3 w-8"></th><th className="px-5 py-3 w-20">ID</th><th className="px-5 py-3">Name</th><th className="px-5 py-3">Category</th><th className="px-3 py-3 text-right">Default</th><th className="px-3 py-3 text-right text-slate-300">Silver −10%</th><th className="px-3 py-3 text-right text-yellow-400">Gold −30%</th><th className="px-3 py-3 text-right text-cyan-300">Diamond −50%</th><th className="px-5 py-3">Delivery</th><th className="px-5 py-3">API</th><th className="px-5 py-3">Status</th><th></th></tr>
+              <tr>
+                <th className="px-3 py-3 w-8"></th>
+                <th className="px-5 py-3">Service Name</th>
+                <th className="px-5 py-3">API</th>
+                <th className="px-5 py-3">Group</th>
+                <th className="px-5 py-3 text-right">Actions</th>
+              </tr>
             </thead>
             <tbody>
               {pageItems.map((s) => {
-                const originalPrice = s.supplier_id && s.supplier_action ? supplierOriginalPrices[`${s.supplier_id}:${s.supplier_action}`] : null;
+                const supplierName = s.supplier_id ? (suppliers.find((x) => x.id === s.supplier_id)?.name ?? "supplier") : "";
+                const groupName = catNames[s.category ?? ""] ?? s.category ?? "";
                 return (
                 <tr
                   key={s.id}
@@ -701,20 +708,14 @@ function AdminServices() {
                   className={`border-t border-border/50 hover:bg-secondary/20 ${dragId === s.id ? "opacity-40" : ""} ${dragOverId === s.id && dragId !== s.id ? "bg-primary/10 outline outline-1 outline-primary/40" : ""}`}
                 >
                   <td className="px-3 py-3 text-muted-foreground cursor-grab active:cursor-grabbing" title="Drag to reorder"><GripVertical className="w-4 h-4" /></td>
-                  <td className="px-5 py-3 font-mono font-semibold text-primary">{s.service_code ?? "—"}</td>
-                  <td className="px-5 py-3 font-medium cursor-pointer hover:text-primary transition-colors min-w-[320px] whitespace-normal break-words" title={s.name} onClick={() => navigate(`/admin/services/${s.id}`)}>{s.name}</td>
-                  <td className="px-5 py-3"><span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">{s.category}</span></td>
-                  <td className="px-3 py-3 font-mono text-right">${Number(s.price).toFixed(2)}</td>
-                  <td className="px-3 py-3 font-mono text-right text-slate-300">${(Number(s.price) * 0.90).toFixed(2)}</td>
-                  <td className="px-3 py-3 font-mono text-right text-yellow-400">${(Number(s.price) * 0.70).toFixed(2)}</td>
-                  <td className="px-3 py-3 font-mono text-right text-cyan-300">${(Number(s.price) * 0.50).toFixed(2)}</td>
-                  <td className="px-5 py-3 text-muted-foreground text-xs">{s.delivery_time}</td>
-                  <td className="px-5 py-3 text-xs text-muted-foreground max-w-[240px]">
-                    {s.supplier_id
-                      ? <span className="text-primary break-words">via {suppliers.find((x) => x.id === s.supplier_id)?.name ?? "supplier"}{s.supplier_action ? ` · #${s.supplier_action}` : ""}{originalPrice != null ? <span className="block font-mono text-muted-foreground">API original: {Number(originalPrice).toFixed(3)} credit</span> : null}</span>
-                      : (s.api_url || <span className="text-warning">⚠ not set</span>)}
+                  <td className="px-5 py-3 cursor-pointer min-w-[320px] whitespace-normal break-words" onClick={() => navigate(`/admin/services/${s.id}`)}>
+                    <div className="font-medium hover:text-primary transition-colors" title={s.name}>{s.name}</div>
+                    <div className="text-xs text-muted-foreground font-mono italic mt-0.5">#{s.service_code ?? "—"}</div>
                   </td>
-                  <td className="px-5 py-3">{s.active ? <span className="text-success">● Active</span> : <span className="text-destructive">● Off</span>}</td>
+                  <td className="px-5 py-3 text-xs text-muted-foreground max-w-[240px] break-words">
+                    {supplierName || ""}
+                  </td>
+                  <td className="px-5 py-3 text-xs uppercase tracking-wide">{groupName}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
                     <Button size="icon" variant="ghost" onClick={() => navigate(`/admin/services/${s.id}`)}><Edit className="w-4 h-4" /></Button>
                     <Button size="icon" variant="ghost" onClick={() => delService(s.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
@@ -722,7 +723,7 @@ function AdminServices() {
                 </tr>
                 );
               })}
-              {filtered.length === 0 && <tr><td colSpan={12} className="px-5 py-10 text-center text-muted-foreground">No services.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">No services.</td></tr>}
             </tbody>
           </table>
           <PaginationBar page={page} totalPages={totalPages} pageSize={pageSize} total={filtered.length} onPage={setPage} onPageSize={setPageSize} />
