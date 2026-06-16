@@ -8,7 +8,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { ConfirmProvider } from "@/components/ConfirmDialog";
 import { SiteSettingsProvider } from "@/hooks/useSiteSettings";
 import AIChatWidget from "@/components/AIChatWidget";
-import NewSiteWelcomeDialog from "@/components/NewSiteWelcomeDialog";
+
 import FloatingContact from "@/components/FloatingContact";
 
 
@@ -43,7 +43,7 @@ const App = () => (
           
           <ConfirmProvider>
           <AIChatWidget />
-          <NewSiteWelcomeDialog />
+          
           <FloatingContact />
           <Routes>
             <Route path="/" element={<Home />} />
