@@ -48,7 +48,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </Link>
 
           {!isDashboardArea && (
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-1">
               {navLinks.map((l) => (
                 <NavLink
                   key={l.to}
@@ -144,7 +144,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="lg:hidden"
               onClick={() => setMenuOpen((v) => !v)}
               aria-label="Toggle menu"
             >
@@ -154,7 +154,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
 
         {menuOpen && (
-          <div className="md:hidden border-t border-border/50 glass">
+          <div className="lg:hidden border-t border-border/50 glass">
             <nav className="container flex flex-col py-2">
               {navLinks.map((l) => (
                 <NavLink
