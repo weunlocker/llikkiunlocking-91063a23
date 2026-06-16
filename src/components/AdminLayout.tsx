@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, Briefcase, ListOrdered, Wallet, Settings,
-  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, X, Send, Network, CreditCard, Shield, Crown, Gift, BarChart3, MessageSquare, Activity, ChevronDown, Smartphone, Server, Package,
+  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, X, Send, Network, CreditCard, Shield, Crown, Gift, BarChart3, MessageSquare, Activity, ChevronDown, Smartphone, Server, Package, Menu,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -217,6 +217,9 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
         <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-md">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 px-4 sm:px-6 md:px-8 py-3 sm:py-4">
             <div className="flex items-center gap-2 min-w-0">
+              <Button variant="ghost" size="icon" className="md:hidden shrink-0" onClick={() => setOpen(true)} aria-label="Open menu">
+                <Menu className="w-5 h-5" />
+              </Button>
               <div className="min-w-0 flex-1">
                 <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight truncate">{title}</h1>
                 {subtitle && <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
