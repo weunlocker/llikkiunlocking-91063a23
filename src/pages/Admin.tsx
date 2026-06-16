@@ -402,6 +402,7 @@ function AdminServices() {
   const [q, setQ] = useState("");
   const [fGroup, setFGroup] = useState<string>("all");
   const [fSvcId, setFSvcId] = useState<string>("all");
+  const [fSupplier, setFSupplier] = useState<string>("all");
   const [supSvc, setSupSvc] = useState<SupplierService[]>([]);
   const [supSvcLoading, setSupSvcLoading] = useState(false);
   const [supSvcQ, setSupSvcQ] = useState("");
@@ -496,11 +497,14 @@ function AdminServices() {
     if (typeFilter && (s.service_type ?? "imei") !== typeFilter) return false;
     if (fGroup !== "all" && (s.category ?? "") !== fGroup) return false;
     if (fSvcId !== "all" && s.id !== fSvcId) return false;
+    if (fSupplier === "none") { if (s.supplier_id) return false; }
+    else if (fSupplier === "any") { if (!s.supplier_id) return false; }
+    else if (fSupplier !== "all") { if (s.supplier_id !== fSupplier) return false; }
     if (q && !(s.name.toLowerCase().includes(q.toLowerCase()) || s.category?.toLowerCase().includes(q.toLowerCase()))) return false;
     return true;
-  }).sort(sortByCategoryOrder), [services, q, fGroup, fSvcId, catOrder, typeFilter]);
+  }).sort(sortByCategoryOrder), [services, q, fGroup, fSvcId, fSupplier, catOrder, typeFilter]);
 
-  useEffect(() => { setPage(1); }, [q, fGroup, fSvcId, pageSize]);
+  useEffect(() => { setPage(1); }, [q, fGroup, fSvcId, fSupplier, pageSize]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageItems = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
 
@@ -635,7 +639,7 @@ function AdminServices() {
         </>
       }
     >
-      <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+      <div className="glass rounded-2xl p-3 mb-4 grid grid-cols-1 md:grid-cols-3 gap-2">
         <div>
           <Label className="text-xs text-muted-foreground">Group</Label>
           <Select value={fGroup} onValueChange={(v) => { setFGroup(v); setFSvcId("all"); }}>
@@ -656,6 +660,20 @@ function AdminServices() {
               <SelectItem value="all">All services</SelectItem>
               {serviceOptionsForGroup.map((s) => (
                 <SelectItem key={s.id} value={s.id}>{s.service_code ? `#${s.service_code} ` : ""}{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">API Supplier</Label>
+          <Select value={fSupplier} onValueChange={setFSupplier}>
+            <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All (any source)</SelectItem>
+              <SelectItem value="any">Any API-connected</SelectItem>
+              <SelectItem value="none">Not connected to API</SelectItem>
+              {suppliers.map((sp) => (
+                <SelectItem key={sp.id} value={sp.id}>{sp.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
