@@ -165,7 +165,7 @@ export default function FreeCheck() {
               )}
               <DialogTitle className="flex items-center justify-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-success" />
-                {selected?.name} — Result
+                {selected?.name}
               </DialogTitle>
               <DialogDescription>
                 IMEI / Serial: <span className="font-mono">{imei}</span>
