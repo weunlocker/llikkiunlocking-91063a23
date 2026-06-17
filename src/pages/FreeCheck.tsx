@@ -129,14 +129,16 @@ export default function FreeCheck() {
               <DialogTitle>{selected?.name}</DialogTitle>
               <DialogDescription>Enter the IMEI or serial number to check.</DialogDescription>
             </DialogHeader>
-            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+            <div className="flex flex-row gap-2 pt-2">
               <Input
                 aria-label="IMEI or serial number"
                 value={imei}
                 onChange={(e) => setImei(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && imei.trim() && !running) run(); }}
                 placeholder="IMEI / Serial"
                 maxLength={20}
-                className="font-mono"
+                className="font-mono flex-1"
+                enterKeyHint="go"
               />
               <Button variant="hero" onClick={run} disabled={running || !imei.trim()}>
                 {running ? <Loader2 className="w-4 h-4 animate-spin" /> : "Check"}
