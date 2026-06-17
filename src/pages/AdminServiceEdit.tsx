@@ -377,7 +377,7 @@ export default function AdminServiceEdit() {
 
               <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-3">
                 <div>
-                  <Label className="text-sm">Simple Link</Label>
+                  <Label className="text-sm">Connect API (Supplier)</Label>
                   <Select
                     value={service.supplier_id ?? "none"}
                     onValueChange={(v) => update({ supplier_id: v === "none" ? null : v, supplier_action: v === "none" ? null : service.supplier_action })}
