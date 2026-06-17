@@ -134,9 +134,11 @@ export default function FreeCheck() {
                 aria-label="IMEI or serial number"
                 value={imei}
                 onChange={(e) => setImei(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && imei.trim() && !running) run(); }}
                 placeholder="IMEI / Serial"
                 maxLength={20}
                 className="font-mono"
+                enterKeyHint="go"
               />
               <Button variant="hero" onClick={run} disabled={running || !imei.trim()}>
                 {running ? <Loader2 className="w-4 h-4 animate-spin" /> : "Check"}
