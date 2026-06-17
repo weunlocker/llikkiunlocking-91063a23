@@ -64,12 +64,16 @@ async function hmac(msg: string): Promise<string> {
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
   return b64url(sig);
 }
-async function verifyChallenge(c: { nonce: string; exp: number; sig: string } | undefined): Promise<string | null> {
+async function verifyChallenge(
+  c: { nonce: string; exp: number; sig: string } | undefined,
+  ip: string,
+  origin: string,
+): Promise<string | null> {
   if (!c) return "Challenge required";
   const now = Date.now();
   if (c.exp < now) return "Challenge expired";
   if (c.exp > now + 5 * 60_000) return "Challenge invalid";
-  const expected = await hmac(`${c.nonce}.${c.exp}`);
+  const expected = await hmac(`${c.nonce}.${c.exp}.${ip}.${origin}`);
   if (expected !== c.sig) return "Challenge invalid";
   // cleanup old nonces
   for (const [k, v] of usedNonces) if (v < now) usedNonces.delete(k);
@@ -77,6 +81,7 @@ async function verifyChallenge(c: { nonce: string; exp: number; sig: string } | 
   usedNonces.set(c.nonce, c.exp);
   return null;
 }
+
 
 function normalizeHtml(s: string): string {
   if (!s) return s;
