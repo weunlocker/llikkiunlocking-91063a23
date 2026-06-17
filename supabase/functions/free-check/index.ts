@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
     );
 
     // Verify lightweight HMAC challenge (replaces Turnstile)
-    const challengeErr = await verifyChallenge(parsed.data.challenge);
+    const challengeErr = await verifyChallenge(parsed.data.challenge, ip, origin);
     if (challengeErr) return json(401, { error: challengeErr });
 
     // Parallelize: fetch service (and supplier if needed)
