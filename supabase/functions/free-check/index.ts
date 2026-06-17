@@ -318,11 +318,6 @@ Deno.serve(async (req) => {
   }
 });
 
-function json(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), {
-    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
 
 function unavailableResult(service: string, imei: string) {
   return {
