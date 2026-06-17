@@ -382,9 +382,9 @@ export default function AdminServiceEdit() {
                     value={service.supplier_id ?? "none"}
                     onValueChange={(v) => update({ supplier_id: v === "none" ? null : v, supplier_action: v === "none" ? null : service.supplier_action })}
                   >
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="None — use direct API URL" /></SelectTrigger>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Simple Link" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">None — use direct API URL</SelectItem>
+                      <SelectItem value="none">Simple Link</SelectItem>
                       {suppliers.map((sp) => <SelectItem key={sp.id} value={sp.id}>{sp.name} ({sp.type})</SelectItem>)}
                     </SelectContent>
                   </Select>
