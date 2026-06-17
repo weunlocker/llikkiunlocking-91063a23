@@ -3,10 +3,31 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  "https://likkiunlocking.com",
+  "https://www.likkiunlocking.com",
+  "https://llikkiunlocking.lovable.app",
+];
+const ALLOWED_SUFFIXES = [".lovable.app", ".lovableproject.com", ".lovable.dev"];
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  try {
+    const h = new URL(origin).hostname;
+    return ALLOWED_SUFFIXES.some((s) => h.endsWith(s));
+  } catch { return false; }
+}
+
+function corsFor(origin: string | null): Record<string, string> {
+  const allow = isAllowedOrigin(origin) ? origin! : "null";
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
+  };
+}
+
 
 const Body = z.object({
   service_id: z.string().uuid(),
