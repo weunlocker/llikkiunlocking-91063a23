@@ -137,7 +137,7 @@ export default function FreeCheck() {
                 onKeyDown={(e) => { if (e.key === "Enter" && imei.trim() && !running) run(); }}
                 placeholder="IMEI / Serial"
                 maxLength={20}
-                className="font-mono"
+                className="font-mono flex-1"
                 enterKeyHint="go"
               />
               <Button variant="hero" onClick={run} disabled={running || !imei.trim()}>
