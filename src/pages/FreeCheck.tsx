@@ -154,19 +154,20 @@ export default function FreeCheck() {
             setSelected(null);
           }
         }}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-md">
             <DialogHeader className="items-center text-center">
               {settings.logo_url && (
                 <img
                   src={settings.logo_url}
                   alt={`${settings.brand_name} logo`}
-                  className="mx-auto mb-2 h-12 md:h-14 w-auto object-contain"
+                  className="mx-auto mb-1 h-8 w-auto object-contain"
                 />
               )}
-              <DialogTitle className="flex items-center justify-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-success" />
+              <DialogTitle className="flex items-center justify-center gap-2 text-base">
+                <CheckCircle2 className="w-4 h-4 text-success" />
                 {selected?.name}
               </DialogTitle>
+
               <DialogDescription>
                 IMEI / Serial: <span className="font-mono">{imei}</span>
               </DialogDescription>
