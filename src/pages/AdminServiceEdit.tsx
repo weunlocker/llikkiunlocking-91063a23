@@ -390,9 +390,33 @@ export default function AdminServiceEdit() {
                   </Select>
                 </div>
 
-                {service.supplier_id && (
+                {service.supplier_id && (() => {
+                  const selectedSvc = supSvc.find((s) => s.action_code === service.supplier_action);
+                  return (
                   <div>
                     <Label className="text-sm">API Service</Label>
+                    {selectedSvc && (
+                      <div className="mt-1 mb-2 flex items-center justify-between gap-2 rounded border border-primary/50 bg-primary/10 px-3 py-2 text-xs">
+                        <span className="truncate">
+                          <span className="font-mono text-primary">#{selectedSvc.action_code}</span> {selectedSvc.name}
+                        </span>
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          <span className="text-muted-foreground">
+                            {selectedSvc.credit != null ? `${selectedSvc.credit} credit` : ""}
+                            {selectedSvc.delivery_time ? ` · ${selectedSvc.delivery_time}` : ""}
+                          </span>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => update({ supplier_action: null })}
+                          >
+                            <Trash2 className="w-3 h-3 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                     <Input
                       className="mt-1 mb-2"
                       placeholder={`Search ${supSvc.length} synced services…`}
@@ -430,7 +454,9 @@ export default function AdminServiceEdit() {
                       <p className="text-xs text-muted-foreground mt-2">Price from API: <b className="font-mono">{Number(apiOriginalPrice).toFixed(3)} credit</b></p>
                     )}
                   </div>
-                )}
+                  );
+                })()}
+
               </div>
 
               {!service.supplier_id && (
