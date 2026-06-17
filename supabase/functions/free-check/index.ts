@@ -3,10 +3,31 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  "https://likkiunlocking.com",
+  "https://www.likkiunlocking.com",
+  "https://llikkiunlocking.lovable.app",
+];
+const ALLOWED_SUFFIXES = [".lovable.app", ".lovableproject.com", ".lovable.dev"];
+
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  try {
+    const h = new URL(origin).hostname;
+    return ALLOWED_SUFFIXES.some((s) => h.endsWith(s));
+  } catch { return false; }
+}
+
+function corsFor(origin: string | null): Record<string, string> {
+  const allow = isAllowedOrigin(origin) ? origin! : "null";
+  return {
+    "Access-Control-Allow-Origin": allow,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
+  };
+}
+
 
 const Body = z.object({
   service_id: z.string().uuid(),
@@ -43,12 +64,16 @@ async function hmac(msg: string): Promise<string> {
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
   return b64url(sig);
 }
-async function verifyChallenge(c: { nonce: string; exp: number; sig: string } | undefined): Promise<string | null> {
+async function verifyChallenge(
+  c: { nonce: string; exp: number; sig: string } | undefined,
+  ip: string,
+  origin: string,
+): Promise<string | null> {
   if (!c) return "Challenge required";
   const now = Date.now();
   if (c.exp < now) return "Challenge expired";
   if (c.exp > now + 5 * 60_000) return "Challenge invalid";
-  const expected = await hmac(`${c.nonce}.${c.exp}`);
+  const expected = await hmac(`${c.nonce}.${c.exp}.${ip}.${origin}`);
   if (expected !== c.sig) return "Challenge invalid";
   // cleanup old nonces
   for (const [k, v] of usedNonces) if (v < now) usedNonces.delete(k);
@@ -56,6 +81,7 @@ async function verifyChallenge(c: { nonce: string; exp: number; sig: string } | 
   usedNonces.set(c.nonce, c.exp);
   return null;
 }
+
 
 function normalizeHtml(s: string): string {
   if (!s) return s;
@@ -112,8 +138,15 @@ function applyTemplate(template: string, data: unknown): string {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const origin = req.headers.get("origin") || "";
+  const cors = corsFor(origin || null);
+  const json = (status: number, body: unknown) => new Response(JSON.stringify(body), {
+    status, headers: { ...cors, "Content-Type": "application/json" },
+  });
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (!isAllowedOrigin(origin)) return json(403, { error: "Origin not allowed" });
   try {
+
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const now = Date.now();
 
@@ -138,7 +171,7 @@ Deno.serve(async (req) => {
     );
 
     // Verify lightweight HMAC challenge (replaces Turnstile)
-    const challengeErr = await verifyChallenge(parsed.data.challenge);
+    const challengeErr = await verifyChallenge(parsed.data.challenge, ip, origin);
     if (challengeErr) return json(401, { error: challengeErr });
 
     // Parallelize: fetch service (and supplier if needed)
@@ -285,11 +318,6 @@ Deno.serve(async (req) => {
   }
 });
 
-function json(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), {
-    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
 
 function unavailableResult(service: string, imei: string) {
   return {
