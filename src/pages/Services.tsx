@@ -25,7 +25,7 @@ export default function Services() {
   useEffect(() => {
     (async () => {
       const [{ data: svc }, { data: cats }] = await Promise.all([
-        supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color,is_free,service_type,custom_fields").order("category").order("sort_order").order("price"),
+        supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color,is_free,service_type,custom_fields").eq("is_free", false).order("category").order("sort_order").order("price"),
         supabase.from("categories").select("slug,name,sort_order"),
       ]);
       setServices(((svc ?? []) as unknown as Service[]));
@@ -40,8 +40,6 @@ export default function Services() {
     (acc[k] ||= []).push(s); return acc;
   }, {});
   const groupKeys = Object.keys(grouped).sort((a, b) => {
-    if (a === "free") return -1;
-    if (b === "free") return 1;
     const ao = catMap[a]?.sort_order ?? 9999;
     const bo = catMap[b]?.sort_order ?? 9999;
     if (ao !== bo) return ao - bo;
