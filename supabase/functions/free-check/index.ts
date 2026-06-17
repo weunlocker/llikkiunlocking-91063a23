@@ -138,8 +138,15 @@ function applyTemplate(template: string, data: unknown): string {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const origin = req.headers.get("origin") || "";
+  const cors = corsFor(origin || null);
+  const json = (status: number, body: unknown) => new Response(JSON.stringify(body), {
+    status, headers: { ...cors, "Content-Type": "application/json" },
+  });
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors });
+  if (!isAllowedOrigin(origin)) return json(403, { error: "Origin not allowed" });
   try {
+
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const now = Date.now();
 
