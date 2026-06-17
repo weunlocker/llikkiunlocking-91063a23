@@ -129,7 +129,7 @@ export default function FreeCheck() {
               <DialogTitle>{selected?.name}</DialogTitle>
               <DialogDescription>Enter the IMEI or serial number to check.</DialogDescription>
             </DialogHeader>
-            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+            <div className="flex flex-row gap-2 pt-2">
               <Input
                 aria-label="IMEI or serial number"
                 value={imei}
