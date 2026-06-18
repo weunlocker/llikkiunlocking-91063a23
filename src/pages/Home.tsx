@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrency } from "@/hooks/useCurrency";
 import LiveActivityFeed from "@/components/LiveActivityFeed";
 import PlatformUpgradeModal from "@/components/PlatformUpgradeModal";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { Gift } from "lucide-react";
 
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null };
 
