@@ -10,6 +10,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Loader2, Check, ChevronsUpDown } from "lucide-react";
 import BrandHeader from "@/components/BrandHeader";
 import Seo from "@/components/Seo";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { registerSchema } from "@/lib/validation";
