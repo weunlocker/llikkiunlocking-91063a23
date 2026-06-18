@@ -38,6 +38,7 @@ const trustBadges = [
 export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
   const { format } = useCurrency();
+  const { settings } = useSiteSettings();
   useEffect(() => {
     supabase.from("services_public").select("id,name,description,price,delivery_time,category").eq("is_free", false).order("sort_order").order("price").limit(6).then(({ data }) => setServices(data ?? []));
   }, []);
