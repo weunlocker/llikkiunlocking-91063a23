@@ -8,29 +8,35 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { ConfirmProvider } from "@/components/ConfirmDialog";
 import { SiteSettingsProvider } from "@/hooks/useSiteSettings";
 import AIChatWidget from "@/components/AIChatWidget";
-
 import FloatingContact from "@/components/FloatingContact";
-
+import CookieConsent from "@/components/CookieConsent";
+import { lazy, Suspense } from "react";
 
 import Home from "./pages/Home";
-import Services from "./pages/Services";
-import ServiceDetail from "./pages/ServiceDetail";
-import Pricing from "./pages/Pricing";
-import FreeCheck from "./pages/FreeCheck";
-import ApiDocs from "./pages/ApiDocs";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import LoginOtp from "./pages/LoginOtp";
-import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
-import Admin from "./pages/Admin";
-import Unsubscribe from "./pages/Unsubscribe";
 
-import NotFound from "./pages/NotFound.tsx";
+const Services = lazy(() => import("./pages/Services"));
+const ServiceDetail = lazy(() => import("./pages/ServiceDetail"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const FreeCheck = lazy(() => import("./pages/FreeCheck"));
+const ApiDocs = lazy(() => import("./pages/ApiDocs"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const LoginOtp = lazy(() => import("./pages/LoginOtp"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Admin = lazy(() => import("./pages/Admin"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
+const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
+
+const PageFallback = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -40,11 +46,11 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <SiteSettingsProvider>
-          
           <ConfirmProvider>
           <AIChatWidget />
-          
           <FloatingContact />
+          <CookieConsent />
+          <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/services" element={<Services />} />
@@ -62,11 +68,10 @@ const App = () => (
             <Route path="/admin/*" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
             <Route path="/email-unsubscribe" element={<Unsubscribe />} />
-            
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           </ConfirmProvider>
-          
           </SiteSettingsProvider>
         </AuthProvider>
       </BrowserRouter>

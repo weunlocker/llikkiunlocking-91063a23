@@ -1,39 +1,30 @@
-## Goal
-Make Telegram price-change / new-service broadcasts look like the screenshot, and also post them to the channel already configured in Admin (`site_settings.telegram_channel_id`).
+## Performance & Compliance Fixes
 
-## New message format
+### Problem
+Your homepage takes **6.8 seconds** before first content appears (FCP). Visitors on slow networks will leave before it loads. The root cause: every page (Admin, Dashboard, etc.) is downloaded on the homepage because there is no code splitting.
 
-For price change (decrease):
-```
-🔄 Latest Price Updates 💰
+### Plan
 
-Stay informed about our latest product adjustments! 🎯
+1. **Lazy-load all routes** — Only download a page when the user visits it.
+   - Change `App.tsx` imports from `import Dashboard from "./pages/Dashboard"` to `const Dashboard = lazy(() => import("./pages/Dashboard"))`.
+   - Wrap `Routes` in a `<Suspense fallback={<LoadingSpinner />}>`.
+   - This alone should cut FCP from ~7s to under 2s.
 
-🛍️ <b>{Service Name}</b>
-📉 Price decreased 🛒
-💵 Old Price: 20.19 USD
-💰 New Price: 18.69 USD
-```
+2. **Shrink the country-state-city library** — It is 2.2MB and loaded everywhere.
+   - Move the import inside the component that actually needs it, or replace with a smaller subset.
 
-For price increase: swap line to `📈 Price increased 🛒`.
+3. **Add a cookie consent banner** — You display "GDPR Compliant" on the homepage but there is no consent UI.
+   - A small bottom banner: "We use cookies for analytics and security." with Accept / Decline.
+   - Store choice in localStorage.
 
-For new service:
-```
-🆕 New Service Available 🎯
+4. **Add a loading skeleton for the homepage stats/services** — While services load from Supabase, show shimmer placeholders instead of empty gaps.
 
-🛍️ <b>{Service Name}</b>
-💰 Price: 18.69 USD
-```
+5. **Optional: Add Google Analytics / Plausible** — Since clients are arriving, track where they come from and which services they click.
 
-All amounts shown as `X.XX USD` (matches screenshot).
+### Expected result
+- Homepage loads in under 2 seconds.
+- GDPR trust badge is backed by real consent UI.
+- Better conversion from visitors to registered users.
 
-## Changes
-
-**`supabase/functions/broadcast-service-update/index.ts`**
-1. Build the formatted HTML message using the template above (decide decreased vs increased from `old_price` vs `new_price`).
-2. Fetch `telegram_channel_id` from `site_settings` (id=1).
-3. If `telegram_channel_id` is set and client bot token exists: send one message to that channel via `sendMessage` (chat_id = channel id).
-4. Keep existing per-user DM broadcast to linked clients (unchanged behavior, just the new formatted text).
-5. Return counts including `channel_posted: true/false`.
-
-No DB changes, no UI changes, no other files touched. Admin's existing "Channel ID" setting is reused as-is.
+---
+*Want me to implement this? Click the button above.*
