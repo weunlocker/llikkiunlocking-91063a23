@@ -23,6 +23,8 @@ export type SiteSettings = {
   turnstile_enabled: boolean;
   service_types_enabled: boolean;
   platform_upgrade_popup_enabled: boolean;
+  signup_bonus_enabled: boolean;
+  signup_bonus_amount: number;
 };
 
 const DEFAULTS: SiteSettings = {
@@ -36,6 +38,8 @@ const DEFAULTS: SiteSettings = {
   turnstile_site_key: null, turnstile_enabled: false,
   service_types_enabled: false,
   platform_upgrade_popup_enabled: true,
+  signup_bonus_enabled: true,
+  signup_bonus_amount: 1,
 };
 
 type Ctx = { settings: SiteSettings; loading: boolean; refresh: () => Promise<void> };

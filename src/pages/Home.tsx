@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrency } from "@/hooks/useCurrency";
 import LiveActivityFeed from "@/components/LiveActivityFeed";
 import PlatformUpgradeModal from "@/components/PlatformUpgradeModal";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { Gift } from "lucide-react";
 
 type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null };
 
@@ -36,6 +38,7 @@ const trustBadges = [
 export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
   const { format } = useCurrency();
+  const { settings } = useSiteSettings();
   useEffect(() => {
     supabase.from("services_public").select("id,name,description,price,delivery_time,category").eq("is_free", false).order("sort_order").order("price").limit(6).then(({ data }) => setServices(data ?? []));
   }, []);
@@ -102,9 +105,16 @@ export default function Home() {
             Enterprise IMEI Intelligence<br />
             <span className="glow-text">Built for Professionals</span>
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-up leading-relaxed" style={{ animationDelay: "0.2s" }}>
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 animate-fade-up leading-relaxed" style={{ animationDelay: "0.2s" }}>
             Verify iCloud status, carrier, blacklist, model, warranty and more — plus full unlock services. Direct supplier pricing, sub-5-second results, and a developer-first API.
           </p>
+
+          {settings.signup_bonus_enabled && settings.signup_bonus_amount > 0 && (
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/40 bg-primary/10 text-sm mb-8 animate-fade-up" style={{ animationDelay: "0.25s" }}>
+              <Gift className="w-4 h-4 text-primary" />
+              <span>Get <span className="font-bold text-primary">${Number(settings.signup_bonus_amount).toFixed(2)} FREE</span> credit on signup — no card required</span>
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 animate-fade-up" style={{ animationDelay: "0.3s" }}>
             <Button asChild variant="hero" size="xl" className="w-full sm:w-auto">

@@ -10,6 +10,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Loader2, Check, ChevronsUpDown } from "lucide-react";
 import BrandHeader from "@/components/BrandHeader";
 import Seo from "@/components/Seo";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { registerSchema } from "@/lib/validation";
@@ -20,6 +22,7 @@ export default function Register() {
   const [search] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [refCode, setRefCode] = useState<string>("");
+  const { settings } = useSiteSettings();
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -103,6 +106,12 @@ export default function Register() {
         <div className="glass rounded-2xl p-8 shadow-card">
           <h1 className="text-2xl font-bold mb-1">Create your account</h1>
           <p className="text-muted-foreground text-sm mb-6">Start checking IMEIs in seconds.</p>
+          {settings.signup_bonus_enabled && settings.signup_bonus_amount > 0 && (
+            <div className="mb-4 rounded-md border border-primary/40 bg-primary/10 px-3 py-2.5 text-sm flex items-center gap-2">
+              <Gift className="w-4 h-4 text-primary shrink-0" />
+              <span>Get <span className="font-bold text-primary">${Number(settings.signup_bonus_amount).toFixed(2)} FREE credit</span> instantly when you create your account.</span>
+            </div>
+          )}
           {refCode && (
             <div className="mb-4 rounded-md border border-success/40 bg-success/10 px-3 py-2 text-sm">
               🎁 You were referred by <span className="font-mono font-semibold">{refCode}</span>. They'll earn a bonus when you top up.
