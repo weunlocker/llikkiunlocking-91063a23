@@ -22,6 +22,7 @@ export default function Register() {
   const [search] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [refCode, setRefCode] = useState<string>("");
+  const { settings } = useSiteSettings();
   const [form, setForm] = useState({
     email: "",
     password: "",
