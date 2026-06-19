@@ -18,14 +18,16 @@ function normalizeTelegram(raw?: string | null) {
   if (v.startsWith("http")) return v;
   return `https://t.me/${v.replace(/^@/, "")}`;
 }
-function normalizeWhatsapp(raw?: string | null) {
+function normalizeWhatsapp(raw?: string | null, message?: string) {
   if (!raw) return null;
   const v = raw.trim();
   if (!v) return null;
   if (v.startsWith("http")) return v;
   const digits = v.replace(/[^\d]/g, "");
   if (!digits) return null;
-  return `https://wa.me/${digits}`;
+  const url = new URL(`https://wa.me/${digits}`);
+  if (message) url.searchParams.set("text", message);
+  return url.toString();
 }
 
 export default function PlatformUpgradeModal() {
@@ -40,6 +42,9 @@ export default function PlatformUpgradeModal() {
   const handleClose = () => setOpen(false);
 
   const logoSrc = settings.logo_url || defaultLogo;
+  const waMsg = encodeURIComponent(
+    `Hello ${settings.brand_name || "LIK"} Team 👋,\n\nI visited your website and I'm interested in your unlocking / IMEI check services. Could you please share your current offers and how to get started?\n\nThank you!`
+  );
 
   return (
     <Dialog open={open} onOpenChange={(v) => v ? setOpen(true) : handleClose()}>
@@ -118,7 +123,7 @@ export default function PlatformUpgradeModal() {
               )}
               {normalizeWhatsapp(settings.whatsapp_number) && (
                 <a
-                  href={normalizeWhatsapp(settings.whatsapp_number)!}
+                  href={normalizeWhatsapp(settings.whatsapp_number, waMsg)!}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={handleClose}
