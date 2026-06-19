@@ -18,14 +18,16 @@ function normalizeTelegram(raw?: string | null) {
   if (v.startsWith("http")) return v;
   return `https://t.me/${v.replace(/^@/, "")}`;
 }
-function normalizeWhatsapp(raw?: string | null) {
+function normalizeWhatsapp(raw?: string | null, message?: string) {
   if (!raw) return null;
   const v = raw.trim();
   if (!v) return null;
   if (v.startsWith("http")) return v;
   const digits = v.replace(/[^\d]/g, "");
   if (!digits) return null;
-  return `https://wa.me/${digits}`;
+  const url = new URL(`https://wa.me/${digits}`);
+  if (message) url.searchParams.set("text", message);
+  return url.toString();
 }
 
 export default function PlatformUpgradeModal() {
