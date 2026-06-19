@@ -110,9 +110,25 @@ export default function Home() {
           </p>
 
           {settings.signup_bonus_enabled && settings.signup_bonus_amount > 0 && (
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/40 bg-primary/10 text-sm mb-8 animate-fade-up" style={{ animationDelay: "0.25s" }}>
-              <Gift className="w-4 h-4 text-primary" />
-              <span>Get <span className="font-bold text-primary">${Number(settings.signup_bonus_amount).toFixed(2)} FREE</span> credit on signup — no card required</span>
+            <div className="max-w-xl mx-auto mb-8 animate-fade-up" style={{ animationDelay: "0.25s" }}>
+              <div className="relative glass rounded-2xl p-5 sm:p-6 border-2 border-primary/50 shadow-elegant overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-glow opacity-40 pointer-events-none" />
+                <div className="relative flex flex-col sm:flex-row items-center gap-4 text-left">
+                  <div className="w-14 h-14 rounded-2xl bg-primary/15 border border-primary/40 flex items-center justify-center shrink-0 animate-glow">
+                    <Gift className="w-7 h-7 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0 text-center sm:text-left">
+                    <div className="text-[10px] uppercase tracking-[0.25em] text-primary font-bold mb-1">Limited Time Welcome Offer</div>
+                    <div className="text-base sm:text-lg font-semibold leading-snug">
+                      Get <span className="text-primary font-bold">${Number(settings.signup_bonus_amount).toFixed(2)} FREE</span> credit when you create your account
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">No card required • Instant • Use on any service</div>
+                  </div>
+                  <Button asChild variant="hero" size="lg" className="shrink-0 w-full sm:w-auto">
+                    <Link to="/register">Claim ${Number(settings.signup_bonus_amount).toFixed(2)} FREE <ArrowRight className="w-4 h-4" /></Link>
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
 

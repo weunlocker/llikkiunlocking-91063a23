@@ -7,6 +7,7 @@ import defaultLogo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useTheme } from "@/hooks/useTheme";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import PromoRibbon from "@/components/PromoRibbon";
 
 import { useSupportNotifications } from "@/hooks/useSupportNotifications";
 import {
@@ -39,6 +40,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <PromoRibbon />
       <header className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container flex h-14 sm:h-16 items-center justify-between gap-2">
           <Link to="/" className="flex items-center gap-2 group min-w-0 shrink">
