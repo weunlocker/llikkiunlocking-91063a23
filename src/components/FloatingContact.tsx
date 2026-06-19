@@ -20,7 +20,7 @@ Thank you!`
   );
   const waHref = wa ? `https://wa.me/${wa.replace(/[^\d]/g, "")}?text=${waMsg}` : null;
   const tgUser = tg ? (tg.startsWith("http") ? tg.replace(/^https?:\/\/t\.me\//, "").replace(/^@/, "") : tg.replace(/^@/, "")) : "";
-  const tgHref = tg ? `https://t.me/${tgUser}?text=${tgMsg}` : null;
+  const tgHref = tg ? `https://t.me/${tgUser}` : null;
 
   return (
     <div className="fixed right-3 bottom-3 sm:right-4 sm:bottom-4 z-40 flex flex-col gap-2 sm:gap-3">
