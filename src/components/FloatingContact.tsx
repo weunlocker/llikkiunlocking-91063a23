@@ -12,10 +12,11 @@ export default function FloatingContact() {
 
   const brand = settings.brand_name || "LIKKI UNLOCKING";
   const waMsg = encodeURIComponent(
-    `Hello ${brand} Team 👋,\n\nI'd like to know more about your unlocking services. Could you please assist me?\n\nThank you!`
-  );
-  const tgMsg = encodeURIComponent(
-    `Hello ${brand} Team 👋, I'd like to inquire about your unlocking services. Please assist me. Thank you!`
+    `Hello ${brand} Team 👋,
+
+I visited your website and I'm interested in your unlocking / IMEI check services. Could you please share your current offers and how to get started?
+
+Thank you!`
   );
   const waHref = wa ? `https://wa.me/${wa.replace(/[^\d]/g, "")}?text=${waMsg}` : null;
   const tgUser = tg ? (tg.startsWith("http") ? tg.replace(/^https?:\/\/t\.me\//, "").replace(/^@/, "") : tg.replace(/^@/, "")) : "";
