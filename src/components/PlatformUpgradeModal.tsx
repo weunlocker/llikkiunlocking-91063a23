@@ -8,8 +8,25 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ShieldCheck, MessageCircle, Send, Mail, ArrowRight, X } from "lucide-react";
+import { Sparkles, ShieldCheck, MessageCircle, Send, ArrowRight, X } from "lucide-react";
 import defaultLogo from "@/assets/logo.png";
+
+function normalizeTelegram(raw?: string | null) {
+  if (!raw) return null;
+  const v = raw.trim();
+  if (!v) return null;
+  if (v.startsWith("http")) return v;
+  return `https://t.me/${v.replace(/^@/, "")}`;
+}
+function normalizeWhatsapp(raw?: string | null) {
+  if (!raw) return null;
+  const v = raw.trim();
+  if (!v) return null;
+  if (v.startsWith("http")) return v;
+  const digits = v.replace(/[^\d]/g, "");
+  if (!digits) return null;
+  return `https://wa.me/${digits}`;
+}
 
 export default function PlatformUpgradeModal() {
   const { settings } = useSiteSettings();
