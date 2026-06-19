@@ -11,14 +11,15 @@ export default function FloatingContact() {
   if (!tg && !wa) return null;
 
   const brand = settings.brand_name || "LIKKI UNLOCKING";
-  const waMsg = encodeURIComponent(
-    `Hello ${brand} Team 👋,
-
-I visited your website and I'm interested in your unlocking / IMEI check services. Could you please share your current offers and how to get started?
-
-Thank you!`
-  );
-  const waHref = wa ? `https://wa.me/${wa.replace(/[^\d]/g, "")}?text=${waMsg}` : null;
+  const waMsg = `Hello ${brand} Team 👋,\n\nI visited your website and I'm interested in your unlocking / IMEI check services. Could you please share your current offers and how to get started?\n\nThank you!`;
+  const waHref = (() => {
+    if (!wa) return null;
+    const digits = wa.replace(/[^\d]/g, "");
+    if (!digits) return null;
+    const url = new URL(`https://wa.me/${digits}`);
+    url.searchParams.set("text", waMsg);
+    return url.toString();
+  })();
   const tgUser = tg ? (tg.startsWith("http") ? tg.replace(/^https?:\/\/t\.me\//, "").replace(/^@/, "") : tg.replace(/^@/, "")) : "";
   const tgHref = tg ? `https://t.me/${tgUser}` : null;
 
