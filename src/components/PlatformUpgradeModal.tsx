@@ -123,7 +123,7 @@ export default function PlatformUpgradeModal() {
               )}
               {normalizeWhatsapp(settings.whatsapp_number) && (
                 <a
-                  href={normalizeWhatsapp(settings.whatsapp_number)!}
+                  href={normalizeWhatsapp(settings.whatsapp_number, waMsg)!}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={handleClose}
