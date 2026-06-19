@@ -165,6 +165,17 @@
   .animate-float { animation: float 6s ease-in-out infinite; }
   .animate-glow { animation: glow 2.5s ease-in-out infinite alternate; }
   .animate-fade-up { animation: fade-up 0.6s cubic-bezier(0.4, 0, 0.2, 1) both; }
+  .promo-shimmer::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(110deg, transparent 30%, hsl(var(--primary) / 0.18) 50%, transparent 70%);
+    animation: promo-shimmer 3.5s linear infinite;
+  }
+}
+
+@keyframes promo-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 @keyframes pulse-slow {
