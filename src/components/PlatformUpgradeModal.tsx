@@ -42,6 +42,9 @@ export default function PlatformUpgradeModal() {
   const handleClose = () => setOpen(false);
 
   const logoSrc = settings.logo_url || defaultLogo;
+  const waMsg = encodeURIComponent(
+    `Hello ${settings.brand_name || "LIK"} Team 👋,\n\nI visited your website and I'm interested in your unlocking / IMEI check services. Could you please share your current offers and how to get started?\n\nThank you!`
+  );
 
   return (
     <Dialog open={open} onOpenChange={(v) => v ? setOpen(true) : handleClose()}>
