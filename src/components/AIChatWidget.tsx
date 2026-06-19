@@ -371,7 +371,7 @@ export default function AIChatWidget() {
             </button>
           </form>
           <div className="text-[10px] text-center text-muted-foreground pb-2">
-            Powered by AI · For private order help, use WhatsApp / Telegram.
+            Powered by {brand} AI · For private order help, use WhatsApp / Telegram.
           </div>
         </div>
       )}
