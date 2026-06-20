@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
     const dateHeader = new Date().toUTCString();
 
     try {
-      await client.send({
+      const sendPromise = client.send({
         from: `${fromName} <${fromEmail}>`,
         to: body.to,
         replyTo,
@@ -158,6 +158,10 @@ Deno.serve(async (req) => {
           "MIME-Version": "1.0",
         },
       });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`SMTP timeout after 20s connecting to ${smtpHost}:${Number(cfg.smtp_port) || 587}. The host is unreachable or the port is blocked. Verify the SMTP Host (copy the exact "Outgoing Server" from cPanel → Connect Devices) and port (465 SSL or 587 TLS).`)), 20000)
+      );
+      await Promise.race([sendPromise, timeoutPromise]);
     } finally {
       try {
         await client.close();
