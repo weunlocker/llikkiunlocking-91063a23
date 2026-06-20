@@ -1,0 +1,1 @@
+UPDATE public.email_settings SET smtp_host='mail.likkiunlocking.com', smtp_port=465, smtp_secure=true WHERE id=1;
