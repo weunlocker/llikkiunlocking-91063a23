@@ -119,13 +119,9 @@ async function sendViaSmtp(opts: {
       subject: opts.subject,
       html: opts.html,
       content: opts.text,
-      headers: {
-        'Message-ID': messageId,
-        'Date': new Date().toUTCString(),
-        'MIME-Version': '1.0',
-      },
     })
     return { ok: true }
+
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) }
   } finally {
