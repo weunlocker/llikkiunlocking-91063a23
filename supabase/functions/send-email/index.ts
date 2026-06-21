@@ -131,40 +131,29 @@ Deno.serve(async (req) => {
       html = render(body.override_html ?? t.html ?? "", data);
     }
 
-    const client = new SMTPClient({
-      connection: {
-        hostname: smtpHost,
-        port: Number(cfg.smtp_port) || 587,
-        tls: !!cfg.smtp_secure,
-        auth: { username: smtpUser, password: smtpPassword },
-      },
+    const port = Number(cfg.smtp_port) || 587;
+    const secure = !!cfg.smtp_secure;
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port,
+      secure, // true for 465, false for 587
+      auth: { user: smtpUser, pass: smtpPassword },
+      connectionTimeout: 20000,
+      greetingTimeout: 20000,
+      socketTimeout: 30000,
     });
 
-    const domain = fromEmail.split("@")[1] || "localhost";
-    const messageId = `<${crypto.randomUUID()}@${domain}>`;
-    const dateHeader = new Date().toUTCString();
+    const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
-    try {
-      const sendPromise = client.send({
-        from: `${fromName} <${fromEmail}>`,
-        to: body.to,
-        replyTo,
-        subject,
-        html,
-        content: html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
-      });
-
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`SMTP timeout after 20s connecting to ${smtpHost}:${Number(cfg.smtp_port) || 587}. The host is unreachable or the port is blocked. Verify the SMTP Host (copy the exact "Outgoing Server" from cPanel → Connect Devices) and port (465 SSL or 587 TLS).`)), 20000)
-      );
-      await Promise.race([sendPromise, timeoutPromise]);
-    } finally {
-      try {
-        await client.close();
-      } catch {
-        // Ignore close errors so the original SMTP result is preserved.
-      }
-    }
+    const info = await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to: body.to,
+      replyTo,
+      subject,
+      html,
+      text,
+    });
+    console.log("send-email ok", { messageId: info.messageId, response: info.response, accepted: info.accepted, rejected: info.rejected });
 
     return new Response(JSON.stringify({ ok: true }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
