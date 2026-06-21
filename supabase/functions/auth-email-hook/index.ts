@@ -3,7 +3,7 @@ import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { parseEmailWebhookPayload } from 'npm:@lovable.dev/email-js'
 import { WebhookError, verifyWebhookRequest } from 'npm:@lovable.dev/webhooks-js'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts'
+import nodemailer from 'npm:nodemailer@6.9.14'
 import { SignupEmail } from '../_shared/email-templates/signup.tsx'
 import { InviteEmail } from '../_shared/email-templates/invite.tsx'
 import { MagicLinkEmail } from '../_shared/email-templates/magic-link.tsx'
@@ -99,33 +99,29 @@ async function sendViaSmtp(opts: {
     return { ok: false, error: 'SMTP not fully configured' }
   }
 
-  const client = new SMTPClient({
-    connection: {
-      hostname: smtpHost,
-      port: Number(cfg.smtp_port) || 587,
-      tls: !!cfg.smtp_secure,
-      auth: { username: smtpUser, password: smtpPassword },
-    },
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: Number(cfg.smtp_port) || 587,
+    secure: !!cfg.smtp_secure,
+    auth: { user: smtpUser, pass: smtpPassword },
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 30000,
   })
 
-  const domain = fromEmail.split('@')[1] || 'localhost'
-  const messageId = `<${crypto.randomUUID()}@${domain}>`
-
   try {
-    await client.send({
-      from: `${fromName} <${fromEmail}>`,
+    const info = await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
       to: opts.to,
       replyTo,
       subject: opts.subject,
       html: opts.html,
-      content: opts.text,
+      text: opts.text,
     })
+    console.log('auth-email-hook ok', { messageId: info.messageId, response: info.response })
     return { ok: true }
-
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) }
-  } finally {
-    try { await client.close() } catch { /* ignore */ }
   }
 }
 
