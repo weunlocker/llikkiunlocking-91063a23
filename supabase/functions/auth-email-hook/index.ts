@@ -99,33 +99,29 @@ async function sendViaSmtp(opts: {
     return { ok: false, error: 'SMTP not fully configured' }
   }
 
-  const client = new SMTPClient({
-    connection: {
-      hostname: smtpHost,
-      port: Number(cfg.smtp_port) || 587,
-      tls: !!cfg.smtp_secure,
-      auth: { username: smtpUser, password: smtpPassword },
-    },
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: Number(cfg.smtp_port) || 587,
+    secure: !!cfg.smtp_secure,
+    auth: { user: smtpUser, pass: smtpPassword },
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 30000,
   })
 
-  const domain = fromEmail.split('@')[1] || 'localhost'
-  const messageId = `<${crypto.randomUUID()}@${domain}>`
-
   try {
-    await client.send({
-      from: `${fromName} <${fromEmail}>`,
+    const info = await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
       to: opts.to,
       replyTo,
       subject: opts.subject,
       html: opts.html,
-      content: opts.text,
+      text: opts.text,
     })
+    console.log('auth-email-hook ok', { messageId: info.messageId, response: info.response })
     return { ok: true }
-
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) }
-  } finally {
-    try { await client.close() } catch { /* ignore */ }
   }
 }
 
