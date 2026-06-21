@@ -2,6 +2,7 @@ import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
+import nodemailer from 'npm:nodemailer@6.9.14'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 // Configuration — SENDER_DOMAIN and FROM_DOMAIN can be overridden via env secrets
@@ -44,6 +45,71 @@ function configuredSecretKeys(primaryKey: string): Set<string> {
     }
   }
   return keys
+}
+
+function friendlySmtpError(message: string): string {
+  const lower = message.toLowerCase()
+  if (message.includes('535') || lower.includes('authentication')) {
+    return 'SMTP login failed. Check the SMTP username/password and make sure the username is the full email address.'
+  }
+  if (lower.includes('certificate') || lower.includes('tls') || lower.includes('ssl')) {
+    return 'SMTP TLS/SSL connection failed. Check that the SMTP port and SSL setting match your mail provider.'
+  }
+  return message
+}
+
+async function sendViaConfiguredSmtp(
+  supabase: ReturnType<typeof createClient>,
+  opts: { to: string; subject: string; html: string; text: string }
+): Promise<{ ok: true; provider: string; messageId?: string; response?: string } | { ok: false; provider: string; error: string }> {
+  const { data: cfg, error } = await supabase
+    .from('email_settings')
+    .select('enabled, provider, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_password, from_email, from_name, reply_to')
+    .eq('id', 1)
+    .maybeSingle()
+
+  if (error || !cfg) return { ok: false, provider: 'smtp', error: 'Email settings not configured' }
+  if (cfg.enabled === false) return { ok: false, provider: String(cfg.provider ?? 'smtp'), error: 'Emails disabled in settings' }
+
+  const provider = String(cfg.provider ?? 'smtp')
+  if (provider === 'lovable') return { ok: false, provider, error: 'Lovable email provider selected' }
+
+  const smtpHost = String(cfg.smtp_host ?? '').trim()
+  const smtpUser = String(cfg.smtp_user ?? '').trim()
+  const smtpPassword = String(cfg.smtp_password ?? '').trim()
+  const fromEmail = String(cfg.from_email ?? '').trim()
+  const fromName = String(cfg.from_name ?? SITE_NAME).trim() || SITE_NAME
+  const replyTo = String(cfg.reply_to ?? '').trim() || undefined
+
+  if (!smtpHost || !smtpUser || !smtpPassword || !fromEmail) {
+    return { ok: false, provider, error: 'SMTP not fully configured' }
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: Number(cfg.smtp_port) || 587,
+      secure: !!cfg.smtp_secure,
+      auth: { user: smtpUser, pass: smtpPassword },
+      connectionTimeout: 20000,
+      greetingTimeout: 20000,
+      socketTimeout: 30000,
+    })
+
+    const info = await transporter.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to: opts.to,
+      replyTo,
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text,
+    })
+
+    return { ok: true, provider, messageId: info.messageId, response: info.response }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    return { ok: false, provider, error: friendlySmtpError(message) }
+  }
 }
 
 // Auth note: this function accepts trusted backend calls only. The key is
@@ -344,6 +410,54 @@ Deno.serve(async (req) => {
     typeof template.subject === 'function'
       ? template.subject(templateData)
       : template.subject
+
+  // If the admin selected SMTP, send immediately through the configured SMTP
+  // server. This avoids the Lovable-domain queue path when that domain is not
+  // verified, which was reporting queued while delivery later failed.
+  const smtpResult = await sendViaConfiguredSmtp(supabase, {
+    to: effectiveRecipient,
+    subject: resolvedSubject,
+    html,
+    text: plainText,
+  })
+
+  if (smtpResult.provider !== 'lovable') {
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: templateName,
+      recipient_email: effectiveRecipient,
+      status: 'pending',
+    })
+
+    if (!smtpResult.ok) {
+      console.error('SMTP transactional send failed', { templateName, effectiveRecipient, error: smtpResult.error })
+      await supabase.from('email_send_log').insert({
+        message_id: messageId,
+        template_name: templateName,
+        recipient_email: effectiveRecipient,
+        status: 'failed',
+        error_message: smtpResult.error.slice(0, 500),
+      })
+      return new Response(JSON.stringify({ success: false, error: smtpResult.error }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: templateName,
+      recipient_email: effectiveRecipient,
+      status: 'sent',
+      metadata: { provider: 'smtp', smtpMessageId: smtpResult.messageId, smtpResponse: smtpResult.response },
+    })
+
+    console.log('Transactional email sent via SMTP', { templateName, effectiveRecipient, response: smtpResult.response })
+    return new Response(JSON.stringify({ success: true, sent: true, provider: 'smtp' }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
 
   // 5. Enqueue the pre-rendered email for async processing by the dispatcher.
   // The dispatcher (process-email-queue) handles sending, retries, and rate-limit backoff.
