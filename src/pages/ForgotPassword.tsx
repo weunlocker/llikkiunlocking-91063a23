@@ -25,9 +25,24 @@ export default function ForgotPassword() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.functions.invoke("password-reset", {
-      body: { email: parsed.data.email, redirectTo: `${window.location.origin}/reset-password` },
+    const redirectTo = `${window.location.origin}/reset-password`;
+    const { data, error } = await supabase.functions.invoke("password-reset", {
+      body: { email: parsed.data.email, redirectTo },
     });
+    const response = data as { useLovableAuth?: boolean } | null;
+    if (!error && response?.useLovableAuth) {
+      const { error: authError } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+        redirectTo,
+      });
+      setLoading(false);
+      if (authError) {
+        toast.error(authError.message);
+        return;
+      }
+      setSent(true);
+      toast.success("Check your inbox for the reset link.");
+      return;
+    }
     setLoading(false);
     if (error) {
       toast.error(error.message);
