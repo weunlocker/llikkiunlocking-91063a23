@@ -15,6 +15,8 @@ project_id = "jhkumqyugvezfulkoine"
     verify_jwt = false
   [functions.auth-email-hook]
     verify_jwt = false
+  [functions.password-reset]
+    verify_jwt = false
   [functions.binance-poll-deposits]
     verify_jwt = false
   [functions.poll-dhru-orders]
