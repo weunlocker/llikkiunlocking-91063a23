@@ -87,6 +87,7 @@ async function sendViaSmtp(opts: {
     .from('email_settings').select('*').eq('id', 1).maybeSingle()
   if (error || !cfg) return { ok: false, error: 'Email settings not configured' }
   if (!cfg.enabled) return { ok: false, error: 'Emails disabled in settings' }
+  if (String(cfg.provider ?? 'smtp') === 'lovable') return { ok: false, error: 'Lovable auth selected' }
 
   const smtpHost = String(cfg.smtp_host ?? '').trim()
   const smtpUser = String(cfg.smtp_user ?? '').trim()
@@ -117,7 +118,11 @@ async function sendViaSmtp(opts: {
       subject: opts.subject,
       html: opts.html,
       text: opts.text,
+      envelope: { from: smtpUser, to: opts.to },
     })
+    if (Array.isArray(info.rejected) && info.rejected.length > 0) {
+      throw new Error(`SMTP rejected recipient: ${info.rejected.join(', ')}`)
+    }
     console.log('auth-email-hook ok', { messageId: info.messageId, response: info.response })
     return { ok: true }
   } catch (e) {
