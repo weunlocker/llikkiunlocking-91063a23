@@ -37,6 +37,8 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 
 const SITE_NAME = 'LIKKI UNLOCKING'
 const ROOT_DOMAIN = 'likkiunlocking.com'
+const SENDER_DOMAIN = Deno.env.get('EMAIL_SENDER_DOMAIN') || 'notify.mail.likkiunlocking.com'
+const FROM_DOMAIN = Deno.env.get('EMAIL_FROM_DOMAIN') || SENDER_DOMAIN
 
 const SAMPLE_PROJECT_URL = 'https://llikkiunlocking.lovable.app'
 const SAMPLE_EMAIL = 'user@example.test'
@@ -202,6 +204,47 @@ async function handleWebhook(req: Request): Promise<Response> {
     recipient_email: recipient,
     status: 'pending',
   })
+
+  const { data: emailSettings } = await supabase
+    .from('email_settings')
+    .select('provider')
+    .eq('id', 1)
+    .maybeSingle()
+  if (String(emailSettings?.provider ?? 'smtp') === 'lovable') {
+    const { error: enqueueError } = await supabase.rpc('enqueue_email', {
+      queue_name: 'auth_emails',
+      payload: {
+        run_id,
+        message_id: messageId,
+        to: recipient,
+        from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+        sender_domain: SENDER_DOMAIN,
+        subject: EMAIL_SUBJECTS[emailType] || 'Notification',
+        html,
+        text,
+        purpose: 'auth',
+        label: emailType,
+        idempotency_key: run_id || messageId,
+        queued_at: new Date().toISOString(),
+      },
+    })
+    if (enqueueError) {
+      await supabase.from('email_send_log').insert({
+        message_id: messageId,
+        template_name: emailType,
+        recipient_email: recipient,
+        status: 'failed',
+        error_message: 'Failed to queue Lovable auth email',
+      })
+      return new Response(JSON.stringify({ error: 'Failed to queue email' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    console.log('Auth email queued via Lovable', { emailType, recipient, run_id })
+    return new Response(JSON.stringify({ success: true, queued: true }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
 
   const result = await sendViaSmtp({
     supabase,
