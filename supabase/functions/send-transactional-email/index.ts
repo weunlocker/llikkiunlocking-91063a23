@@ -103,7 +103,11 @@ async function sendViaConfiguredSmtp(
       subject: opts.subject,
       html: opts.html,
       text: opts.text,
+      envelope: { from: smtpUser, to: opts.to },
     })
+    if (Array.isArray(info.rejected) && info.rejected.length > 0) {
+      throw new Error(`SMTP rejected recipient: ${info.rejected.join(', ')}`)
+    }
 
     return { ok: true, provider, messageId: info.messageId, response: info.response }
   } catch (e) {

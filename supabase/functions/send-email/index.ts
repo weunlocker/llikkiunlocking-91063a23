@@ -152,7 +152,11 @@ Deno.serve(async (req) => {
       subject,
       html,
       text,
+      envelope: { from: smtpUser, to: body.to },
     });
+    if (Array.isArray(info.rejected) && info.rejected.length > 0) {
+      throw new Error(`SMTP rejected recipient: ${info.rejected.join(", ")}`);
+    }
     console.log("send-email ok", { messageId: info.messageId, response: info.response, accepted: info.accepted, rejected: info.rejected });
 
     return new Response(JSON.stringify({ ok: true }), {

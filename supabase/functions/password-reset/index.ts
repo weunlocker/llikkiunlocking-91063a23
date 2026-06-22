@@ -26,6 +26,20 @@ Deno.serve(async (req) => {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
+    const { data: cfg } = await admin.from("email_settings").select("*").eq("id", 1).maybeSingle();
+    if (!cfg || !cfg.enabled) {
+      console.error("email settings not configured/enabled");
+      return new Response(JSON.stringify({ error: "Email service unavailable" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (String(cfg.provider ?? "smtp") === "lovable") {
+      return new Response(JSON.stringify({ ok: true, useLovableAuth: true }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
       type: "recovery",
       email,
@@ -38,23 +52,22 @@ Deno.serve(async (req) => {
     const actionLink = (linkData as any).properties?.action_link;
     if (!actionLink) return okResponse;
 
-    const { data: cfg } = await admin.from("email_settings").select("*").eq("id", 1).maybeSingle();
-    if (!cfg || !cfg.enabled) {
-      console.error("email settings not configured/enabled");
-      return new Response(JSON.stringify({ error: "Email service unavailable" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const fromName = String(cfg.from_name ?? "LIKKI UNLOCKING").trim() || "LIKKI UNLOCKING";
     const fromEmail = String(cfg.from_email ?? "").trim();
     const replyTo = String(cfg.reply_to ?? "").trim() || undefined;
+    const smtpUser = String(cfg.smtp_user ?? "").trim();
+    const smtpPassword = String(cfg.smtp_password ?? "").trim();
+    if (!String(cfg.smtp_host ?? "").trim() || !smtpUser || !smtpPassword || !fromEmail) {
+      return new Response(JSON.stringify({ error: "SMTP not fully configured" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const transporter = nodemailer.createTransport({
       host: String(cfg.smtp_host).trim(),
       port: Number(cfg.smtp_port) || 587,
       secure: !!cfg.smtp_secure,
-      auth: { user: String(cfg.smtp_user).trim(), pass: String(cfg.smtp_password).trim() },
+      auth: { user: smtpUser, pass: smtpPassword },
       connectionTimeout: 20000,
       greetingTimeout: 20000,
       socketTimeout: 30000,
@@ -81,7 +94,11 @@ Deno.serve(async (req) => {
       subject: `Reset your ${fromName} password`,
       html,
       text,
+      envelope: { from: smtpUser, to: email },
     });
+    if (Array.isArray(info.rejected) && info.rejected.length > 0) {
+      throw new Error(`SMTP rejected recipient: ${info.rejected.join(", ")}`);
+    }
     console.log("password-reset sent", { messageId: info.messageId, response: info.response });
 
     try {
