@@ -83,13 +83,25 @@ export default function Register() {
         },
       },
     });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast.error(error.message);
       return;
     }
     localStorage.removeItem("ref_code");
-    toast.success("Account created! Check your email to confirm before signing in.");
+    // Fire-and-forget welcome email via configured provider (SMTP/Lovable)
+    try {
+      await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "welcome",
+          recipientEmail: parsed.data.email,
+          idempotencyKey: `welcome-${parsed.data.email}-${Date.now()}`,
+          templateData: { name: parsed.data.displayName },
+        },
+      });
+    } catch (_) { /* non-blocking */ }
+    setLoading(false);
+    toast.success("Account created! You can sign in now.");
     navigate("/login");
   };
 
