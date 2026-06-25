@@ -9,6 +9,7 @@ import {
 import logo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { supabase } from "@/integrations/supabase/client";
+import AdminProfileMenu from "@/components/AdminProfileMenu";
 
 type NavItem = {
   to: string;
