@@ -47,13 +47,13 @@ export default function PlatformUpgradeModal() {
   return (
     <Dialog open={open} onOpenChange={(v) => v ? setOpen(true) : handleClose()}>
       <DialogContent
-        className="max-w-[420px] p-0 overflow-hidden border border-primary/30 bg-[hsl(222_47%_7%)] shadow-[0_0_60px_rgba(0,200,255,0.15)]"
+        className="max-w-[420px] p-0 overflow-hidden border border-primary/30 bg-card text-card-foreground shadow-[0_0_60px_rgba(0,200,255,0.15)]"
         aria-describedby="platform-upgrade-desc"
       >
         {/* Close button */}
         <button
           onClick={handleClose}
-          className="absolute top-3 right-3 z-10 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+          className="absolute top-3 right-3 z-10 p-1.5 rounded-full text-card-foreground/70 hover:text-card-foreground hover:bg-white/10 transition-colors"
           aria-label="Close"
         >
           <X className="w-4 h-4" />
@@ -68,14 +68,14 @@ export default function PlatformUpgradeModal() {
 
           {/* Logo */}
           <div className="mb-4">
-            <img src={logoSrc} alt="${settings.brand_name} logo" className="h-10 w-auto mx-auto" />
+            <img src={logoSrc} alt={`${settings.brand_name} logo`} className="h-10 w-auto mx-auto" />
           </div>
 
-          <DialogTitle className="text-xl font-bold mb-2">
+          <DialogTitle className="text-xl font-bold mb-2 text-white">
             Welcome to the New <span className="glow-text">{settings.brand_name || "LIK"}</span>
           </DialogTitle>
 
-          <DialogDescription id="platform-upgrade-desc" className="text-sm text-muted-foreground leading-relaxed mb-4">
+          <DialogDescription id="platform-upgrade-desc" className="text-sm text-card-foreground/90 leading-relaxed mb-4">
             We have completely rebuilt our platform for faster checks, better security, and a smoother experience.
           </DialogDescription>
 
