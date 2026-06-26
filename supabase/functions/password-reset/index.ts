@@ -49,7 +49,17 @@ Deno.serve(async (req) => {
       console.log("generateLink error", linkErr?.message);
       return okResponse;
     }
-    const actionLink = (linkData as any).properties?.action_link;
+    const props = (linkData as any).properties ?? {};
+    const tokenHash: string | undefined = props.hashed_token;
+    // Build our own link straight to /reset-password so email scanners can't
+    // consume the single-use Supabase verify URL before the user clicks.
+    let actionLink: string = props.action_link;
+    if (tokenHash && redirectTo) {
+      const u = new URL(redirectTo);
+      u.searchParams.set("token_hash", tokenHash);
+      u.searchParams.set("type", "recovery");
+      actionLink = u.toString();
+    }
     if (!actionLink) return okResponse;
 
     const fromName = String(cfg.from_name ?? "LIKKI UNLOCKING").trim() || "LIKKI UNLOCKING";
