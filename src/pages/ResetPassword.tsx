@@ -110,8 +110,7 @@ export default function ResetPassword() {
           </p>
           {!ready ? (
             <p className="text-sm text-muted-foreground">
-              Validating reset link… If this page does not unlock, request a new link from the
-              forgot password page.
+              {linkError ?? "Validating reset link… If this page does not unlock, request a new link from the forgot password page."}
             </p>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
