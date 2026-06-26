@@ -16,17 +16,58 @@ export default function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
 
+  const [linkError, setLinkError] = useState<string | null>(null);
+
   useEffect(() => {
-    // Supabase puts the recovery session in the URL hash; the client picks it up automatically.
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
         setReady(true);
       }
     });
-    // Also check existing session in case the listener fires before mount.
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setReady(true);
-    });
+
+    (async () => {
+      const { data: existing } = await supabase.auth.getSession();
+      if (existing.session) {
+        setReady(true);
+        return;
+      }
+
+      const url = new URL(window.location.href);
+
+      // PKCE / code flow
+      const code = url.searchParams.get("code");
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) setLinkError(error.message);
+        else setReady(true);
+        return;
+      }
+
+      // Token hash flow (?token_hash=...&type=recovery)
+      const token_hash = url.searchParams.get("token_hash");
+      const type = url.searchParams.get("type");
+      if (token_hash && type) {
+        const { error } = await supabase.auth.verifyOtp({
+          type: type as "recovery",
+          token_hash,
+        });
+        if (error) setLinkError(error.message);
+        else setReady(true);
+        return;
+      }
+
+      // Hash-based access_token flow is handled by the client → onAuthStateChange
+      if (window.location.hash.includes("access_token")) return;
+
+      // Wait a moment for listener; if nothing arrives, show error
+      setTimeout(async () => {
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) {
+          setLinkError("Invalid or expired reset link. Please request a new one.");
+        }
+      }, 1500);
+    })();
+
     return () => sub.subscription.unsubscribe();
   }, []);
 
