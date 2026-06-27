@@ -83,44 +83,20 @@ export async function notifyUserEmail(
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    if (provider === "lovable") {
-      // Map app events to registered transactional template names
-      const LOVABLE_TPL: Record<EmailEvent, string> = {
-        welcome: "welcome",
-        order_placed: "order-placed",
-        order_success: "order-success",
-        order_rejected: "order-rejected",
-        balance_update: "balance-update",
-        balance_topup: "balance-topup",
-        referral_bonus: "referral-bonus",
-      };
-      const templateName = LOVABLE_TPL[event] ?? "welcome";
-      const res = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${serviceKey}`,
-          "apikey": serviceKey,
-        },
-        body: JSON.stringify({
-          templateName,
-          recipientEmail: prof.email,
-          idempotencyKey: `${event}-${userId}-${Date.now()}`,
-          templateData: { name: recipientName, ...data },
-        }),
-      });
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        console.error(`[notifyUserEmail] ${event} (lovable=${templateName}) → ${res.status}: ${txt.slice(0, 300)}`);
-      } else {
-        console.log(`[notifyUserEmail] ${event} sent via Lovable to ${prof.email}`);
-      }
-      return;
-    }
-
-    // SMTP path (default)
-    const smtpEvent = SMTP_EVENT_MAP[event] ?? "welcome";
-    const res = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+    // Always use the React Email transactional templates (registry) for a
+    // consistent, branded look. The send-transactional-email function detects
+    // the configured provider (smtp | lovable) and dispatches accordingly.
+    const TPL: Record<EmailEvent, string> = {
+      welcome: "welcome",
+      order_placed: "order-placed",
+      order_success: "order-success",
+      order_rejected: "order-rejected",
+      balance_update: "balance-update",
+      balance_topup: "balance-topup",
+      referral_bonus: "referral-bonus",
+    };
+    const templateName = TPL[event] ?? "welcome";
+    const res = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -128,17 +104,19 @@ export async function notifyUserEmail(
         "apikey": serviceKey,
       },
       body: JSON.stringify({
-        event: smtpEvent,
-        to: prof.email,
-        data: { name: recipientName, ...data },
+        templateName,
+        recipientEmail: prof.email,
+        idempotencyKey: `${event}-${userId}-${Date.now()}`,
+        templateData: { name: recipientName, ...data },
       }),
     });
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
-      console.error(`[notifyUserEmail] ${event} (smtp=${smtpEvent}) → ${res.status}: ${txt.slice(0, 300)}`);
+      console.error(`[notifyUserEmail] ${event} (${provider}=${templateName}) → ${res.status}: ${txt.slice(0, 300)}`);
     } else {
-      console.log(`[notifyUserEmail] ${event} sent via SMTP to ${prof.email}`);
+      console.log(`[notifyUserEmail] ${event} sent via ${provider} to ${prof.email}`);
     }
+
 
   } catch (e) {
     console.error("notifyUserEmail failed", event, e);
