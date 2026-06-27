@@ -39,6 +39,8 @@ const baseNavItems: NavItem[] = [
   { to: "/admin/telegram-bot", label: "Telegram Bot", icon: Send },
   { to: "/admin/api-providers", label: "API Providers", icon: Network },
   { to: "/admin/email-settings", label: "Email / SMTP", icon: Mail },
+  { to: "/admin/email-templates", label: "Email Templates", icon: Mail },
+
   { to: "/admin/turnstile", label: "Turnstile", icon: Shield },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
