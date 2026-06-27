@@ -2399,6 +2399,8 @@ import AdminSupport from "./AdminSupport";
 import AdminLoginActivity from "./AdminLoginActivity";
 import AdminServiceEdit from "./AdminServiceEdit";
 import AdminStock from "./AdminStock";
+import AdminEmailTemplates from "./AdminEmailTemplates";
+
 
 export default function Admin() {
   return (
@@ -2425,6 +2427,8 @@ export default function Admin() {
       <Route path="telegram-bot" element={<AdminTelegramBot />} />
       <Route path="api-providers" element={<AdminSuppliers />} />
       <Route path="email-settings" element={<AdminEmailSettings />} />
+      <Route path="email-templates" element={<AdminEmailTemplates />} />
+
       <Route path="turnstile" element={<AdminTurnstile />} />
       <Route path="settings" element={<AdminSettings />} />
     </Routes>
