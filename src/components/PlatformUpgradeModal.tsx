@@ -71,7 +71,7 @@ export default function PlatformUpgradeModal() {
             <img src={logoSrc} alt={`${settings.brand_name} logo`} className="h-10 w-auto mx-auto" />
           </div>
 
-          <DialogTitle className="text-xl font-bold mb-2 text-white">
+          <DialogTitle className="text-xl font-bold mb-2 text-foreground">
             Welcome to the New <span className="glow-text">{settings.brand_name || "LIK"}</span>
           </DialogTitle>
 
