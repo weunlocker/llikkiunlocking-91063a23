@@ -1,5 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import nodemailer from "npm:nodemailer@6.9.14";
+import * as React from "npm:react@18.3.1";
+import { renderAsync } from "npm:@react-email/components@0.0.22";
+import { RecoveryEmail } from "../_shared/email-templates/recovery.tsx";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -83,18 +86,9 @@ Deno.serve(async (req) => {
       socketTimeout: 30000,
     });
 
-    const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#f6f9fc;padding:24px;margin:0;">
-      <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border:1px solid #e3eef7;">
-        <h1 style="color:#0a1929;font-size:22px;margin:0 0 12px;">Reset your password</h1>
-        <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 20px;">
-          We received a request to reset your ${fromName} password. Click the button below to set a new one. This link expires shortly.
-        </p>
-        <p style="text-align:center;margin:24px 0;">
-          <a href="${actionLink}" style="background:#00B8FF;color:#fff;text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:600;display:inline-block;">Reset password</a>
-        </p>
-        <p style="color:#94a3b8;font-size:12px;margin-top:24px;">If you didn't request this, you can safely ignore this email.</p>
-        <p style="color:#94a3b8;font-size:12px;word-break:break-all;">Or copy this link: ${actionLink}</p>
-      </div></body></html>`;
+    const html = await renderAsync(
+      React.createElement(RecoveryEmail, { siteName: fromName, confirmationUrl: actionLink }),
+    );
     const text = `Reset your ${fromName} password: ${actionLink}`;
 
     const info = await transporter.sendMail({
