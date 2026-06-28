@@ -216,6 +216,7 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
             {(actions || true) && (
               <div className="flex flex-wrap items-center gap-2 md:shrink-0 [&>div.relative]:flex-1 [&>div.relative]:min-w-0 md:[&>div.relative]:w-64 md:[&>div.relative]:flex-none">
                 {actions}
+                <AdminNotificationsBell />
                 <AdminProfileMenu />
               </div>
             )}
