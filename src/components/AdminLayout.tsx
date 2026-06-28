@@ -179,15 +179,6 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
         })}
       </nav>
 
-
-      <div className="p-3 border-t border-border/60 space-y-2">
-        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => { setOpen(false); navigate("/"); }}>
-          <ExternalLink className="w-4 h-4 mr-2" /> View Public Site
-        </Button>
-        <Button variant="ghost" size="sm" className="w-full justify-start text-destructive hover:text-destructive" onClick={signOut}>
-          <LogOut className="w-4 h-4 mr-2" /> Sign Out
-        </Button>
-      </div>
     </>
   );
 
