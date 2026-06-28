@@ -1,5 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import nodemailer from "npm:nodemailer@6.9.14";
+import * as React from "npm:react@18.3.1";
+import { renderAsync } from "npm:@react-email/components@0.0.22";
+import { RecoveryEmail } from "../_shared/email-templates/recovery.tsx";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
