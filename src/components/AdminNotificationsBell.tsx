@@ -42,7 +42,7 @@ export default function AdminNotificationsBell() {
       supabase
         .from("orders")
         .select("id, order_number, imei, status, created_at")
-        .in("status", ["processing"])
+        .in("status", ["in_process"])
         .lt("created_at", stuckCutoff)
         .order("created_at", { ascending: false })
         .limit(10),
