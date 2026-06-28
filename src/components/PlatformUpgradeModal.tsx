@@ -81,7 +81,7 @@ export default function PlatformUpgradeModal() {
 
           {/* Warning */}
           <div className="w-full rounded-xl border border-primary/30 bg-primary/10 p-4 mb-5">
-            <div className="flex items-center justify-center gap-2 text-sm font-semibold text-white mb-1">
+            <div className="flex items-center justify-center gap-2 text-sm font-semibold text-foreground mb-1">
               <ShieldCheck className="w-4 h-4 text-primary" />
               Your old account is not valid here.
             </div>
