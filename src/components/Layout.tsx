@@ -8,6 +8,7 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useTheme } from "@/hooks/useTheme";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import PromoRibbon from "@/components/PromoRibbon";
+import AdminProfileMenu from "@/components/AdminProfileMenu";
 
 import { useSupportNotifications } from "@/hooks/useSupportNotifications";
 import {
