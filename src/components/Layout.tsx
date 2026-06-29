@@ -8,6 +8,7 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useTheme } from "@/hooks/useTheme";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import PromoRibbon from "@/components/PromoRibbon";
+import AdminProfileMenu from "@/components/AdminProfileMenu";
 
 import { useSupportNotifications } from "@/hooks/useSupportNotifications";
 import {
@@ -105,37 +106,9 @@ export default function Layout({ children }: { children: ReactNode }) {
                     <span className="hidden md:inline ml-2">Admin</span>
                   </Button>
                 )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="hidden sm:inline-flex rounded-full" title="Profile" aria-label="Profile menu">
-                      <div className="w-7 h-7 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold uppercase">
-                        {(profile?.display_name || user.email || "?").slice(0, 1)}
-                      </div>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-60 bg-popover">
-                    <DropdownMenuLabel className="space-y-1">
-                      <div className="font-semibold truncate">{profile?.display_name || "Account"}</div>
-                      <div className="text-xs text-muted-foreground truncate font-normal">{user.email}</div>
-                      <div className="flex items-center gap-1.5 pt-1">
-                        <Shield className="w-3 h-3 text-primary" />
-                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Group:</span>
-                        <span className="text-xs font-semibold capitalize">{profile?.user_group || "standard"}</span>
-                      </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">
-                      <UserIcon className="w-4 h-4 mr-2" /> Profile
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/dashboard")} className="cursor-pointer">
-                      <LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={signOut} className="cursor-pointer text-destructive focus:text-destructive">
-                      <LogOut className="w-4 h-4 mr-2" /> Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="hidden sm:flex">
+                  <AdminProfileMenu mode="client" />
+                </div>
               </>
             ) : (
               <>
