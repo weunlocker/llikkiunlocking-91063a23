@@ -14,6 +14,28 @@ interface Props {
   balance?: string | number
 }
 
+const COLOR_MAP: Record<string, string> = {
+  green: '#15803D', red: '#B91C1C', blue: '#1D4ED8', orange: '#C2410C',
+  yellow: '#A16207', purple: '#7E22CE', gray: '#374151', black: '#000000',
+}
+
+function renderColored(text: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = []
+  const re = /\[\[c:([a-zA-Z#0-9]+)\]\]([\s\S]*?)\[\[\/c\]\]/g
+  let last = 0
+  let m: RegExpExecArray | null
+  let i = 0
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) nodes.push(text.slice(last, m.index))
+    const color = COLOR_MAP[m[1].toLowerCase()] || (m[1].startsWith('#') ? m[1] : m[1])
+    nodes.push(<span key={i++} style={{ color, fontWeight: 700 }}>{m[2]}</span>)
+    last = m.index + m[0].length
+  }
+  if (last < text.length) nodes.push(text.slice(last))
+  return nodes
+}
+
+
 const OrderSuccessEmail = ({ name, orderNumber, service, imei, result, charged, balance }: Props) => (
   <EmailShell preview={`Your order #${orderNumber ?? ''} is complete`}>
     <span style={{ ...styles.badge, background: '#DCFCE7', color: '#15803D' }}>✓ ORDER COMPLETED</span>
