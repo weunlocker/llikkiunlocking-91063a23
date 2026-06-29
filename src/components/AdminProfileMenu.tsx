@@ -47,18 +47,6 @@ export default function AdminProfileMenu() {
 
   return (
     <div className="flex items-center gap-3">
-      <button
-        type="button"
-        onClick={() => navigate("/admin/notifications")}
-        className="relative w-9 h-9 rounded-full bg-secondary/60 hover:bg-secondary flex items-center justify-center text-foreground transition-colors"
-        aria-label="Notifications"
-      >
-        <Bell className="w-4 h-4" />
-        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
-          0
-        </span>
-      </button>
-
       <Popover>
         <PopoverTrigger asChild>
           <button
