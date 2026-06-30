@@ -811,6 +811,8 @@ export type Database = {
           admin_bot_token: string | null
           admin_bot_username: string | null
           admin_chat_ids: string[]
+          ai_api_key: string | null
+          ai_provider: string
           brand_name: string
           client_bot_token: string | null
           client_bot_username: string | null
@@ -846,6 +848,8 @@ export type Database = {
           admin_bot_token?: string | null
           admin_bot_username?: string | null
           admin_chat_ids?: string[]
+          ai_api_key?: string | null
+          ai_provider?: string
           brand_name?: string
           client_bot_token?: string | null
           client_bot_username?: string | null
@@ -881,6 +885,8 @@ export type Database = {
           admin_bot_token?: string | null
           admin_bot_username?: string | null
           admin_chat_ids?: string[]
+          ai_api_key?: string | null
+          ai_provider?: string
           brand_name?: string
           client_bot_token?: string | null
           client_bot_username?: string | null
