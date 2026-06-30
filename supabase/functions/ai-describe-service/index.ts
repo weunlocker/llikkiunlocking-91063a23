@@ -56,20 +56,15 @@ Rules:
     });
 
     if (!resp.ok) {
-      if (resp.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited, try again shortly." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (resp.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await resp.text();
+      const t = await resp.text().catch(() => "");
       console.error("AI gateway error:", resp.status, t);
-      return new Response(JSON.stringify({ error: "AI service error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const message =
+        resp.status === 429 ? "AI is busy right now. Please try again in a moment."
+        : resp.status === 402 ? "AI credits exhausted. Please add credits in Settings → Plans & credits."
+        : "AI service unavailable. Please write the description manually.";
+      // Return 200 so supabase.functions.invoke doesn't throw; client reads `error` field.
+      return new Response(JSON.stringify({ error: message, code: resp.status }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
