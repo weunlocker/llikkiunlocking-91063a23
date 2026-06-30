@@ -226,7 +226,9 @@ export default function AdminServiceEdit() {
                           body: { name: service.name, category: service.category },
                         });
                         if (error) throw error;
-                        const desc = (data as { description?: string })?.description?.trim();
+                        const payload = data as { description?: string; error?: string };
+                        if (payload?.error) throw new Error(payload.error);
+                        const desc = payload?.description?.trim();
                         if (!desc) throw new Error("No description returned");
                         update({ description: desc });
                         toast.success("Description generated");
