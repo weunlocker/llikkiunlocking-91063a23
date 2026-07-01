@@ -314,9 +314,9 @@ Deno.serve(async (req) => {
       const replyValue = resultBlob?.REPLY ?? resultBlob?.reply ?? resultBlob?.RESULT ?? resultBlob?.result;
       const hasFinalReply = replyValue != null && String(replyValue).trim() !== "" && !/^(pending|processing|in process)$/i.test(String(replyValue).trim());
       // Supplier numeric status codes: 1=pending, 2=unprocessed, 3=success, 4=rejected
-      // Suppliers often return STATUS=Success (or numeric 3) even when the reply body
-      // is a rejection (e.g. "IMEI does not correspond", "not found"). Scan reply +
-      // code + message fields for known rejection phrases.
+      // Supplier numeric status codes: 0=pending, 1=inprocess, 2=unprocessed, 3=rejected, 4=success
+      // Suppliers often return rejection text inside CODE/MESSAGE even with a "success"-looking
+      // string STATUS. Scan reply + code + message for known rejection phrases.
       const replyStr = typeof replyValue === "string" ? replyValue : (replyValue != null ? JSON.stringify(replyValue) : "");
       const codeStr = (resultBlob?.CODE ?? resultBlob?.code ?? "").toString();
       const messageStr = (resultBlob?.MESSAGE ?? resultBlob?.message ?? "").toString();
@@ -331,11 +331,11 @@ Deno.serve(async (req) => {
       ];
       const replyLooksRejected = replyTextForScan.trim().length > 0 &&
         rejectionPhrases.some((p) => replyTextForScan.includes(p));
-      const isDone = (["success", "completed", "complete", "available", "done", "finished", "3"].includes(statusText)
+      const isDone = (["success", "completed", "complete", "available", "done", "finished", "4"].includes(statusText)
         || ["success", "completed", "complete", "available", "done", "finished"].some((word) => codeText.includes(word))
-        || (hasFinalReply && !["rejected", "cancelled", "canceled", "failed", "error", "4"].includes(statusText)))
+        || (hasFinalReply && !["rejected", "cancelled", "canceled", "failed", "error", "3"].includes(statusText)))
         && !replyLooksRejected;
-      const isFailed = ["rejected", "cancelled", "canceled", "failed", "error", "4"].includes(statusText)
+      const isFailed = ["rejected", "cancelled", "canceled", "failed", "error", "3"].includes(statusText)
         || ["rejected", "cancelled", "canceled", "failed", "error"].some((word) => codeText.includes(word))
         || replyLooksRejected;
 
