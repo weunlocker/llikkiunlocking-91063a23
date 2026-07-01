@@ -387,10 +387,10 @@ Deno.serve(async (req) => {
         const replyText: string = rawParts.length
           ? rawParts.join("\n")
           : (typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2));
-        const templated = svc.response_template
-          ? applyTemplate(svc.response_template, parsed)
-          : replyText;
-        const finalText = normalizeHtml(typeof templated === "string" ? templated : JSON.stringify(templated, null, 2)) || reason;
+        // For failed orders, ALWAYS show the raw supplier response (not the
+        // service response_template — that template is designed for success
+        // payloads and often renders "Unlockcode Not Found" for rejections).
+        const finalText = normalizeHtml(replyText) || reason;
         await sb.from("orders").update({
           status: "failed",
           error_message: reason.slice(0, 500),
