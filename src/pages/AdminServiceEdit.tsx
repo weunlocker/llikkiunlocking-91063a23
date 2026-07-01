@@ -31,22 +31,14 @@ const emptyService: Service = {
 };
 
 
-type TabId =
-  | "overview" | "field" | "api" | "retail" | "inventory"
-  | "subscription" | "subscribed" | "discounted" | "reviews" | "blacklist";
+type TabId = "overview" | "field" | "api";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "field", label: "Field" },
   { id: "api", label: "API Connection" },
-  { id: "retail", label: "Retail Purchase" },
-  { id: "inventory", label: "Inventory/Purchase Cost" },
-  { id: "subscription", label: "Subscription" },
-  { id: "subscribed", label: "Subscribed User" },
-  { id: "discounted", label: "Discounted Users" },
-  { id: "reviews", label: "Customer Review" },
-  { id: "blacklist", label: "Blacklisted IMEI" },
 ];
+
 
 export default function AdminServiceEdit() {
   const { id } = useParams<{ id: string }>();
