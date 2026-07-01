@@ -377,14 +377,19 @@ Deno.serve(async (req) => {
           (resultBlob?.MESSAGE ?? resultBlob?.message ?? resultBlob?.REPLY ?? resultBlob?.reply ??
            resultBlob?.CODE ?? resultBlob?.code ?? "Rejected by supplier").toString();
         const reason = normalizeHtml(reasonRaw) || "Rejected by supplier";
-        const replyText: string =
-          resultBlob?.REPLY ?? resultBlob?.reply ??
-          resultBlob?.CODE ?? resultBlob?.code ??
-          resultBlob?.MESSAGE ?? resultBlob?.message ??
-          (typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2));
+        // Show the FULL raw API response — concatenate REPLY + CODE + MESSAGE
+        // so users see everything the supplier returned, not a trimmed field.
+        const rawParts: string[] = [];
+        for (const k of ["REPLY", "reply", "CODE", "code", "MESSAGE", "message"]) {
+          const v = (resultBlob as any)?.[k];
+          if (v != null && String(v).trim()) rawParts.push(String(v));
+        }
+        const replyText: string = rawParts.length
+          ? rawParts.join("\n")
+          : (typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2));
         const templated = svc.response_template
           ? applyTemplate(svc.response_template, parsed)
-          : (typeof replyText === "string" ? replyText : JSON.stringify(replyText, null, 2));
+          : replyText;
         const finalText = normalizeHtml(typeof templated === "string" ? templated : JSON.stringify(templated, null, 2)) || reason;
         await sb.from("orders").update({
           status: "failed",
