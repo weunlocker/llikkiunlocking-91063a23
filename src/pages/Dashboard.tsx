@@ -100,7 +100,12 @@ export default function Dashboard() {
   const [oPageSize, setOPageSize] = useState(20);
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgDismissed, setMsgDismissed] = useState(false);
-  const customMessage = (profile as unknown as { custom_message?: string } | null)?.custom_message ?? "";
+  const rawCustomMessage = (profile as unknown as { custom_message?: string } | null)?.custom_message ?? "";
+  const customMessage = rawCustomMessage
+    .replace(/\{\{\s*name\s*\}\}/gi, profile?.display_name ?? "")
+    .replace(/\{\{\s*email\s*\}\}/gi, profile?.email ?? "")
+    .replace(/\{\{\s*balance\s*\}\}/gi, `$${Number(profile?.balance ?? 0).toFixed(2)}`)
+    .replace(/\{\{\s*group\s*\}\}/gi, (profile as unknown as { user_group?: string } | null)?.user_group ?? "standard");
   const [serviceView, setServiceView] = useState<"grid" | "list">(() => (localStorage.getItem("serviceView") as "grid" | "list") || "grid");
   useEffect(() => { localStorage.setItem("serviceView", serviceView); }, [serviceView]);
   const [paySettings, setPaySettings] = useState<{ binance_enabled: boolean; topup_amounts: number[]; ask_admin_enabled: boolean } | null>(null);
