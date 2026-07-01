@@ -393,6 +393,25 @@ export default function AdminServiceEdit() {
                 </div>
 
                 {service.supplier_id && (() => {
+                  const selectedSupplier = suppliers.find((sp) => sp.id === service.supplier_id);
+                  const isManualId = selectedSupplier?.type === "goimeicheck";
+                  if (isManualId) {
+                    return (
+                      <div>
+                        <Label className="text-sm">Service ID</Label>
+                        <Input
+                          className="mt-1"
+                          placeholder="e.g. 12"
+                          value={service.supplier_action ?? ""}
+                          onChange={(e) => update({ supplier_action: e.target.value.trim() })}
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Enter the numeric <b>service</b> ID from your GoIMEICheck dashboard.
+                          It's the value passed as <code>&service=</code> in the place-order URL.
+                        </p>
+                      </div>
+                    );
+                  }
                   const selectedSvc = supSvc.find((s) => s.action_code === service.supplier_action);
                   return (
                   <div>
@@ -458,6 +477,7 @@ export default function AdminServiceEdit() {
                   </div>
                   );
                 })()}
+
 
               </div>
 
