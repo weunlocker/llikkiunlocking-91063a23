@@ -131,13 +131,40 @@ export default function AdminServiceEdit() {
       service_type: service.service_type ?? "imei",
       custom_fields: (service.custom_fields ?? []) as unknown as never,
     };
+    const prevPrice = !isNew ? Number(service.price ?? 0) : null;
+    // Re-fetch actual previous price from DB to detect true change
+    let dbPrevPrice: number | null = null;
+    if (!isNew && id) {
+      const { data: prev } = await supabase.from("services").select("price").eq("id", id).maybeSingle();
+      dbPrevPrice = prev?.price != null ? Number(prev.price) : null;
+    }
     const { data, error } = isNew
       ? await supabase.from("services").insert(payload).select("id").maybeSingle()
       : await supabase.from("services").update(payload).eq("id", id!).select("id").maybeSingle();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Saved");
+
+    // Broadcast new service / price change (email + telegram to all users)
+    try {
+      const savedId = (data?.id as string | undefined) ?? id ?? undefined;
+      if (savedId && payload.active) {
+        if (isNew) {
+          supabase.functions.invoke("broadcast-service-update", {
+            body: { service_id: savedId, kind: "new", new_price: payload.price },
+          });
+          toast.success("Announcement sent to all users");
+        } else if (dbPrevPrice != null && dbPrevPrice !== Number(payload.price)) {
+          supabase.functions.invoke("broadcast-service-update", {
+            body: { service_id: savedId, kind: "price", old_price: dbPrevPrice, new_price: Number(payload.price) },
+          });
+          toast.success("Price update email sent to all users");
+        }
+      }
+    } catch { /* ignore */ }
+
     if (isNew && data?.id) navigate(`/admin/services/${data.id}`, { replace: true });
+    void prevPrice;
   };
 
   const addRule = () => update({ success_rules: [...(service.success_rules ?? []), { path: "", op: "truthy" }] });
