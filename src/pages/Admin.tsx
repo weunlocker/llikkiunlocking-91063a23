@@ -713,7 +713,7 @@ function AdminServices() {
                     <div className="text-xs text-muted-foreground font-mono italic mt-0.5">#{s.service_code ?? "—"}</div>
                   </td>
                   <td className="px-5 py-3 text-xs text-muted-foreground max-w-[240px] break-words">
-                    {supplierName || ""}
+                    {supplierName || (s.api_url ? (() => { try { return new URL(s.api_url!).hostname.replace(/^www\./, ""); } catch { return "Simple Link"; } })() : "")}
                   </td>
                   <td className="px-5 py-3 text-xs uppercase tracking-wide">{groupName}</td>
                   <td className="px-5 py-3 text-right whitespace-nowrap">
