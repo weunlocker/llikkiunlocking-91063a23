@@ -56,6 +56,35 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
   const [saving, setSaving] = useState(false);
   const [loadingSvc, setLoadingSvc] = useState(false);
   const [svcQuery, setSvcQuery] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  const sendCustomEmail = async (kind: "welcome" | "custom") => {
+    if (!user?.email) { toast.error("Client has no email"); return; }
+    setSendingEmail(true);
+    try {
+      const templateName = kind === "welcome" ? "welcome" : "admin-custom";
+      const templateData = kind === "welcome"
+        ? { name: user.display_name ?? "" }
+        : { name: user.display_name ?? "", email: user.email, heading: emailSubject || undefined, body: emailBody, subject: emailSubject || `A message from us` };
+      const { error } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName,
+          recipientEmail: user.email,
+          idempotencyKey: `admin-${kind}-${user.id}-${Date.now()}`,
+          templateData,
+        },
+      });
+      if (error) throw error;
+      toast.success("Email sent");
+      if (kind === "custom") { setEmailBody(""); setEmailSubject(""); }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to send");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
 
   useEffect(() => { setForm(user); }, [user]);
 
