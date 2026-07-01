@@ -32,12 +32,12 @@ Deno.serve(async (req) => {
       const authHeader = req.headers.get("Authorization") || "";
       const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
       if (token) {
-        const { data: claims } = await supabase.auth.getClaims(token);
-        const c: any = claims?.claims;
-        if (c?.sub && c?.email && (!email || String(c.email).toLowerCase() === email.toLowerCase())) {
+        const { data: userData } = await supabase.auth.getUser(token);
+        const u = userData?.user;
+        if (u?.id && u?.email && (!email || String(u.email).toLowerCase() === email.toLowerCase())) {
           verifiedSuccess = true;
-          verifiedUserId = c.sub;
-          verifiedEmail = String(c.email);
+          verifiedUserId = u.id;
+          verifiedEmail = String(u.email);
         }
       }
       if (!verifiedSuccess) {
