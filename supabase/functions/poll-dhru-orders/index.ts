@@ -331,7 +331,7 @@ Deno.serve(async (req) => {
       const replyValue = resultBlob?.REPLY ?? resultBlob?.reply ?? resultBlob?.RESULT ?? resultBlob?.result;
       const codeValue = resultBlob?.CODE ?? resultBlob?.code;
       const codeValueText = codeValue != null ? String(codeValue).trim() : "";
-      const isGenericUnlockNotFound = (value: string) => /unlock\s*code\s*not\s*found|unlockcode\s*not\s*found/i.test(value);
+      const isGenericUnlockNotFound = (value: string) => /unlock\s*c+ode\s*not\s*found|unlockc+ode\s*not\s*found/i.test(value);
       const hasSupplierCode = codeValueText !== "" && !isGenericUnlockNotFound(codeValueText);
       const hasFinalReply = replyValue != null && String(replyValue).trim() !== "" && !/^(pending|processing|in process)$/i.test(String(replyValue).trim());
       // Supplier numeric status codes: 1=pending, 2=unprocessed, 3=success, 4=rejected
