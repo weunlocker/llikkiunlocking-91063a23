@@ -178,15 +178,27 @@ Deno.serve(async (req) => {
   }
 
   // Step 2: poll pending orders that have a supplier reference (async)
-  const { data: pending, error } = await sb
+  const orderSelect = "id, order_number, user_id, imei, price_charged, supplier_reference, poll_attempts, status, result, service_id, services(name, response_template, success_rules, supplier_id, service_type, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))";
+  const { data: activePending, error } = await sb
     .from("orders")
-    .select("id, order_number, user_id, imei, price_charged, supplier_reference, poll_attempts, status, result, service_id, services(name, response_template, success_rules, supplier_id, service_type, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))")
-    .in("status", ["pending", "in_process", "failed"])
+    .select(orderSelect)
+    .in("status", ["pending", "in_process"])
     .not("supplier_reference", "is", null)
     .order("last_polled_at", { ascending: true, nullsFirst: true })
     .limit(50);
 
+  const { data: genericFailed, error: genericFailedError } = await sb
+    .from("orders")
+    .select(orderSelect)
+    .eq("status", "failed")
+    .not("supplier_reference", "is", null)
+    .or("result.ilike.%unlock%not%found%,error_message.ilike.%unlock%not%found%")
+    .order("last_polled_at", { ascending: true, nullsFirst: true })
+    .limit(25);
+
   if (error) return json(500, { error: error.message });
+  if (genericFailedError) return json(500, { error: genericFailedError.message });
+  const pending = [...(activePending ?? []), ...(genericFailed ?? [])];
   if (!pending || pending.length === 0) return json(200, { placed, polled: 0 });
 
   let completed = 0, failed = 0, stillPending = 0;
