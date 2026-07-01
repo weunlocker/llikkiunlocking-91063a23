@@ -314,9 +314,13 @@ Deno.serve(async (req) => {
       const replyValue = resultBlob?.REPLY ?? resultBlob?.reply ?? resultBlob?.RESULT ?? resultBlob?.result;
       const hasFinalReply = replyValue != null && String(replyValue).trim() !== "" && !/^(pending|processing|in process)$/i.test(String(replyValue).trim());
       // Supplier numeric status codes: 1=pending, 2=unprocessed, 3=success, 4=rejected
-      const replyTextForScan = (typeof replyValue === "string" ? replyValue : "").toLowerCase();
-      // Suppliers often return STATUS=Success even when the reply body is a rejection
-      // (e.g. "IMEI does not correspond", "not found"). Detect these phrases and fail.
+      // Suppliers often return STATUS=Success (or numeric 3) even when the reply body
+      // is a rejection (e.g. "IMEI does not correspond", "not found"). Scan reply +
+      // code + message fields for known rejection phrases.
+      const replyStr = typeof replyValue === "string" ? replyValue : (replyValue != null ? JSON.stringify(replyValue) : "");
+      const codeStr = (resultBlob?.CODE ?? resultBlob?.code ?? "").toString();
+      const messageStr = (resultBlob?.MESSAGE ?? resultBlob?.message ?? "").toString();
+      const replyTextForScan = `${replyStr} ${codeStr} ${messageStr}`.toLowerCase();
       const rejectionPhrases = [
         "does not correspond", "not correspond", "not found", "no encontrado",
         "no data found", "no record", "no records", "not marketed",
@@ -325,7 +329,7 @@ Deno.serve(async (req) => {
         "sorry", "unable to", "cannot process", "try again", "device not found",
         "wrong imei", "bad imei", "incorrect imei",
       ];
-      const replyLooksRejected = replyTextForScan.length > 0 &&
+      const replyLooksRejected = replyTextForScan.trim().length > 0 &&
         rejectionPhrases.some((p) => replyTextForScan.includes(p));
       const isDone = (["success", "completed", "complete", "available", "done", "finished", "3"].includes(statusText)
         || ["success", "completed", "complete", "available", "done", "finished"].some((word) => codeText.includes(word))
