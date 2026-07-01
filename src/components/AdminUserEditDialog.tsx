@@ -314,6 +314,45 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
                 <div><code>{"{{group}}"}</code> — user group (standard/silver/…)</div>
               </div>
               <p className="text-xs text-muted-foreground">Plain text only. Variables are replaced when shown on the client dashboard.</p>
+
+              <div className="mt-6 pt-4 border-t border-border/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Send email to this client</Label>
+                    <p className="text-xs text-muted-foreground">Uses {"{{name}}"} and {"{{email}}"} of this client.</p>
+                  </div>
+                  <Button type="button" size="sm" variant="outline" disabled={sendingEmail} onClick={() => sendCustomEmail("welcome")}>
+                    Send Welcome
+                  </Button>
+                </div>
+                <Input
+                  placeholder="Email subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                />
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: "Name", token: "{{name}}" },
+                    { label: "Email", token: "{{email}}" },
+                  ].map((v) => (
+                    <Button key={v.token} type="button" size="sm" variant="outline" onClick={() => setEmailBody(`${emailBody}${v.token}`)}>
+                      + {v.label}
+                    </Button>
+                  ))}
+                </div>
+                <Textarea
+                  rows={6}
+                  placeholder={"Hi {{name}},\n\nYour message here..."}
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                />
+                <div className="flex justify-end">
+                  <Button type="button" variant="hero" size="sm" disabled={sendingEmail || !emailBody.trim()} onClick={() => sendCustomEmail("custom")}>
+                    {sendingEmail ? <Loader2 className="animate-spin w-4 h-4 mr-1" /> : null}
+                    Send Custom Email
+                  </Button>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         )}
