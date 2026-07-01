@@ -2400,6 +2400,8 @@ import AdminLoginActivity from "./AdminLoginActivity";
 import AdminServiceEdit from "./AdminServiceEdit";
 import AdminStock from "./AdminStock";
 import AdminEmailTemplates from "./AdminEmailTemplates";
+import AdminAISettings from "./AdminAISettings";
+
 
 
 export default function Admin() {
@@ -2430,7 +2432,9 @@ export default function Admin() {
       <Route path="email-templates" element={<AdminEmailTemplates />} />
 
       <Route path="turnstile" element={<AdminTurnstile />} />
+      <Route path="ai-settings" element={<AdminAISettings />} />
       <Route path="settings" element={<AdminSettings />} />
+
     </Routes>
   );
 }
