@@ -245,6 +245,47 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
               )}
             </TabsContent>
 
+            <TabsContent value="orders" className="mt-4 space-y-3">
+              {loadingOrders ? (
+                <div className="py-10 flex justify-center"><Loader2 className="animate-spin" /></div>
+              ) : orders.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground text-sm border border-border/50 rounded-lg">No orders for this client.</div>
+              ) : (
+                <div className="border border-border/50 rounded-lg overflow-x-auto max-h-[55vh] overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-secondary/40 text-left uppercase tracking-wider sticky top-0">
+                      <tr>
+                        <th className="px-3 py-2">Order</th>
+                        <th className="px-3 py-2">Service</th>
+                        <th className="px-3 py-2">IMEI/SN</th>
+                        <th className="px-3 py-2">Status</th>
+                        <th className="px-3 py-2 text-right">Charged</th>
+                        <th className="px-3 py-2">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.map((o) => (
+                        <tr
+                          key={o.id}
+                          className={`border-t border-border/40 ${onEditOrder ? "cursor-pointer hover:bg-secondary/30" : ""}`}
+                          onClick={() => onEditOrder?.(o)}
+                        >
+                          <td className="px-3 py-2 font-mono">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
+                          <td className="px-3 py-2 max-w-[200px] truncate" title={o.service_name}>{o.service_name}</td>
+                          <td className="px-3 py-2 font-mono">{o.imei}</td>
+                          <td className={`px-3 py-2 capitalize ${statusColor(o.status)}`}>{o.status}</td>
+                          <td className="px-3 py-2 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{new Date(o.created_at).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Click any order to open its edit view.</p>
+            </TabsContent>
+
+
             <TabsContent value="message" className="mt-4 space-y-3">
               <Label>Custom dashboard message</Label>
               <Textarea
