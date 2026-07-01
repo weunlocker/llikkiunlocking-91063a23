@@ -152,6 +152,7 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
               <TabsTrigger value="address"><MapPin className="w-4 h-4 mr-1" /> Address</TabsTrigger>
               <TabsTrigger value="group"><Crown className="w-4 h-4 mr-1" /> Group & API</TabsTrigger>
               <TabsTrigger value="services"><Layers className="w-4 h-4 mr-1" /> Services</TabsTrigger>
+              <TabsTrigger value="orders"><ShoppingBag className="w-4 h-4 mr-1" /> Orders</TabsTrigger>
               <TabsTrigger value="message"><MessageSquare className="w-4 h-4 mr-1" /> Message</TabsTrigger>
             </TabsList>
 
