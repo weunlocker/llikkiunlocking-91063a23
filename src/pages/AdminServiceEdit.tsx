@@ -552,20 +552,9 @@ export default function AdminServiceEdit() {
             </div>
           )}
 
-          {tab !== "overview" && tab !== "field" && tab !== "api" && (
-            <ComingSoon label={TABS.find((t) => t.id === tab)?.label ?? ""} />
-          )}
         </section>
       </div>
     </AdminLayout>
   );
 }
 
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <div className="py-16 text-center space-y-2">
-      <h3 className="text-lg font-bold">{label}</h3>
-      <p className="text-sm text-muted-foreground">This section is part of the new layout and will be wired up next.</p>
-    </div>
-  );
-}
