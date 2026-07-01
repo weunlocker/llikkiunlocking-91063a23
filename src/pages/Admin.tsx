@@ -331,7 +331,32 @@ function AdminUsers() {
         user={editUser as unknown as EditableUser}
         onClose={() => setEditUser(null)}
         onSaved={load}
+        onEditOrder={async (o) => {
+          // Enrich with profile/service so the OrderEditDialog header renders correctly
+          const svc = users.length ? null : null;
+          const { data: sRow } = await supabase.from("services").select("name").eq("id", o.service_id).maybeSingle();
+          const prof = editUser ? { email: editUser.email, balance: Number((editUser as ProfileRow).balance ?? 0) } : null;
+          setEditOrder({
+            id: o.id, order_number: o.order_number ?? 0, user_id: editUser?.id ?? "",
+            imei: o.imei, status: o.status, price_charged: Number(o.price_charged),
+            result: o.result, error_message: o.error_message, created_at: o.created_at,
+            services: sRow ? { name: sRow.name } : null,
+            profiles: prof,
+          } as OrderRow);
+        }}
       />
+
+      <OrderEditDialog
+        order={editOrder}
+        onClose={() => setEditOrder(null)}
+        onSaved={load}
+        onRefund={async (o) => {
+          const { error } = await supabase.functions.invoke("admin-refund-order", { body: { order_id: o.id } });
+          if (error) { toast.error(error.message); return; }
+          toast.success("Refunded"); setEditOrder(null); load();
+        }}
+      />
+
 
       <Dialog open={!!creditUser} onOpenChange={(o) => !o && setCreditUser(null)}>
         <DialogContent className="glass">
