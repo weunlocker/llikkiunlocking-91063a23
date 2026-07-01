@@ -302,7 +302,8 @@ Deno.serve(async (req) => {
         };
         resultBlob = findStatus(success);
         status = (resultBlob?.STATUS ?? resultBlob?.status ?? "").toString().toLowerCase();
-      } else if (parsed && (parsed.ERROR ?? parsed.error)) {
+      const hasErrorBlock = !!(parsed && (parsed.ERROR ?? parsed.error));
+      if (!success && hasErrorBlock) {
         status = "rejected";
         const errArr = parsed.ERROR ?? parsed.error;
         resultBlob = Array.isArray(errArr) ? errArr[0] : errArr;
@@ -361,7 +362,11 @@ Deno.serve(async (req) => {
       // CODE on a later poll. Do not finalize the order with a generic/default
       // message such as "Unlockcode Not Found" while CODE is still missing.
       const genericFallbackOnly = !hasSupplierCode && /unlock\s*code\s*not\s*found|unlockcode\s*not\s*found/i.test(codeText);
-      if (genericFallbackOnly) {
+      const finalStatusWithoutSupplierCode = !hasErrorBlock && !hasSupplierCode && !hasFinalReply && [
+        "success", "completed", "complete", "available", "done", "finished",
+        "rejected", "cancelled", "canceled", "failed", "error", "3", "4",
+      ].includes(statusText);
+      if (genericFallbackOnly || finalStatusWithoutSupplierCode) {
         await sb.from("orders").update({
           last_polled_at: new Date().toISOString(),
           poll_attempts: newAttempts,
