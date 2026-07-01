@@ -288,13 +288,32 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
 
             <TabsContent value="message" className="mt-4 space-y-3">
               <Label>Custom dashboard message</Label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { label: "Name", token: "{{name}}" },
+                  { label: "Email", token: "{{email}}" },
+                  { label: "Balance", token: "{{balance}}" },
+                  { label: "Group", token: "{{group}}" },
+                ].map((v) => (
+                  <Button key={v.token} type="button" size="sm" variant="outline" onClick={() => setField("custom_message", `${form.custom_message ?? ""}${v.token}`)}>
+                    + {v.label}
+                  </Button>
+                ))}
+              </div>
               <Textarea
                 rows={5}
-                placeholder="Shown as a banner on this user's dashboard. Leave empty to hide."
+                placeholder={"Example: Hi {{name}}, your balance is {{balance}}."}
                 value={form.custom_message ?? ""}
                 onChange={(e) => setField("custom_message", e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">Markdown not supported — plain text only.</p>
+              <div className="rounded-md border border-border/50 p-3 text-xs space-y-1">
+                <div className="font-semibold">Available variables</div>
+                <div><code>{"{{name}}"}</code> — client display name</div>
+                <div><code>{"{{email}}"}</code> — client email</div>
+                <div><code>{"{{balance}}"}</code> — current wallet balance</div>
+                <div><code>{"{{group}}"}</code> — user group (standard/silver/…)</div>
+              </div>
+              <p className="text-xs text-muted-foreground">Plain text only. Variables are replaced when shown on the client dashboard.</p>
             </TabsContent>
           </Tabs>
         )}
