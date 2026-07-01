@@ -30,13 +30,29 @@ export type EditableUser = {
 
 type Service = { id: string; service_code: string | null; name: string; price: number; category: string | null; active: boolean };
 type Override = { service_id: string; enabled: boolean; custom_price: number | null };
+export type UserOrderRow = {
+  id: string;
+  order_number: number | null;
+  service_id: string;
+  imei: string;
+  status: string;
+  price_charged: number;
+  created_at: string;
+  result: string | null;
+  error_message: string | null;
+  service_name?: string;
+};
 
 const GROUP_DISCOUNT: Record<string, number> = { standard: 0, silver: 0.10, gold: 0.30, diamond: 0.50 };
 
-export default function AdminUserEditDialog({ user, onClose, onSaved }: { user: EditableUser | null; onClose: () => void; onSaved: () => void }) {
+const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground", in_process: "text-primary" } as Record<string, string>)[s] ?? "";
+
+export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrder }: { user: EditableUser | null; onClose: () => void; onSaved: () => void; onEditOrder?: (order: UserOrderRow) => void }) {
   const [form, setForm] = useState<EditableUser | null>(user);
   const [services, setServices] = useState<Service[]>([]);
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
+  const [orders, setOrders] = useState<UserOrderRow[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingSvc, setLoadingSvc] = useState(false);
   const [svcQuery, setSvcQuery] = useState("");
