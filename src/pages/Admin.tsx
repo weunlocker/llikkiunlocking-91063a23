@@ -1371,7 +1371,7 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund, onEditUser }: { or
         {order && (
           <div className="space-y-4 text-sm">
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">User</Label><div className="break-all">{order.profiles?.email}</div><div className="text-xs text-muted-foreground mt-0.5">Balance: <span className="font-mono">${Number(order.profiles?.balance ?? 0).toFixed(2)}</span></div></div>
+              <div><Label className="text-xs">User</Label><div className="break-all">{onEditUser && order.user_id ? (<button type="button" className="text-primary hover:underline" onClick={() => onEditUser(order.user_id)}>{order.profiles?.email}</button>) : order.profiles?.email}</div><div className="text-xs text-muted-foreground mt-0.5">Balance: <span className="font-mono">${Number(order.profiles?.balance ?? 0).toFixed(2)}</span></div></div>
               <div><Label className="text-xs">Service</Label><div>{order.services?.name}</div></div>
               <div><Label className="text-xs">IMEI</Label><div className="font-mono">{order.imei}</div></div>
               <div><Label className="text-xs">Charged</Label><div className="font-mono">${Number(order.price_charged).toFixed(2)}</div></div>
