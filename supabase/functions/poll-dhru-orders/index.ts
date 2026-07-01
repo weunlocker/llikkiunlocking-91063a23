@@ -47,6 +47,10 @@ function normalizeHtml(s: string): string {
     .replace(/\\n/g, "\n").replace(/\\r/g, "").replace(/\r\n?/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+function isGenericUnlockNotFound(value: string): boolean {
+  return /unlock\s*c+ode\s*not\s*found|unlockc+ode\s*not\s*found/i.test(value);
+}
+
 function escapeXml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -174,15 +178,27 @@ Deno.serve(async (req) => {
   }
 
   // Step 2: poll pending orders that have a supplier reference (async)
-  const { data: pending, error } = await sb
+  const orderSelect = "id, order_number, user_id, imei, price_charged, supplier_reference, poll_attempts, status, result, service_id, services(name, response_template, success_rules, supplier_id, service_type, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))";
+  const { data: activePending, error } = await sb
     .from("orders")
-    .select("id, order_number, user_id, imei, price_charged, supplier_reference, poll_attempts, service_id, services(name, response_template, success_rules, supplier_id, service_type, suppliers(type, endpoint_url, dhru_username, dhru_api_key, api_format))")
+    .select(orderSelect)
     .in("status", ["pending", "in_process"])
     .not("supplier_reference", "is", null)
     .order("last_polled_at", { ascending: true, nullsFirst: true })
     .limit(50);
 
+  const { data: genericFailed, error: genericFailedError } = await sb
+    .from("orders")
+    .select(orderSelect)
+    .eq("status", "failed")
+    .not("supplier_reference", "is", null)
+    .or("result.ilike.%unlock%not%found%,error_message.ilike.%unlock%not%found%")
+    .order("last_polled_at", { ascending: true, nullsFirst: true })
+    .limit(25);
+
   if (error) return json(500, { error: error.message });
+  if (genericFailedError) return json(500, { error: genericFailedError.message });
+  const pending = [...(activePending ?? []), ...(genericFailed ?? [])];
   if (!pending || pending.length === 0) return json(200, { placed, polled: 0 });
 
   let completed = 0, failed = 0, stillPending = 0;
@@ -191,6 +207,7 @@ Deno.serve(async (req) => {
     const svc = o.services;
     const sup = svc?.suppliers;
     if (!sup || (sup.type !== "dhru" && sup.type !== "goimeicheck")) continue;
+    if (o.status === "failed" && !isGenericUnlockNotFound(String(o.result ?? ""))) continue;
 
     try {
       let r: Response;
@@ -302,6 +319,7 @@ Deno.serve(async (req) => {
         };
         resultBlob = findStatus(success);
         status = (resultBlob?.STATUS ?? resultBlob?.status ?? "").toString().toLowerCase();
+      }
       const hasErrorBlock = !!(parsed && (parsed.ERROR ?? parsed.error));
       if (!success && hasErrorBlock) {
         status = "rejected";
@@ -330,7 +348,8 @@ Deno.serve(async (req) => {
       const codeText = (resultBlob?.CODE ?? resultBlob?.code ?? resultBlob?.MESSAGE ?? resultBlob?.message ?? "").toString().toLowerCase().trim();
       const replyValue = resultBlob?.REPLY ?? resultBlob?.reply ?? resultBlob?.RESULT ?? resultBlob?.result;
       const codeValue = resultBlob?.CODE ?? resultBlob?.code;
-      const hasSupplierCode = codeValue != null && String(codeValue).trim() !== "";
+      const codeValueText = codeValue != null ? String(codeValue).trim() : "";
+      const hasSupplierCode = codeValueText !== "" && !isGenericUnlockNotFound(codeValueText);
       const hasFinalReply = replyValue != null && String(replyValue).trim() !== "" && !/^(pending|processing|in process)$/i.test(String(replyValue).trim());
       // Supplier numeric status codes: 1=pending, 2=unprocessed, 3=success, 4=rejected
       // Supplier numeric status codes: 0=pending, 1=inprocess, 2=unprocessed, 3=rejected, 4=success
@@ -361,13 +380,15 @@ Deno.serve(async (req) => {
       // Some suppliers send only STATUS first, then return the real customer-facing
       // CODE on a later poll. Do not finalize the order with a generic/default
       // message such as "Unlockcode Not Found" while CODE is still missing.
-      const genericFallbackOnly = !hasSupplierCode && /unlock\s*code\s*not\s*found|unlockcode\s*not\s*found/i.test(codeText);
+      const genericFallbackOnly = !hasSupplierCode && isGenericUnlockNotFound(codeText);
       const finalStatusWithoutSupplierCode = !hasErrorBlock && !hasSupplierCode && !hasFinalReply && [
         "success", "completed", "complete", "available", "done", "finished",
         "rejected", "cancelled", "canceled", "failed", "error", "3", "4",
       ].includes(statusText);
       if (genericFallbackOnly || finalStatusWithoutSupplierCode) {
         await sb.from("orders").update({
+          status: "in_process",
+          result: "Waiting for supplier CODE response…",
           last_polled_at: new Date().toISOString(),
           poll_attempts: newAttempts,
           error_message: "Waiting for supplier CODE response",
