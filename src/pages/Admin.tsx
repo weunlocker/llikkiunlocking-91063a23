@@ -1142,14 +1142,14 @@ function AdminOrders() {
   const load = async () => {
     const [o, profs, svcs] = await Promise.all([
       supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(500),
-      supabase.from("profiles").select("id,email"),
+      supabase.from("profiles").select("id,email,balance"),
       supabase.from("services").select("id,name"),
     ]);
-    const profMap = new Map((profs.data ?? []).map((p: { id: string; email: string | null }) => [p.id, p.email]));
+    const profMap = new Map((profs.data ?? []).map((p: { id: string; email: string | null; balance: number | null }) => [p.id, p]));
     const svcMap = new Map((svcs.data ?? []).map((s: { id: string; name: string }) => [s.id, s.name]));
     const enriched = (o.data ?? []).map((row: { user_id: string; service_id: string; [k: string]: unknown }) => ({
       ...row,
-      profiles: { email: profMap.get(row.user_id) ?? null },
+      profiles: { email: profMap.get(row.user_id)?.email ?? null, balance: profMap.get(row.user_id)?.balance ?? null },
       services: { name: svcMap.get(row.service_id) ?? "—" },
     })) as unknown as OrderRow[];
     setOrders(enriched); setLoading(false);
