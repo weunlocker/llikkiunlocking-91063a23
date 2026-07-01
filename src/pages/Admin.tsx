@@ -332,8 +332,6 @@ function AdminUsers() {
         onClose={() => setEditUser(null)}
         onSaved={load}
         onEditOrder={async (o) => {
-          // Enrich with profile/service so the OrderEditDialog header renders correctly
-          const svc = users.length ? null : null;
           const { data: sRow } = await supabase.from("services").select("name").eq("id", o.service_id).maybeSingle();
           const prof = editUser ? { email: editUser.email, balance: Number((editUser as ProfileRow).balance ?? 0) } : null;
           setEditOrder({
