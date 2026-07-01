@@ -341,9 +341,9 @@ Deno.serve(async (req) => {
 
       if (isDone) {
         const replyText: string =
+          resultBlob?.CODE ?? resultBlob?.code ??
           resultBlob?.REPLY ?? resultBlob?.reply ??
           resultBlob?.RESULT ?? resultBlob?.result ??
-          resultBlob?.CODE ?? resultBlob?.code ??
           resultBlob?.MESSAGE ?? resultBlob?.message ??
           (typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2));
         const templated = svc.response_template
@@ -374,19 +374,15 @@ Deno.serve(async (req) => {
         // Supplier returned an error — keep order PENDING (admin can reprocess
         // or switch supplier API). Record a readable error + result; do NOT refund.
         const reasonRaw: string =
-          (resultBlob?.MESSAGE ?? resultBlob?.message ?? resultBlob?.REPLY ?? resultBlob?.reply ??
-           resultBlob?.CODE ?? resultBlob?.code ?? "Rejected by supplier").toString();
+          (resultBlob?.CODE ?? resultBlob?.code ?? resultBlob?.REPLY ?? resultBlob?.reply ??
+           resultBlob?.RESULT ?? resultBlob?.result ?? resultBlob?.MESSAGE ?? resultBlob?.message ?? "Rejected by supplier").toString();
         const reason = normalizeHtml(reasonRaw) || "Rejected by supplier";
-        // Show the FULL raw API response — concatenate REPLY + CODE + MESSAGE
-        // so users see everything the supplier returned, not a trimmed field.
-        const rawParts: string[] = [];
-        for (const k of ["REPLY", "reply", "CODE", "code", "MESSAGE", "message"]) {
-          const v = (resultBlob as any)?.[k];
-          if (v != null && String(v).trim()) rawParts.push(String(v));
-        }
-        const replyText: string = rawParts.length
-          ? rawParts.join("\n")
-          : (typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2));
+        // Show exactly the supplier CODE response when present.
+        const codeValue = resultBlob?.CODE ?? resultBlob?.code;
+        const replyText: string = codeValue != null && String(codeValue).trim()
+          ? String(codeValue)
+          : (resultBlob?.REPLY ?? resultBlob?.reply ?? resultBlob?.RESULT ?? resultBlob?.result ?? resultBlob?.MESSAGE ?? resultBlob?.message ??
+             (typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2))).toString();
         // For failed orders, ALWAYS show the raw supplier response (not the
         // service response_template — that template is designed for success
         // payloads and often renders "Unlockcode Not Found" for rejections).

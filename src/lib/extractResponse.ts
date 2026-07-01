@@ -17,7 +17,12 @@ export function extractResponse(text?: string | null): string {
   try { parsed = JSON.parse(raw); } catch { return text; }
 
   const KEYS = [
-    "response", "result", "message", "data", "reply", "output",
+    // Supplier order result must prefer CODE first. Many Dhru-style APIs put
+    // the real customer-facing response in CODE while MESSAGE/REPLY can be a
+    // generic status such as "Unlockcode Not Found".
+    "CODE", "code",
+    "REPLY", "reply", "RESULT", "result",
+    "response", "message", "MESSAGE", "data", "output",
     "description", "details", "info", "text", "content", "body",
     "error", "error_message", "errorMessage", "msg", "reason",
   ];
