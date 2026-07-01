@@ -309,6 +309,22 @@ Deno.serve(async (req) => {
       }
 
       const newAttempts = (o.poll_attempts ?? 0) + 1;
+      const findFirstValue = (n: any, keys: string[]): any => {
+        if (!n || typeof n !== "object") return null;
+        for (const key of keys) {
+          const value = n[key];
+          if (value != null && String(value).trim() !== "") return value;
+        }
+        for (const value of Object.values(n)) {
+          const found = findFirstValue(value, keys);
+          if (found != null && String(found).trim() !== "") return found;
+        }
+        return null;
+      };
+      const supplierCodeFromFullResponse = findFirstValue(success ?? parsed, ["CODE", "code"]);
+      if (resultBlob && supplierCodeFromFullResponse != null && resultBlob.CODE == null && resultBlob.code == null) {
+        resultBlob.CODE = supplierCodeFromFullResponse;
+      }
       const statusText = (status ?? "").toLowerCase().trim();
       const codeText = (resultBlob?.CODE ?? resultBlob?.code ?? resultBlob?.MESSAGE ?? resultBlob?.message ?? "").toString().toLowerCase().trim();
       const replyValue = resultBlob?.REPLY ?? resultBlob?.reply ?? resultBlob?.RESULT ?? resultBlob?.result;
