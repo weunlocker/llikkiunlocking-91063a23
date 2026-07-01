@@ -302,16 +302,35 @@ Deno.serve(async (req) => {
         };
         resultBlob = findStatus(success);
         status = (resultBlob?.STATUS ?? resultBlob?.status ?? "").toString().toLowerCase();
-      } else if (parsed && (parsed.ERROR ?? parsed.error)) {
+      const hasErrorBlock = !!(parsed && (parsed.ERROR ?? parsed.error));
+      if (!success && hasErrorBlock) {
         status = "rejected";
         const errArr = parsed.ERROR ?? parsed.error;
         resultBlob = Array.isArray(errArr) ? errArr[0] : errArr;
       }
 
       const newAttempts = (o.poll_attempts ?? 0) + 1;
+      const findFirstValue = (n: any, keys: string[]): any => {
+        if (!n || typeof n !== "object") return null;
+        for (const key of keys) {
+          const value = n[key];
+          if (value != null && String(value).trim() !== "") return value;
+        }
+        for (const value of Object.values(n)) {
+          const found = findFirstValue(value, keys);
+          if (found != null && String(found).trim() !== "") return found;
+        }
+        return null;
+      };
+      const supplierCodeFromFullResponse = findFirstValue(success ?? parsed, ["CODE", "code"]);
+      if (resultBlob && supplierCodeFromFullResponse != null && resultBlob.CODE == null && resultBlob.code == null) {
+        resultBlob.CODE = supplierCodeFromFullResponse;
+      }
       const statusText = (status ?? "").toLowerCase().trim();
       const codeText = (resultBlob?.CODE ?? resultBlob?.code ?? resultBlob?.MESSAGE ?? resultBlob?.message ?? "").toString().toLowerCase().trim();
       const replyValue = resultBlob?.REPLY ?? resultBlob?.reply ?? resultBlob?.RESULT ?? resultBlob?.result;
+      const codeValue = resultBlob?.CODE ?? resultBlob?.code;
+      const hasSupplierCode = codeValue != null && String(codeValue).trim() !== "";
       const hasFinalReply = replyValue != null && String(replyValue).trim() !== "" && !/^(pending|processing|in process)$/i.test(String(replyValue).trim());
       // Supplier numeric status codes: 1=pending, 2=unprocessed, 3=success, 4=rejected
       // Supplier numeric status codes: 0=pending, 1=inprocess, 2=unprocessed, 3=rejected, 4=success
@@ -338,6 +357,24 @@ Deno.serve(async (req) => {
       const isFailed = ["rejected", "cancelled", "canceled", "failed", "error", "3"].includes(statusText)
         || ["rejected", "cancelled", "canceled", "failed", "error"].some((word) => codeText.includes(word))
         || replyLooksRejected;
+
+      // Some suppliers send only STATUS first, then return the real customer-facing
+      // CODE on a later poll. Do not finalize the order with a generic/default
+      // message such as "Unlockcode Not Found" while CODE is still missing.
+      const genericFallbackOnly = !hasSupplierCode && /unlock\s*code\s*not\s*found|unlockcode\s*not\s*found/i.test(codeText);
+      const finalStatusWithoutSupplierCode = !hasErrorBlock && !hasSupplierCode && !hasFinalReply && [
+        "success", "completed", "complete", "available", "done", "finished",
+        "rejected", "cancelled", "canceled", "failed", "error", "3", "4",
+      ].includes(statusText);
+      if (genericFallbackOnly || finalStatusWithoutSupplierCode) {
+        await sb.from("orders").update({
+          last_polled_at: new Date().toISOString(),
+          poll_attempts: newAttempts,
+          error_message: "Waiting for supplier CODE response",
+        }).eq("id", o.id);
+        stillPending++;
+        continue;
+      }
 
       if (isDone) {
         const replyText: string =
@@ -378,7 +415,6 @@ Deno.serve(async (req) => {
            resultBlob?.RESULT ?? resultBlob?.result ?? resultBlob?.MESSAGE ?? resultBlob?.message ?? "Rejected by supplier").toString();
         const reason = normalizeHtml(reasonRaw) || "Rejected by supplier";
         // Show exactly the supplier CODE response when present.
-        const codeValue = resultBlob?.CODE ?? resultBlob?.code;
         const replyText: string = codeValue != null && String(codeValue).trim()
           ? String(codeValue)
           : (resultBlob?.REPLY ?? resultBlob?.reply ?? resultBlob?.RESULT ?? resultBlob?.result ?? resultBlob?.MESSAGE ?? resultBlob?.message ??
