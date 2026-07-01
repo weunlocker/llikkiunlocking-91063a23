@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Save, User as UserIcon, MapPin, Crown, MessageSquare, Layers } from "lucide-react";
+import { Loader2, Search, Save, User as UserIcon, MapPin, Crown, MessageSquare, Layers, ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -30,13 +30,29 @@ export type EditableUser = {
 
 type Service = { id: string; service_code: string | null; name: string; price: number; category: string | null; active: boolean };
 type Override = { service_id: string; enabled: boolean; custom_price: number | null };
+export type UserOrderRow = {
+  id: string;
+  order_number: number | null;
+  service_id: string;
+  imei: string;
+  status: string;
+  price_charged: number;
+  created_at: string;
+  result: string | null;
+  error_message: string | null;
+  service_name?: string;
+};
 
 const GROUP_DISCOUNT: Record<string, number> = { standard: 0, silver: 0.10, gold: 0.30, diamond: 0.50 };
 
-export default function AdminUserEditDialog({ user, onClose, onSaved }: { user: EditableUser | null; onClose: () => void; onSaved: () => void }) {
+const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground", in_process: "text-primary" } as Record<string, string>)[s] ?? "";
+
+export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrder }: { user: EditableUser | null; onClose: () => void; onSaved: () => void; onEditOrder?: (order: UserOrderRow) => void }) {
   const [form, setForm] = useState<EditableUser | null>(user);
   const [services, setServices] = useState<Service[]>([]);
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
+  const [orders, setOrders] = useState<UserOrderRow[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingSvc, setLoadingSvc] = useState(false);
   const [svcQuery, setSvcQuery] = useState("");
@@ -57,6 +73,20 @@ export default function AdminUserEditDialog({ user, onClose, onSaved }: { user: 
       setLoadingSvc(false);
     });
   }, [user?.id]);
+
+  const loadOrders = async () => {
+    if (!user) return;
+    setLoadingOrders(true);
+    const [ordRes, svcRes] = await Promise.all([
+      supabase.from("orders").select("id,order_number,service_id,imei,status,price_charged,created_at,result,error_message").eq("user_id", user.id).order("created_at", { ascending: false }).limit(200),
+      supabase.from("services").select("id,name"),
+    ]);
+    const svcMap = new Map((svcRes.data ?? []).map((s: { id: string; name: string }) => [s.id, s.name]));
+    const rows = ((ordRes.data ?? []) as UserOrderRow[]).map((r) => ({ ...r, service_name: svcMap.get(r.service_id) ?? "—" }));
+    setOrders(rows);
+    setLoadingOrders(false);
+  };
+  useEffect(() => { setOrders([]); if (user) loadOrders(); }, [user?.id]);
 
   const setField = <K extends keyof EditableUser>(k: K, v: EditableUser[K]) =>
     setForm((f) => f ? { ...f, [k]: v } : f);
@@ -122,6 +152,7 @@ export default function AdminUserEditDialog({ user, onClose, onSaved }: { user: 
               <TabsTrigger value="address"><MapPin className="w-4 h-4 mr-1" /> Address</TabsTrigger>
               <TabsTrigger value="group"><Crown className="w-4 h-4 mr-1" /> Group & API</TabsTrigger>
               <TabsTrigger value="services"><Layers className="w-4 h-4 mr-1" /> Services</TabsTrigger>
+              <TabsTrigger value="orders"><ShoppingBag className="w-4 h-4 mr-1" /> Orders</TabsTrigger>
               <TabsTrigger value="message"><MessageSquare className="w-4 h-4 mr-1" /> Message</TabsTrigger>
             </TabsList>
 
@@ -213,6 +244,47 @@ export default function AdminUserEditDialog({ user, onClose, onSaved }: { user: 
                 </div>
               )}
             </TabsContent>
+
+            <TabsContent value="orders" className="mt-4 space-y-3">
+              {loadingOrders ? (
+                <div className="py-10 flex justify-center"><Loader2 className="animate-spin" /></div>
+              ) : orders.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground text-sm border border-border/50 rounded-lg">No orders for this client.</div>
+              ) : (
+                <div className="border border-border/50 rounded-lg overflow-x-auto max-h-[55vh] overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-secondary/40 text-left uppercase tracking-wider sticky top-0">
+                      <tr>
+                        <th className="px-3 py-2">Order</th>
+                        <th className="px-3 py-2">Service</th>
+                        <th className="px-3 py-2">IMEI/SN</th>
+                        <th className="px-3 py-2">Status</th>
+                        <th className="px-3 py-2 text-right">Charged</th>
+                        <th className="px-3 py-2">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.map((o) => (
+                        <tr
+                          key={o.id}
+                          className={`border-t border-border/40 ${onEditOrder ? "cursor-pointer hover:bg-secondary/30" : ""}`}
+                          onClick={() => onEditOrder?.(o)}
+                        >
+                          <td className="px-3 py-2 font-mono">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
+                          <td className="px-3 py-2 max-w-[200px] truncate" title={o.service_name}>{o.service_name}</td>
+                          <td className="px-3 py-2 font-mono">{o.imei}</td>
+                          <td className={`px-3 py-2 capitalize ${statusColor(o.status)}`}>{o.status}</td>
+                          <td className="px-3 py-2 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{new Date(o.created_at).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Click any order to open its edit view.</p>
+            </TabsContent>
+
 
             <TabsContent value="message" className="mt-4 space-y-3">
               <Label>Custom dashboard message</Label>

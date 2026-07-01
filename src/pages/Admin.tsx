@@ -188,6 +188,7 @@ function AdminUsers() {
   const [creditAmount, setCreditAmount] = useState("10");
   const [creditBusy, setCreditBusy] = useState<null | "add" | "deduct">(null);
   const [editUser, setEditUser] = useState<ProfileRow | null>(null);
+  const [editOrder, setEditOrder] = useState<OrderRow | null>(null);
   const [authStatus, setAuthStatus] = useState<Record<string, { email_confirmed_at: string | null; last_sign_in_at: string | null }>>({});
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [onlyUnverified, setOnlyUnverified] = useState(false);
@@ -330,7 +331,30 @@ function AdminUsers() {
         user={editUser as unknown as EditableUser}
         onClose={() => setEditUser(null)}
         onSaved={load}
+        onEditOrder={async (o) => {
+          const { data: sRow } = await supabase.from("services").select("name").eq("id", o.service_id).maybeSingle();
+          const prof = editUser ? { email: editUser.email, balance: Number((editUser as ProfileRow).balance ?? 0) } : null;
+          setEditOrder({
+            id: o.id, order_number: o.order_number ?? 0, user_id: editUser?.id ?? "",
+            imei: o.imei, status: o.status, price_charged: Number(o.price_charged),
+            result: o.result, error_message: o.error_message, created_at: o.created_at,
+            services: sRow ? { name: sRow.name } : null,
+            profiles: prof,
+          } as OrderRow);
+        }}
       />
+
+      <OrderEditDialog
+        order={editOrder}
+        onClose={() => setEditOrder(null)}
+        onSaved={load}
+        onRefund={async (o) => {
+          const { error } = await supabase.functions.invoke("admin-refund-order", { body: { order_id: o.id } });
+          if (error) { toast.error(error.message); return; }
+          toast.success("Refunded"); setEditOrder(null); load();
+        }}
+      />
+
 
       <Dialog open={!!creditUser} onOpenChange={(o) => !o && setCreditUser(null)}>
         <DialogContent className="glass">
@@ -1138,6 +1162,7 @@ function AdminOrders() {
   const [fDateTo, setFDateTo] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [view, setView] = useState<OrderRow | null>(null);
+  const [editUser, setEditUser] = useState<ProfileRow | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
@@ -1290,7 +1315,32 @@ function AdminOrders() {
         </div>
       }
 
-      <OrderEditDialog order={view} onClose={() => setView(null)} onSaved={load} onRefund={refundOrder} />
+      <OrderEditDialog
+        order={view}
+        onClose={() => setView(null)}
+        onSaved={load}
+        onRefund={refundOrder}
+        onEditUser={async (userId) => {
+          const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+          if (data) setEditUser(data as ProfileRow);
+        }}
+      />
+      <AdminUserEditDialog
+        user={editUser as unknown as EditableUser}
+        onClose={() => setEditUser(null)}
+        onSaved={load}
+        onEditOrder={async (o) => {
+          const { data: sRow } = await supabase.from("services").select("name").eq("id", o.service_id).maybeSingle();
+          const prof = editUser ? { email: editUser.email, balance: Number((editUser as ProfileRow).balance ?? 0) } : null;
+          setView({
+            id: o.id, order_number: o.order_number ?? 0, user_id: editUser?.id ?? "",
+            imei: o.imei, status: o.status, price_charged: Number(o.price_charged),
+            result: o.result, error_message: o.error_message, created_at: o.created_at,
+            services: sRow ? { name: sRow.name } : null,
+            profiles: prof,
+          } as OrderRow);
+        }}
+      />
     </AdminLayout>
   );
 }
@@ -1303,7 +1353,7 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "refunded", label: "Refunded" },
 ];
 
-function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRow | null; onClose: () => void; onSaved: () => void; onRefund: (o: OrderRow) => void }) {
+function OrderEditDialog({ order, onClose, onSaved, onRefund, onEditUser }: { order: OrderRow | null; onClose: () => void; onSaved: () => void; onRefund: (o: OrderRow) => void; onEditUser?: (userId: string) => void }) {
   const [status, setStatus] = useState<string>("");
   const [result, setResult] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -1371,7 +1421,7 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRo
         {order && (
           <div className="space-y-4 text-sm">
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">User</Label><div className="break-all">{order.profiles?.email}</div><div className="text-xs text-muted-foreground mt-0.5">Balance: <span className="font-mono">${Number(order.profiles?.balance ?? 0).toFixed(2)}</span></div></div>
+              <div><Label className="text-xs">User</Label><div className="break-all">{onEditUser && order.user_id ? (<button type="button" className="text-primary hover:underline" onClick={() => onEditUser(order.user_id)}>{order.profiles?.email}</button>) : order.profiles?.email}</div><div className="text-xs text-muted-foreground mt-0.5">Balance: <span className="font-mono">${Number(order.profiles?.balance ?? 0).toFixed(2)}</span></div></div>
               <div><Label className="text-xs">Service</Label><div>{order.services?.name}</div></div>
               <div><Label className="text-xs">IMEI</Label><div className="font-mono">{order.imei}</div></div>
               <div><Label className="text-xs">Charged</Label><div className="font-mono">${Number(order.price_charged).toFixed(2)}</div></div>
