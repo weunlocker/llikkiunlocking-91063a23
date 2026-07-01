@@ -1,45 +1,25 @@
-## Goal
-Keep the **$1 free on new account** offer (no free checks, no other promo) — but make it far more attention-grabbing on the homepage so new visitors actually notice and sign up.
+Add a dedicated **AI Settings** area in the admin panel so the user can pick the AI provider (Lovable vs Groq) and paste their own Groq API key, then have the AI service-description and chatbot edge functions use that provider at runtime.
 
-## What changes
-Only the **presentation** of the existing $1 bonus. No backend changes, no new tables, no edge function changes. The trigger (`handle_new_user`) and `signup_bonus_*` settings stay exactly as they are.
+Database
+- Add `ai_provider` (text, default 'lovable') and `ai_api_key` (text, nullable) to `public.site_settings` so admins can configure them without redeploying.
 
-## 1. New animated promo ribbon (top of every public page)
-New component `src/components/PromoRibbon.tsx`, mounted in `Layout.tsx` above the navbar.
+Admin UI
+- Add a new sidebar item: **AI / Chatbot** → `/admin/ai-settings`.
+- Build `AdminAISettings` page with:
+  - Provider dropdown: Lovable AI Gateway (default) / Groq.
+  - API key input (password-field style) shown only for Groq.
+  - Save button that writes to `site_settings` row 1.
 
-- Full-width slim bar, gradient background, subtle shimmer animation
-- Copy: **"🎁 New here? Get $1.00 FREE credit instantly — Create account →"**
-- Right-aligned dismiss (×) button, remembers dismissal in `localStorage` for 7 days
-- Hidden when user is logged in
-- Hidden when `signup_bonus_enabled` is false
-- Amount auto-pulled from `useSiteSettings().signup_bonus_amount`
+Edge Functions
+- Update `supabase/functions/ai-describe-service/index.ts` to read `ai_provider` + `ai_api_key` from `site_settings` via service_role. If provider is `groq` and key is present, call `https://api.groq.com/openai/v1/chat/completions` with model `llama-3.3-70b-versatile`; otherwise keep the existing Lovable gateway path.
+- Update `supabase/functions/ai-chat/index.ts` with the same runtime provider switch, supporting streaming for both providers.
+- Keep graceful fallback: if Groq key is missing/empty, silently fall back to Lovable.
 
-## 2. Upgrade the hero badge on Home
-Replace the current small pill in `src/pages/Home.tsx` with a bigger, more visible **promo card** placed directly under the headline, before the CTA buttons:
+How to get a Groq API key
+- Go to https://console.groq.com/keys
+- Sign in with a Google/Github account or email.
+- Click **Create API Key**.
+- Copy the key (starts with `gsk_...`).
+- Paste it into the new **AI Settings** page in your admin panel and select **Groq** as provider.
 
-```text
-┌────────────────────────────────────────────────────────┐
-│  🎁  LIMITED TIME WELCOME OFFER                         │
-│  Get $1.00 FREE credit when you create your account    │
-│  No card required • Instant • Use on any service       │
-│  [ Claim $1 FREE → ]                                    │
-└────────────────────────────────────────────────────────┘
-```
-
-- Glowing border (`border-primary/50`), pulse-glow animation on the gift icon
-- Primary CTA button inside the card → `/register`
-- Sits between the subtitle and the existing Start Checking / View Services buttons
-- Only renders when `signup_bonus_enabled && signup_bonus_amount > 0`
-
-## 3. Keep existing register page banner
-The `Gift` banner already on `Register.tsx` stays (it confirms the offer at the point of conversion). No change there.
-
-## Files touched
-- **New:** `src/components/PromoRibbon.tsx`
-- **Edited:** `src/components/Layout.tsx` (mount the ribbon)
-- **Edited:** `src/pages/Home.tsx` (replace small pill with the bigger promo card)
-
-## Out of scope
-- Free checks, discount codes, referral changes, GA4/Pixel, exit-intent popups — none of these change.
-
-Approve and I'll build it.
+The free tier gives 1500 requests/day and $5/month in credits, which is enough for service descriptions and chatbot traffic.

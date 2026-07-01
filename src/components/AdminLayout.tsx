@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, Briefcase, ListOrdered, Wallet, Settings,
-  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, X, Send, Network, CreditCard, Shield, Crown, Gift, BarChart3, MessageSquare, Activity, ChevronDown, Smartphone, Server, Package, Menu,
+  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, X, Send, Network, CreditCard, Shield, Crown, Gift, BarChart3, MessageSquare, Activity, ChevronDown, Smartphone, Server, Package, Menu, Bot,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -43,7 +43,9 @@ const baseNavItems: NavItem[] = [
   { to: "/admin/email-templates", label: "Email Templates", icon: Mail },
 
   { to: "/admin/turnstile", label: "Turnstile", icon: Shield },
+  { to: "/admin/ai-settings", label: "AI / Chatbot", icon: Bot },
   { to: "/admin/settings", label: "Settings", icon: Settings },
+
 ];
 
 export default function AdminLayout({ children, title, subtitle, actions }: {
