@@ -1,5 +1,9 @@
 // Logs login attempts and pushes a Telegram alert to admins.
-// Public endpoint (no JWT required) — login alerts run before/after sign-in.
+// - success=true events MUST include a valid Authorization Bearer JWT whose email matches
+//   the reported email. This prevents attackers from spoofing "new login" alerts to arbitrary users.
+// - success=false events are still accepted unauthenticated (the user isn't signed in yet),
+//   but we NEVER notify the target user directly (only admins, heavily rate-limited),
+//   so attackers cannot spam fake "failed login" security alerts to a chosen user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -13,14 +17,36 @@ Deno.serve(async (req) => {
   try {
     const p = await req.json().catch(() => ({}));
     const email = (p.email ?? "").toString().slice(0, 200);
-    const success = !!p.success;
+    const claimedSuccess = !!p.success;
     const userAgent = req.headers.get("user-agent") ?? "";
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
       || req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || "";
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
-    // Rate limit: cap inserts per IP to 10/min, and Telegram alerts to 1/min per IP, to prevent log poisoning + alert spam.
+    // Verify success claim via caller JWT. If not verified, coerce to failed-attempt logging only.
+    let verifiedSuccess = false;
+    let verifiedUserId: string | null = null;
+    let verifiedEmail: string | null = null;
+    if (claimedSuccess) {
+      const authHeader = req.headers.get("Authorization") || "";
+      const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+      if (token) {
+        const { data: claims } = await supabase.auth.getClaims(token);
+        const c: any = claims?.claims;
+        if (c?.sub && c?.email && (!email || String(c.email).toLowerCase() === email.toLowerCase())) {
+          verifiedSuccess = true;
+          verifiedUserId = c.sub;
+          verifiedEmail = String(c.email);
+        }
+      }
+      if (!verifiedSuccess) {
+        // Silently reject spoofed success events — do not log or notify.
+        return json(200, { ok: true, ignored: "unverified_success" });
+      }
+    }
+
+    // Rate limit inserts and admin alerts per IP.
     const oneMinAgo = new Date(Date.now() - 60_000).toISOString();
     let recentFromIp = 0;
     if (ip) {
@@ -35,27 +61,35 @@ Deno.serve(async (req) => {
       return json(429, { error: "rate_limited" });
     }
 
-    let userId: string | null = null;
-    if (email) {
-      const { data: prof } = await supabase.from("profiles").select("id").ilike("email", email).maybeSingle();
+    const finalEmail = verifiedEmail ?? email;
+    let userId: string | null = verifiedUserId;
+    if (!userId && finalEmail) {
+      const { data: prof } = await supabase.from("profiles").select("id").ilike("email", finalEmail).maybeSingle();
       userId = prof?.id ?? null;
     }
 
-    await supabase.from("auth_login_events").insert({ user_id: userId, email, ip, user_agent: userAgent, success });
+    await supabase.from("auth_login_events").insert({
+      user_id: userId,
+      email: finalEmail,
+      ip,
+      user_agent: userAgent,
+      success: verifiedSuccess, // never trust client for success
+    });
 
     // Notify admins (debounced — skip if any alert already sent from this IP in the last minute)
     if (recentFromIp === 0) {
-      const subject = success ? "✅ Login success" : "⚠️ Login FAILED";
-      const body = `Email: ${email || "—"}\nIP: ${ip || "—"}\nUA: ${userAgent.slice(0, 120)}`;
+      const subject = verifiedSuccess ? "✅ Login success" : "⚠️ Login FAILED";
+      const body = `Email: ${finalEmail || "—"}\nIP: ${ip || "—"}\nUA: ${userAgent.slice(0, 120)}`;
       await supabase.functions.invoke("telegram-notify", { body: { broadcast: "admins", subject, body } });
 
-      // Notify the user themselves (if linked) on both success and failed attempts
-      if (userId) {
+      // Only notify the account owner on VERIFIED successful logins.
+      // Failed-attempt notifications are admin-only to prevent spoofed security-alert spam.
+      if (verifiedSuccess && userId) {
         await supabase.functions.invoke("telegram-notify", {
           body: {
             user_id: userId,
-            subject: success ? "🔐 New login to your account" : "⚠️ Failed login attempt on your account",
-            body: `Email: ${email || "—"}\nIP: ${ip || "—"}\nUA: ${userAgent.slice(0, 120)}${success ? "" : "\n\nIf this wasn't you, change your password immediately."}`,
+            subject: "🔐 New login to your account",
+            body: `Email: ${finalEmail || "—"}\nIP: ${ip || "—"}\nUA: ${userAgent.slice(0, 120)}`,
           },
         });
       }
