@@ -99,7 +99,7 @@ export default function AdminProfileMenu({ mode = "admin" }: Props) {
                 {crossLabel}
               </button>
             )}
-            <button onClick={() => navigate("/profile")} className="text-primary hover:underline">
+            <button onClick={() => navigate(mode === "admin" ? "/admin/settings" : "/profile")} className="text-primary hover:underline">
               My Account
             </button>
             <button onClick={signOut} className="text-primary hover:underline ml-auto">
