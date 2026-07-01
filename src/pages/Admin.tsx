@@ -188,6 +188,7 @@ function AdminUsers() {
   const [creditAmount, setCreditAmount] = useState("10");
   const [creditBusy, setCreditBusy] = useState<null | "add" | "deduct">(null);
   const [editUser, setEditUser] = useState<ProfileRow | null>(null);
+  const [editOrder, setEditOrder] = useState<OrderRow | null>(null);
   const [authStatus, setAuthStatus] = useState<Record<string, { email_confirmed_at: string | null; last_sign_in_at: string | null }>>({});
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [onlyUnverified, setOnlyUnverified] = useState(false);
