@@ -56,6 +56,35 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
   const [saving, setSaving] = useState(false);
   const [loadingSvc, setLoadingSvc] = useState(false);
   const [svcQuery, setSvcQuery] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  const sendCustomEmail = async (kind: "welcome" | "custom") => {
+    if (!user?.email) { toast.error("Client has no email"); return; }
+    setSendingEmail(true);
+    try {
+      const templateName = kind === "welcome" ? "welcome" : "admin-custom";
+      const templateData = kind === "welcome"
+        ? { name: user.display_name ?? "" }
+        : { name: user.display_name ?? "", email: user.email, heading: emailSubject || undefined, body: emailBody, subject: emailSubject || `A message from us` };
+      const { error } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName,
+          recipientEmail: user.email,
+          idempotencyKey: `admin-${kind}-${user.id}-${Date.now()}`,
+          templateData,
+        },
+      });
+      if (error) throw error;
+      toast.success("Email sent");
+      if (kind === "custom") { setEmailBody(""); setEmailSubject(""); }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to send");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
 
   useEffect(() => { setForm(user); }, [user]);
 
@@ -314,6 +343,45 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
                 <div><code>{"{{group}}"}</code> — user group (standard/silver/…)</div>
               </div>
               <p className="text-xs text-muted-foreground">Plain text only. Variables are replaced when shown on the client dashboard.</p>
+
+              <div className="mt-6 pt-4 border-t border-border/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Send email to this client</Label>
+                    <p className="text-xs text-muted-foreground">Uses {"{{name}}"} and {"{{email}}"} of this client.</p>
+                  </div>
+                  <Button type="button" size="sm" variant="outline" disabled={sendingEmail} onClick={() => sendCustomEmail("welcome")}>
+                    Send Welcome
+                  </Button>
+                </div>
+                <Input
+                  placeholder="Email subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                />
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: "Name", token: "{{name}}" },
+                    { label: "Email", token: "{{email}}" },
+                  ].map((v) => (
+                    <Button key={v.token} type="button" size="sm" variant="outline" onClick={() => setEmailBody(`${emailBody}${v.token}`)}>
+                      + {v.label}
+                    </Button>
+                  ))}
+                </div>
+                <Textarea
+                  rows={6}
+                  placeholder={"Hi {{name}},\n\nYour message here..."}
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                />
+                <div className="flex justify-end">
+                  <Button type="button" variant="hero" size="sm" disabled={sendingEmail || !emailBody.trim()} onClick={() => sendCustomEmail("custom")}>
+                    {sendingEmail ? <Loader2 className="animate-spin w-4 h-4 mr-1" /> : null}
+                    Send Custom Email
+                  </Button>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         )}
