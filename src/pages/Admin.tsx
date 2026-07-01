@@ -1303,7 +1303,7 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "refunded", label: "Refunded" },
 ];
 
-function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRow | null; onClose: () => void; onSaved: () => void; onRefund: (o: OrderRow) => void }) {
+function OrderEditDialog({ order, onClose, onSaved, onRefund, onEditUser }: { order: OrderRow | null; onClose: () => void; onSaved: () => void; onRefund: (o: OrderRow) => void; onEditUser?: (userId: string) => void }) {
   const [status, setStatus] = useState<string>("");
   const [result, setResult] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
