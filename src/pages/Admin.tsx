@@ -26,7 +26,7 @@ export type CustomField = { name: string; label: string; type: string; required:
 type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; sort_order: number | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
 type Supplier = { id: string; name: string; type: "dhru" | "generic" | "ifree" | "goimeicheck"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
 type ProfileRow = { id: string; email: string | null; display_name: string | null; balance: number; banned: boolean; created_at: string };
-type OrderRow = { id: string; order_number: number; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null; profiles: { email: string | null } | null };
+type OrderRow = { id: string; order_number: number; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string } | null; profiles: { email: string | null; balance?: number | null } | null };
 type TxRow = { id: string; user_id: string; amount: number; type: string; balance_after: number; description: string | null; created_at: string; profiles?: { email: string | null } | null };
 
 const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", sample_result: "", result_font: "mono", result_color: "#e2e8f0", active: true, is_free: false, category: "general", success_rules: [], supplier_id: null, supplier_action: "", service_type: "imei", custom_fields: [] };
@@ -1142,14 +1142,14 @@ function AdminOrders() {
   const load = async () => {
     const [o, profs, svcs] = await Promise.all([
       supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(500),
-      supabase.from("profiles").select("id,email"),
+      supabase.from("profiles").select("id,email,balance"),
       supabase.from("services").select("id,name"),
     ]);
-    const profMap = new Map((profs.data ?? []).map((p: { id: string; email: string | null }) => [p.id, p.email]));
+    const profMap = new Map((profs.data ?? []).map((p: { id: string; email: string | null; balance: number | null }) => [p.id, p]));
     const svcMap = new Map((svcs.data ?? []).map((s: { id: string; name: string }) => [s.id, s.name]));
     const enriched = (o.data ?? []).map((row: { user_id: string; service_id: string; [k: string]: unknown }) => ({
       ...row,
-      profiles: { email: profMap.get(row.user_id) ?? null },
+      profiles: { email: profMap.get(row.user_id)?.email ?? null, balance: profMap.get(row.user_id)?.balance ?? null },
       services: { name: svcMap.get(row.service_id) ?? "—" },
     })) as unknown as OrderRow[];
     setOrders(enriched); setLoading(false);
@@ -1369,7 +1369,7 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund }: { order: OrderRo
         {order && (
           <div className="space-y-4 text-sm">
             <div className="grid grid-cols-2 gap-3">
-              <div><Label className="text-xs">User</Label><div>{order.profiles?.email}</div></div>
+              <div><Label className="text-xs">User</Label><div className="break-all">{order.profiles?.email}</div><div className="text-xs text-muted-foreground mt-0.5">Balance: <span className="font-mono">${Number(order.profiles?.balance ?? 0).toFixed(2)}</span></div></div>
               <div><Label className="text-xs">Service</Label><div>{order.services?.name}</div></div>
               <div><Label className="text-xs">IMEI</Label><div className="font-mono">{order.imei}</div></div>
               <div><Label className="text-xs">Charged</Label><div className="font-mono">${Number(order.price_charged).toFixed(2)}</div></div>
