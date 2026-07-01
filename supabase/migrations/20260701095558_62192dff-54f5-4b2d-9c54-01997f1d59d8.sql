@@ -1,0 +1,1 @@
+UPDATE public.orders SET status='pending', result=NULL, error_message=NULL, last_polled_at=NULL WHERE order_number='230';
