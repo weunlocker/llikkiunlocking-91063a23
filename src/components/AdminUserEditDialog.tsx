@@ -74,6 +74,20 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
     });
   }, [user?.id]);
 
+  const loadOrders = async () => {
+    if (!user) return;
+    setLoadingOrders(true);
+    const [ordRes, svcRes] = await Promise.all([
+      supabase.from("orders").select("id,order_number,service_id,imei,status,price_charged,created_at,result,error_message").eq("user_id", user.id).order("created_at", { ascending: false }).limit(200),
+      supabase.from("services").select("id,name"),
+    ]);
+    const svcMap = new Map((svcRes.data ?? []).map((s: { id: string; name: string }) => [s.id, s.name]));
+    const rows = ((ordRes.data ?? []) as UserOrderRow[]).map((r) => ({ ...r, service_name: svcMap.get(r.service_id) ?? "—" }));
+    setOrders(rows);
+    setLoadingOrders(false);
+  };
+  useEffect(() => { setOrders([]); if (user) loadOrders(); }, [user?.id]);
+
   const setField = <K extends keyof EditableUser>(k: K, v: EditableUser[K]) =>
     setForm((f) => f ? { ...f, [k]: v } : f);
 
