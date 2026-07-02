@@ -2,6 +2,7 @@
 // Used by both check-imei (web) and api-check (public API) edge functions.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { notifyUserEmail } from "./email.ts";
+import { dhruFetch } from "./dhruFetch.ts";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -397,7 +398,7 @@ async function runUpstream(ctx: PlacementCtx) {
         }
       }
 
-      const resp = await fetch(url, init);
+      const resp = supplier?.type === "dhru" ? await dhruFetch(url, init) : await fetch(url, init);
       const ct = resp.headers.get("content-type") || "";
       const raw = ct.includes("json") ? await resp.json() : await resp.text();
       rawData = raw;
