@@ -621,20 +621,20 @@ export default function Dashboard() {
                   const to = Math.min(filteredOrders.length, safePage * oPageSize);
                   return (
                 <>
-                <ScrollArea className="w-full">
-                  <table className="w-full text-sm min-w-[760px]">
+                <div className="w-full overflow-x-auto overflow-y-hidden [-webkit-overflow-scrolling:touch]">
+                  <table className="text-sm min-w-[900px] w-max">
                     <thead className="bg-secondary/40 text-left">
                        <tr><th className="px-5 py-3">Order ID</th><th className="px-5 py-3">Service</th><th className="px-5 py-3">IMEI</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Price</th><th className="px-5 py-3">Date</th><th className="px-5 py-3">Result</th></tr>
                     </thead>
                     <tbody>
                       {pageOrders.map((o) => (
                         <tr key={o.id} className="border-t border-border/50 hover:bg-secondary/20 cursor-pointer" onClick={() => setOrderDetail(o)}>
-                          <td className="px-5 py-3 font-mono text-xs">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
+                          <td className="px-5 py-3 font-mono text-xs whitespace-nowrap">#{String(o.order_number ?? 0).padStart(4, "0")}</td>
                           <td className="px-5 py-3 font-medium max-w-[260px] truncate" title={o.services?.name ?? undefined}>{o.services?.name ?? "—"}</td>
-                          <td className="px-5 py-3 font-mono text-xs">{o.imei}</td>
-                          <td className="px-5 py-3"><StatusBadge status={o.status} errorMessage={sanitizeError(o.error_message)} /></td>
-                          <td className="px-5 py-3 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
-                          <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(o.created_at).toLocaleString()}</td>
+                          <td className="px-5 py-3 font-mono text-xs whitespace-nowrap">{o.imei}</td>
+                          <td className="px-5 py-3 whitespace-nowrap"><StatusBadge status={o.status} errorMessage={sanitizeError(o.error_message)} /></td>
+                          <td className="px-5 py-3 text-right font-mono whitespace-nowrap">${Number(o.price_charged).toFixed(2)}</td>
+                          <td className="px-5 py-3 text-muted-foreground text-xs whitespace-nowrap">{new Date(o.created_at).toLocaleString()}</td>
                           <td className="px-5 py-3 text-[13px] leading-relaxed max-w-md" onClick={(e) => e.stopPropagation()}>
                             {o.result
                               ? <div className="max-h-40 overflow-auto"><ColoredResult text={hideSupplierRef(extractResponse(o.result))} font={o.services?.result_font ?? undefined} /></div>
@@ -644,7 +644,7 @@ export default function Dashboard() {
                       ))}
                     </tbody>
                   </table>
-                </ScrollArea>
+                </div>
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 border-t border-border/50 text-xs">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <span>Showing {from}–{to} of {filteredOrders.length}</span>
