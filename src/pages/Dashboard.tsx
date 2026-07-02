@@ -205,6 +205,17 @@ export default function Dashboard() {
 
   useEffect(() => { load(); }, [user]);
 
+  // Realtime: refresh orders when status/result updates so both change together
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`user-orders-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `user_id=eq.${user.id}` }, () => { load(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const openCheck = (s: Service) => { setSelectedService(s); };
 
   const refreshAfterRun = () => { refreshProfile(); load(); };
