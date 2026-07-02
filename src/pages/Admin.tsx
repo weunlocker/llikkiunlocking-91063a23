@@ -1323,6 +1323,7 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund, onEditUser }: { or
   const [errorMsg, setErrorMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [supplierRef, setSupplierRef] = useState<string | null>(null);
+  const [connectedApi, setConnectedApi] = useState<string>("—");
   const [services, setServices] = useState<{ id: string; name: string; supplier_id: string | null }[]>([]);
   const [switchServiceId, setSwitchServiceId] = useState<string>("");
   const [reprocessing, setReprocessing] = useState(false);
@@ -1333,12 +1334,25 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund, onEditUser }: { or
       setResult(extractResponse(order.result ?? ""));
       setErrorMsg(order.error_message ?? "");
       setSwitchServiceId("");
+      setConnectedApi("—");
       supabase.from("orders").select("supplier_reference,service_id").eq("id", order.id).maybeSingle()
-        .then(({ data }) => { setSupplierRef((data as { supplier_reference: string | null } | null)?.supplier_reference ?? null); setSwitchServiceId((data as { service_id: string } | null)?.service_id ?? ""); });
+        .then(async ({ data }) => {
+          const row = data as { supplier_reference: string | null; service_id: string } | null;
+          setSupplierRef(row?.supplier_reference ?? null);
+          setSwitchServiceId(row?.service_id ?? "");
+          if (row?.service_id) {
+            const { data: svc } = await supabase.from("services").select("api_url,supplier_id,suppliers(name)").eq("id", row.service_id).maybeSingle();
+            const s = svc as { api_url: string | null; supplier_id: string | null; suppliers: { name: string } | null } | null;
+            if (s?.supplier_id && s.suppliers?.name) setConnectedApi(s.suppliers.name);
+            else if (s?.api_url) { try { setConnectedApi(new URL(s.api_url).hostname.replace(/^www\./, "")); } catch { setConnectedApi("Simple Link"); } }
+            else setConnectedApi("Simple Link");
+          }
+        });
       supabase.from("services").select("id,name,supplier_id").not("supplier_id", "is", null).order("name")
         .then(({ data }) => setServices((data ?? []) as { id: string; name: string; supplier_id: string | null }[]));
     }
   }, [order]);
+
 
   const save = async () => {
     if (!order) return;
@@ -1391,6 +1405,8 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund, onEditUser }: { or
               <div><Label className="text-xs">Charged</Label><div className="font-mono">${Number(order.price_charged).toFixed(2)}</div></div>
               <div><Label className="text-xs">Date</Label><div>{new Date(order.created_at).toLocaleString()}</div></div>
               <div><Label className="text-xs">Supplier Ref (admin only)</Label><div className="font-mono text-xs">{supplierRef ?? "—"}</div></div>
+              <div><Label className="text-xs">Connected API</Label><div className="text-xs">{connectedApi}</div></div>
+
             </div>
             {order.status === "pending" && (
               <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-3">
