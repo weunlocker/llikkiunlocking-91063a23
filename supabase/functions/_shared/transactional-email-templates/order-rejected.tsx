@@ -4,6 +4,11 @@ import { Heading, Text } from 'npm:@react-email/components@0.0.22'
 import { EmailShell, ctaButton, styles, BRAND } from '../email-templates/_layout.tsx'
 import type { TemplateEntry } from './registry.ts'
 
+function stripColorMarkers(text?: string): string {
+  if (!text) return "";
+  return text.replace(/\[\[\/?[cf](?::[^\]]+)?\]\]/g, "");
+}
+
 interface Props {
   name?: string
   orderNumber?: string | number
@@ -31,7 +36,7 @@ const OrderRejectedEmail = ({ name, orderNumber, service, imei, error, refund, b
     {error && (
       <div style={{ ...styles.infoBox, background: '#FEF2F2', border: '1px solid #FECACA' }}>
         <Text style={{ ...styles.row, color: '#B91C1C' }}>
-          <span style={styles.rowKey}>Reason:</span> {error}
+          <span style={styles.rowKey}>Reason:</span> {stripColorMarkers(error)}
         </Text>
       </div>
     )}
