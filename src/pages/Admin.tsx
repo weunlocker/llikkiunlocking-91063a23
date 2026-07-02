@@ -1405,6 +1405,8 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund, onEditUser }: { or
               <div><Label className="text-xs">Charged</Label><div className="font-mono">${Number(order.price_charged).toFixed(2)}</div></div>
               <div><Label className="text-xs">Date</Label><div>{new Date(order.created_at).toLocaleString()}</div></div>
               <div><Label className="text-xs">Supplier Ref (admin only)</Label><div className="font-mono text-xs">{supplierRef ?? "—"}</div></div>
+              <div><Label className="text-xs">Connected API</Label><div className="text-xs">{connectedApi}</div></div>
+
             </div>
             {order.status === "pending" && (
               <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-3">
