@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { telegramChatIdSchema } from "@/lib/validation";
 import ImeiCheckDialog, { type CustomField } from "@/components/ImeiCheckDialog";
-import { extractResponse, stripColorMarkers } from "@/lib/extractResponse";
+import { extractResponse, stripColorMarkers, hideSupplierRef } from "@/lib/extractResponse";
 import { ColoredResult } from "@/components/ColoredResult";
 import ApiDocs from "@/pages/ApiDocs";
 import ReferralsPanel from "@/components/ReferralsPanel";
@@ -614,7 +614,7 @@ export default function Dashboard() {
                         <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(o.created_at).toLocaleString()}</td>
                         <td className="px-5 py-3 text-[13px] leading-relaxed max-w-md" onClick={(e) => e.stopPropagation()}>
                           {o.result
-                            ? <div className="max-h-40 overflow-auto"><ColoredResult text={extractResponse(o.result)} font={o.services?.result_font ?? undefined} /></div>
+                            ? <div className="max-h-40 overflow-auto"><ColoredResult text={hideSupplierRef(extractResponse(o.result))} font={o.services?.result_font ?? undefined} /></div>
                             : <span className="text-muted-foreground text-xs">{sanitizeError(o.error_message) || (o.status === "pending" ? "Waiting…" : "—")}</span>}
                         </td>
                       </tr>
@@ -888,7 +888,7 @@ export default function Dashboard() {
                 <div className="text-sm text-muted-foreground">Result</div>
                 {(orderDetail?.result || orderDetail?.error_message) && (
                   <Button variant="outline" size="sm" onClick={async () => {
-                    const txt = orderDetail?.result ? stripColorMarkers(extractResponse(orderDetail.result)) : sanitizeError(orderDetail?.error_message);
+                    const txt = orderDetail?.result ? stripColorMarkers(hideSupplierRef(extractResponse(orderDetail.result))) : sanitizeError(orderDetail?.error_message);
                     try {
                       await navigator.clipboard.writeText(txt);
                       toast.success("Copied!", { description: "Result copied to clipboard" });
@@ -904,7 +904,7 @@ export default function Dashboard() {
               </div>
               <div className="glass rounded p-4 text-[15px] leading-relaxed max-h-96 overflow-auto">
                 {orderDetail?.result
-                  ? <ColoredResult text={extractResponse(orderDetail.result)} font={orderDetail.services?.result_font ?? undefined} />
+                  ? <ColoredResult text={hideSupplierRef(extractResponse(orderDetail.result))} font={orderDetail.services?.result_font ?? undefined} />
                   : <pre className="font-mono text-sm whitespace-pre-wrap break-all">{sanitizeError(orderDetail?.error_message) || "No data"}</pre>}
               </div>
             </div>
@@ -1015,7 +1015,7 @@ export default function Dashboard() {
                   <div className="mt-4 pt-3 border-t">
                     <div className="font-semibold mb-1 text-[12px]">Result</div>
                     <pre className="font-mono text-[10.5px] sm:text-[11px] whitespace-pre-wrap break-all text-gray-700">
-                      {(invoiceOrder.result || invoiceOrder.error_message || "").replace(/\[\[c:[^\]]+\]\]/g, "").replace(/\[\[\/c\]\]/g, "")}
+                      {hideSupplierRef((invoiceOrder.result || invoiceOrder.error_message || "").replace(/\[\[c:[^\]]+\]\]/g, "").replace(/\[\[\/c\]\]/g, ""))}
                     </pre>
                   </div>
                 )}
