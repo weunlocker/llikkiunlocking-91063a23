@@ -422,7 +422,12 @@ Deno.serve(async (req) => {
             user_id: o.user_id, subject: `❌ ${o.imei}`,
             body: `${finalText}\n\n${svc.name}`, format: "plain",
           }}).catch(() => {});
+          notifyUserEmail(sb, o.user_id, "order_rejected", {
+            order_number: o.order_number, imei: o.imei, service: svc.name,
+            error: reason, refund: Number(o.price_charged).toFixed(2),
+          });
           failed++;
+
         }
         continue;
       }
@@ -577,7 +582,12 @@ Deno.serve(async (req) => {
           user_id: o.user_id, subject: `❌ ${o.imei}`,
           body: `${finalText}\n\n${svc.name}`, format: "plain",
         }}).catch(() => {});
+        notifyUserEmail(sb, o.user_id, "order_rejected", {
+          order_number: o.order_number, imei: o.imei, service: svc.name,
+          error: reason, refund: Number(o.price_charged).toFixed(2),
+        });
         failed++;
+
       } else {
         await sb.from("orders").update({
           last_polled_at: new Date().toISOString(),

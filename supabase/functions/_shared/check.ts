@@ -306,11 +306,9 @@ async function runUpstream(ctx: PlacementCtx) {
     await supabase.from("orders").update({
       result: "Queued — order will be placed with supplier shortly.",
     }).eq("id", order.id);
-    notifyUser(supabase, userId,
-      `Order Queued — ${service.name}`,
-      `IMEI: ${imei}\nYour order has been queued. You'll be notified when it's processed.`,
-    );
+    // Intentionally no client Telegram notification here — only success/rejected are sent.
     return; // remain pending; cron will place + poll
+
 
   } else {
     try {
@@ -439,11 +437,9 @@ async function runUpstream(ctx: PlacementCtx) {
                 supplier_reference: refId,
                 result: `Order placed with supplier (ref ${refId}). Awaiting result…`,
               }).eq("id", order.id);
-              notifyUser(supabase, userId,
-                `Order Submitted — ${service.name}`,
-                `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.`,
-              );
+              // No client Telegram "submitted" ping — only final success/rejected.
               return; // remain pending; poller takes over
+
             }
           }
         }
@@ -473,11 +469,9 @@ async function runUpstream(ctx: PlacementCtx) {
                 supplier_reference: refId,
                 result: `Order placed with supplier (ref ${refId}). Awaiting result…`,
               }).eq("id", order.id);
-              notifyUser(supabase, userId,
-                `Order Submitted — ${service.name}`,
-                `IMEI: ${imei}\nReference: ${refId}\nWaiting for supplier — you will be notified when ready.`,
-              );
+              // No client Telegram "submitted" ping — only final success/rejected.
               return;
+
             } else {
               errorMsg = "GoIMEICheck did not return order id or result";
             }
