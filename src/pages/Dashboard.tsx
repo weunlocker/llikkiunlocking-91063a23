@@ -322,9 +322,9 @@ export default function Dashboard() {
           </button>
         )}
         <Dialog open={msgOpen} onOpenChange={setMsgOpen}>
-          <DialogContent className="glass">
+          <DialogContent className="glass max-w-[92vw] sm:max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Message from admin</DialogTitle></DialogHeader>
-            <div className="text-sm whitespace-pre-wrap py-2">{customMessage}</div>
+            <div className="text-sm whitespace-pre-wrap break-words py-2">{customMessage}</div>
             <div className="flex justify-end">
               <Button variant="hero" onClick={() => { dismissAdminMsg(); setMsgOpen(false); }}>Close</Button>
             </div>
