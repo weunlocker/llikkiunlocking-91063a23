@@ -36,7 +36,7 @@ const OrderRejectedEmail = ({ name, orderNumber, service, imei, error, refund, b
     {error && (
       <div style={{ ...styles.infoBox, background: '#FEF2F2', border: '1px solid #FECACA' }}>
         <Text style={{ ...styles.row, color: '#B91C1C' }}>
-          <span style={styles.rowKey}>Reason:</span> {error}
+          <span style={styles.rowKey}>Reason:</span> {stripColorMarkers(error)}
         </Text>
       </div>
     )}
