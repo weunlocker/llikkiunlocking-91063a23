@@ -106,10 +106,12 @@ export default function Dashboard() {
     .replace(/\{\{\s*email\s*\}\}/gi, profile?.email ?? "")
     .replace(/\{\{\s*balance\s*\}\}/gi, `$${Number(profile?.balance ?? 0).toFixed(2)}`)
     .replace(/\{\{\s*group\s*\}\}/gi, (profile as unknown as { user_group?: string } | null)?.user_group ?? "standard");
-  const [msgDismissed, setMsgDismissed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem("seenAdminMsg") === rawCustomMessage;
-  });
+  const [msgDismissed, setMsgDismissed] = useState(true);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!rawCustomMessage) { setMsgDismissed(true); return; }
+    setMsgDismissed(window.localStorage.getItem("seenAdminMsg") === rawCustomMessage);
+  }, [rawCustomMessage]);
   const dismissAdminMsg = () => {
     if (typeof window !== "undefined") {
       window.localStorage.setItem("seenAdminMsg", rawCustomMessage);
