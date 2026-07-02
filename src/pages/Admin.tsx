@@ -1272,7 +1272,7 @@ function AdminOrders() {
                   <td className="px-5 py-3 text-xs">{o.profiles?.email}</td>
                   <td className="px-5 py-3 max-w-[260px] truncate" title={o.services?.name ?? undefined}>{o.services?.name}</td>
                   <td className="px-5 py-3 font-mono text-xs">{o.imei}</td>
-                  <td className={`px-5 py-3 capitalize ${statusColor(o.status)}`}>{o.status}</td>
+                  <td className={`px-5 py-3 capitalize ${statusColor(o.status)}`}>{o.status === "failed" ? "Rejected" : o.status}</td>
                   <td className="px-5 py-3 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
                   <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(o.created_at).toLocaleString()}</td>
                   <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
