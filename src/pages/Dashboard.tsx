@@ -590,7 +590,7 @@ export default function Dashboard() {
                   <SelectContent>
                     <SelectItem value="all">All status</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="failed">Rejected</SelectItem>
                     <SelectItem value="refunded">Refunded</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                   </SelectContent>
