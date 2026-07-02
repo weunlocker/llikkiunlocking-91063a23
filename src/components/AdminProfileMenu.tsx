@@ -56,15 +56,8 @@ export default function AdminProfileMenu({ mode = "admin" }: Props) {
   const showCross = mode === "admin" ? true : isAdmin;
 
   const openCross = () => {
-    // Open the target panel in a new tab while preserving the current session
-    // (no sign-out). The Supabase session is stored in localStorage and is
-    // shared across tabs on the same origin, so the new tab lands directly on
-    // the dashboard already logged in.
-    const win = window.open(crossPath, "_blank", "noopener,noreferrer");
-    if (!win) {
-      // Popup blocked – fall back to same-tab navigation without signing out.
-      navigate(crossPath);
-    }
+    // Navigate to the target panel in the same tab without signing out.
+    navigate(crossPath);
   };
 
   return (
