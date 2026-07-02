@@ -54,6 +54,7 @@ export default function AdminServiceEdit() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [supSvc, setSupSvc] = useState<SupplierService[]>([]);
   const [supSvcQ, setSupSvcQ] = useState("");
+  const [svcOpen, setSvcOpen] = useState(false);
   const [apiOriginalPrice, setApiOriginalPrice] = useState<number | null>(null);
   const [stockGroups, setStockGroups] = useState<StockGroup[]>([]);
 
