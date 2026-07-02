@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Check, ChevronsUpDown, Eye, EyeOff } from "lucide-react";
 import BrandHeader from "@/components/BrandHeader";
 import Seo from "@/components/Seo";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
