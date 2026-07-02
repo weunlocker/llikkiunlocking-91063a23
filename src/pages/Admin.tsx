@@ -1425,10 +1425,9 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund, onEditUser }: { or
             </div>
             <div>
               <Label>Result text</Label>
-              <div className="rounded-lg border border-border/50 bg-background/50 p-3 mb-2 max-h-48 overflow-auto">
+              <div className="rounded-lg border border-border/50 bg-background/50 p-3 max-h-48 overflow-auto">
                 <ColoredResult text={result} font={order.services?.result_font ?? undefined} />
               </div>
-              <Textarea rows={6} value={result} onChange={(e) => setResult(e.target.value)} className="font-mono text-xs" placeholder="Editable source shown to the customer" />
             </div>
             <div className="flex justify-between gap-2 pt-2 border-t border-border/50">
               {order.status !== "refunded" && Number(order.price_charged) > 0 ? (
