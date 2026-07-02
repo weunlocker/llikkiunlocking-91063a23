@@ -324,48 +324,57 @@ Deno.serve(async (req) => {
     if (o.status === "failed" && !isGenericUnlockNotFound(String(o.result ?? ""))) continue;
 
     try {
-      let r: Response;
+      let text = "";
+      let parsed: any = null;
       if (sup.type === "goimeicheck") {
         const base = String(sup.endpoint_url || "https://api.goimeicheck.com").replace(/\/+$/, "");
         const qs = new URLSearchParams({
           api_key: String(sup.dhru_api_key ?? ""),
           tran_id: String(o.supplier_reference),
         });
-        r = await fetch(`${base}/api/get-order/?${qs.toString()}`, { method: "GET" });
+        const r = await fetch(`${base}/api/get-order/?${qs.toString()}`, { method: "GET" });
+        text = await r.text();
+        parsed = text;
+        try { parsed = JSON.parse(text); } catch { /* keep as string */ }
       } else {
-        const params = new URLSearchParams();
         const username = sup.dhru_username ?? "";
         const apiKey = sup.dhru_api_key ?? "";
         const refId = String(o.supplier_reference);
         const getAction = svc?.service_type === "server" ? "getserverorder" : "getimeiorder";
-        if (sup.api_format === "bulk") {
-          params.set("data", JSON.stringify({
-            username, apikey: apiKey,
-            action: getAction,
-            id: refId,
-          }));
-        } else if (sup.api_format === "v6") {
-          params.set("apiaccesskey", apiKey);
-          params.set("action", getAction);
-          params.set("requestformat", "JSON");
-          if (username) params.set("username", username);
-          params.set("ID", refId);
-          params.set("parameters", `<PARAMETERS><ID>${escapeXml(refId)}</ID></PARAMETERS>`);
-        } else {
-          params.set("username", username);
-          params.set("apikey", apiKey);
-          params.set("action", getAction);
-          params.set("id", refId);
+        let lastErr = "Supplier returned no response";
+        let usedFormat: DhruFormat | null = null;
+        let usedEndpoint = String(sup.endpoint_url ?? "");
+        let accepted = false;
+        for (const endpoint of endpointCandidates(String(sup.endpoint_url ?? ""))) {
+          for (const format of dhruFormats(sup.api_format)) {
+            const body = makeDhruStatusBody(format, { username: String(username), apiKey: String(apiKey), action: getAction, refId });
+            const r = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json, text/plain, */*" },
+              body,
+            });
+            text = await r.text();
+            parsed = text;
+            try { parsed = JSON.parse(text); } catch { /* keep as string */ }
+            const err = dhruErrorMessage(parsed);
+            if (err) {
+              lastErr = err;
+              if (isRetryableDhruFormatError(err)) continue;
+            }
+            accepted = true;
+            usedFormat = format;
+            usedEndpoint = endpoint;
+            break;
+          }
+          if (accepted) break;
         }
-        r = await fetch(sup.endpoint_url, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: params.toString(),
-        });
+        if (!accepted) {
+          parsed = { ERROR: [{ MESSAGE: lastErr }] };
+          text = JSON.stringify(parsed);
+        } else if (usedFormat && (usedFormat !== sup.api_format || usedEndpoint !== sup.endpoint_url)) {
+          sb.from("suppliers").update({ api_format: usedFormat, endpoint_url: usedEndpoint }).eq("id", svc.supplier_id).then(() => {});
+        }
       }
-      const text = await r.text();
-      let parsed: any = text;
-      try { parsed = JSON.parse(text); } catch { /* keep as string */ }
 
       // GoIMEICheck branch
       if (sup.type === "goimeicheck") {
