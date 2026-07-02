@@ -1013,7 +1013,7 @@ export default function Dashboard() {
                     <tr className="bg-gray-50">
                       <td className="p-2 align-top">{invoiceOrder.services?.name ?? "—"}</td>
                       <td className="p-2 align-top font-mono">{invoiceOrder.imei}</td>
-                      <td className="p-2 align-top">{invoiceOrder.status.toUpperCase()}</td>
+                      <td className="p-2 align-top">{(invoiceOrder.status === "failed" ? "REJECTED" : invoiceOrder.status).toUpperCase()}</td>
                       <td className="p-2 align-top text-right font-mono">${Number(invoiceOrder.price_charged).toFixed(2)}</td>
                     </tr>
                   </tbody>
