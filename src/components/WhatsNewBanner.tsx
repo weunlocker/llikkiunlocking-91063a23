@@ -27,7 +27,6 @@ export default function WhatsNewBanner() {
     if (!user) return;
     let cancelled = false;
     (async () => {
-      // Show all announcements from the last 24 hours on every launch/refresh
       const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
       const { data: anns } = await supabase
         .from("service_announcements")
@@ -46,7 +45,14 @@ export default function WhatsNewBanner() {
         return true;
       });
       setItems(visible);
-      if (visible.length) setOpen(true);
+      // Show once per login: skip if the same set of announcement IDs was already seen for this user
+      const storageKey = `whatsnew_seen_${user.id}`;
+      const seenIds = localStorage.getItem(storageKey);
+      const currentIds = visible.map((a) => a.id).sort().join(",");
+      if (visible.length && seenIds !== currentIds) {
+        setOpen(true);
+        localStorage.setItem(storageKey, currentIds);
+      }
     })();
     return () => {
       cancelled = true;
