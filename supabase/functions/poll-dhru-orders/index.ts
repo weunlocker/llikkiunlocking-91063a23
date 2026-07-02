@@ -60,6 +60,150 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
+type DhruFormat = "v6" | "classic" | "bulk";
+
+const DHRU_FORMATS: DhruFormat[] = ["v6", "classic", "bulk"];
+
+function dhruFormats(apiFormat: unknown): DhruFormat[] {
+  const preferred = String(apiFormat ?? "").toLowerCase() as DhruFormat;
+  return DHRU_FORMATS.includes(preferred)
+    ? [preferred, ...DHRU_FORMATS.filter((f) => f !== preferred)]
+    : DHRU_FORMATS;
+}
+
+function endpointCandidates(rawEndpoint: string): string[] {
+  const out: string[] = [];
+  const add = (url: string) => {
+    const trimmed = url.trim();
+    if (trimmed && !out.includes(trimmed)) out.push(trimmed);
+  };
+  add(rawEndpoint);
+  try {
+    const u = new URL(rawEndpoint.trim());
+    const barePath = u.pathname === "/" || u.pathname === "";
+    if (barePath) {
+      add(`${u.origin}/supplier_api.php`);
+      add(`${u.origin}/api/index.php`);
+    }
+    if (u.hostname.startsWith("www.")) {
+      add(`${u.protocol}//server.${u.hostname.slice(4)}/supplier_api.php`);
+    }
+  } catch { /* keep original only */ }
+  return out;
+}
+
+function dhruErrorMessage(parsed: any): string | null {
+  const errBlock = parsed?.ERROR ?? parsed?.error;
+  if (!errBlock) return null;
+  const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
+  return String(eArr?.MESSAGE ?? eArr?.message ?? eArr?.FACTOR ?? eArr?.factor ?? "Supplier returned an error");
+}
+
+function isRetryableDhruFormatError(message: string): boolean {
+  return /access\s*key|api\s*key|username|credential|auth|command\s*not\s*found|invalid\s*action|action\s*request|unknown\s*action|missing\s*(key|api)/i.test(message);
+}
+
+function findRef(n: any): string | null {
+  if (!n || typeof n !== "object") return null;
+  const ref = n.REFERENCEID ?? n.referenceid ?? n.REFERENCE ?? n.reference ?? n.ID ?? n.id;
+  if (ref != null && (typeof ref === "string" || typeof ref === "number")) return String(ref);
+  for (const v of Object.values(n)) {
+    const r2 = findRef(v);
+    if (r2) return r2;
+  }
+  return null;
+}
+
+function makeDhruPlaceBody(format: DhruFormat, ctx: {
+  username: string;
+  apiKey: string;
+  action: string;
+  serviceCode: string;
+  imei: string | null;
+  isServer: boolean;
+  fields: Record<string, string>;
+}): string {
+  const params = new URLSearchParams();
+  if (format === "bulk") {
+    const payload: Record<string, unknown> = {
+      username: ctx.username,
+      apikey: ctx.apiKey,
+      apiaccesskey: ctx.apiKey,
+      action: ctx.action,
+      service: ctx.serviceCode,
+    };
+    if (ctx.isServer) {
+      payload.custom = ctx.fields;
+      if (!ctx.fields.imei && ctx.imei) payload.imei = ctx.imei;
+    } else {
+      payload.imei = ctx.imei;
+    }
+    params.set("data", JSON.stringify(payload));
+  } else if (format === "v6") {
+    params.set("apiaccesskey", ctx.apiKey);
+    params.set("action", ctx.action);
+    params.set("requestformat", "JSON");
+    if (ctx.username) params.set("username", ctx.username);
+    let inner = `<ID>${escapeXml(ctx.serviceCode)}</ID>`;
+    if (ctx.isServer) {
+      for (const [k, v] of Object.entries(ctx.fields)) {
+        inner += `<${escapeXml(k)}>${escapeXml(String(v ?? ""))}</${escapeXml(k)}>`;
+      }
+      if (!ctx.fields.imei && ctx.imei) inner += `<IMEI>${escapeXml(ctx.imei)}</IMEI>`;
+    } else if (ctx.imei) {
+      inner += `<IMEI>${escapeXml(ctx.imei)}</IMEI>`;
+    }
+    params.set("parameters", `<PARAMETERS>${inner}</PARAMETERS>`);
+  } else {
+    params.set("username", ctx.username);
+    params.set("apikey", ctx.apiKey);
+    params.set("apiaccesskey", ctx.apiKey);
+    params.set("action", ctx.action);
+    params.set("service", ctx.serviceCode);
+    if (ctx.isServer) {
+      for (const [k, v] of Object.entries(ctx.fields)) params.set(k, String(v ?? ""));
+      if (!ctx.fields.imei && ctx.imei) params.set("imei", ctx.imei);
+    } else if (ctx.imei) {
+      params.set("imei", ctx.imei);
+    }
+  }
+  return params.toString();
+}
+
+function makeDhruStatusBody(format: DhruFormat, ctx: {
+  username: string;
+  apiKey: string;
+  action: string;
+  refId: string;
+}): string {
+  const params = new URLSearchParams();
+  if (format === "bulk") {
+    params.set("data", JSON.stringify({
+      username: ctx.username,
+      apikey: ctx.apiKey,
+      apiaccesskey: ctx.apiKey,
+      action: ctx.action,
+      id: ctx.refId,
+      ID: ctx.refId,
+    }));
+  } else if (format === "v6") {
+    params.set("apiaccesskey", ctx.apiKey);
+    params.set("action", ctx.action);
+    params.set("requestformat", "JSON");
+    if (ctx.username) params.set("username", ctx.username);
+    params.set("ID", ctx.refId);
+    params.set("parameters", `<PARAMETERS><ID>${escapeXml(ctx.refId)}</ID></PARAMETERS>`);
+  } else {
+    params.set("username", ctx.username);
+    params.set("apikey", ctx.apiKey);
+    params.set("apiaccesskey", ctx.apiKey);
+    params.set("action", ctx.action);
+    params.set("id", ctx.refId);
+    params.set("ID", ctx.refId);
+  }
+  return params.toString();
+}
+
 // Per admin policy: never auto-fail or auto-refund. Keep polling forever
 // until supplier returns a final success. On supplier error/reject, store the
 // error message but keep status=pending so an admin can Reprocess or Switch API.
@@ -89,7 +233,6 @@ Deno.serve(async (req) => {
     const sup = svc?.suppliers;
     if (!sup || sup.type !== "dhru") continue;
     try {
-      const params = new URLSearchParams();
       const username = String(sup.dhru_username ?? "");
       const apiKey = String(sup.dhru_api_key ?? "");
       const action = String(svc.supplier_action ?? "");
@@ -97,69 +240,40 @@ Deno.serve(async (req) => {
       const dhruAction = isServer ? "placeserverorder" : "placeimeiorder";
       const submittedFields: Record<string, string> = (o.fields && typeof o.fields === "object") ? o.fields : {};
 
-      if (sup.api_format === "bulk") {
-        const payload: Record<string, unknown> = { username, apikey: apiKey, action: dhruAction, service: action };
-        if (isServer) {
-          payload.custom = submittedFields;
-          if (!submittedFields.imei && o.imei) payload.imei = o.imei;
-        } else {
-          payload.imei = o.imei;
-        }
-        params.set("data", JSON.stringify(payload));
-      } else if (sup.api_format === "v6") {
-        params.set("apiaccesskey", apiKey);
-        params.set("action", dhruAction);
-        params.set("requestformat", "JSON");
-        if (username) params.set("username", username);
-        let inner = `<ID>${escapeXml(action)}</ID>`;
-        if (isServer) {
-          for (const [k, v] of Object.entries(submittedFields)) {
-            inner += `<${escapeXml(k)}>${escapeXml(String(v ?? ""))}</${escapeXml(k)}>`;
+      let refId: string | null = null;
+      let lastReason = "Dhru did not return reference id";
+      let usedFormat: DhruFormat | null = null;
+      let usedEndpoint = String(sup.endpoint_url ?? "");
+      for (const endpoint of endpointCandidates(String(sup.endpoint_url ?? ""))) {
+        for (const format of dhruFormats(sup.api_format)) {
+          const body = makeDhruPlaceBody(format, { username, apiKey, action: dhruAction, serviceCode: action, imei: o.imei, isServer, fields: submittedFields });
+          const r = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json, text/plain, */*" },
+            body,
+          });
+          const text = await r.text();
+          let parsed: any = text;
+          try { parsed = JSON.parse(text); } catch { /* keep */ }
+          const err = dhruErrorMessage(parsed);
+          if (err) {
+            lastReason = err;
+            if (isRetryableDhruFormatError(err)) continue;
+            break;
           }
-          if (!submittedFields.imei && o.imei) inner += `<IMEI>${escapeXml(o.imei)}</IMEI>`;
-        } else {
-          inner += `<IMEI>${escapeXml(o.imei)}</IMEI>`;
-        }
-        params.set("parameters", `<PARAMETERS>${inner}</PARAMETERS>`);
-      } else {
-        params.set("username", username);
-        params.set("apikey", apiKey);
-        params.set("action", dhruAction);
-        params.set("service", action);
-        if (isServer) {
-          for (const [k, v] of Object.entries(submittedFields)) {
-            params.set(k, String(v ?? ""));
+          refId = findRef(parsed?.SUCCESS ?? parsed?.success ?? parsed);
+          if (refId) {
+            usedFormat = format;
+            usedEndpoint = endpoint;
+            break;
           }
-          if (!submittedFields.imei && o.imei) params.set("imei", o.imei);
-        } else {
-          params.set("imei", o.imei);
         }
+        if (refId) break;
       }
-      const r = await fetch(sup.endpoint_url, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString(),
-      });
-      const text = await r.text();
-      let parsed: any = text;
-      try { parsed = JSON.parse(text); } catch { /* keep */ }
-
-      const errBlock = parsed?.ERROR ?? parsed?.error;
-      if (errBlock) {
-        const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
-        const reason = String(eArr?.MESSAGE ?? eArr?.message ?? eArr?.FACTOR ?? "Rejected by supplier");
-        await sb.from("orders").update({ error_message: reason }).eq("id", o.id);
-        continue;
-      }
-      const findRef = (n: any): string | null => {
-        if (!n || typeof n !== "object") return null;
-        const ref = n.REFERENCEID ?? n.referenceid ?? n.REFERENCE ?? n.reference ?? n.ID ?? n.id;
-        if (ref != null && (typeof ref === "string" || typeof ref === "number")) return String(ref);
-        for (const v of Object.values(n)) { const r2 = findRef(v); if (r2) return r2; }
-        return null;
-      };
-      const refId = findRef(parsed?.SUCCESS ?? parsed?.success ?? parsed);
       if (refId) {
+        if (usedFormat && (usedFormat !== sup.api_format || usedEndpoint !== sup.endpoint_url)) {
+          sb.from("suppliers").update({ api_format: usedFormat, endpoint_url: usedEndpoint }).eq("id", svc.supplier_id).then(() => {});
+        }
         await sb.from("orders").update({
           status: "in_process",
           supplier_reference: refId,
@@ -169,7 +283,7 @@ Deno.serve(async (req) => {
         placed++;
       } else {
         await sb.from("orders").update({
-          error_message: "Dhru did not return reference id",
+          error_message: lastReason,
         }).eq("id", o.id);
       }
     } catch (e) {
@@ -210,48 +324,57 @@ Deno.serve(async (req) => {
     if (o.status === "failed" && !isGenericUnlockNotFound(String(o.result ?? ""))) continue;
 
     try {
-      let r: Response;
+      let text = "";
+      let parsed: any = null;
       if (sup.type === "goimeicheck") {
         const base = String(sup.endpoint_url || "https://api.goimeicheck.com").replace(/\/+$/, "");
         const qs = new URLSearchParams({
           api_key: String(sup.dhru_api_key ?? ""),
           tran_id: String(o.supplier_reference),
         });
-        r = await fetch(`${base}/api/get-order/?${qs.toString()}`, { method: "GET" });
+        const r = await fetch(`${base}/api/get-order/?${qs.toString()}`, { method: "GET" });
+        text = await r.text();
+        parsed = text;
+        try { parsed = JSON.parse(text); } catch { /* keep as string */ }
       } else {
-        const params = new URLSearchParams();
         const username = sup.dhru_username ?? "";
         const apiKey = sup.dhru_api_key ?? "";
         const refId = String(o.supplier_reference);
         const getAction = svc?.service_type === "server" ? "getserverorder" : "getimeiorder";
-        if (sup.api_format === "bulk") {
-          params.set("data", JSON.stringify({
-            username, apikey: apiKey,
-            action: getAction,
-            id: refId,
-          }));
-        } else if (sup.api_format === "v6") {
-          params.set("apiaccesskey", apiKey);
-          params.set("action", getAction);
-          params.set("requestformat", "JSON");
-          if (username) params.set("username", username);
-          params.set("ID", refId);
-          params.set("parameters", `<PARAMETERS><ID>${escapeXml(refId)}</ID></PARAMETERS>`);
-        } else {
-          params.set("username", username);
-          params.set("apikey", apiKey);
-          params.set("action", getAction);
-          params.set("id", refId);
+        let lastErr = "Supplier returned no response";
+        let usedFormat: DhruFormat | null = null;
+        let usedEndpoint = String(sup.endpoint_url ?? "");
+        let accepted = false;
+        for (const endpoint of endpointCandidates(String(sup.endpoint_url ?? ""))) {
+          for (const format of dhruFormats(sup.api_format)) {
+            const body = makeDhruStatusBody(format, { username: String(username), apiKey: String(apiKey), action: getAction, refId });
+            const r = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json, text/plain, */*" },
+              body,
+            });
+            text = await r.text();
+            parsed = text;
+            try { parsed = JSON.parse(text); } catch { /* keep as string */ }
+            const err = dhruErrorMessage(parsed);
+            if (err) {
+              lastErr = err;
+              if (isRetryableDhruFormatError(err)) continue;
+            }
+            accepted = true;
+            usedFormat = format;
+            usedEndpoint = endpoint;
+            break;
+          }
+          if (accepted) break;
         }
-        r = await fetch(sup.endpoint_url, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: params.toString(),
-        });
+        if (!accepted) {
+          parsed = { ERROR: [{ MESSAGE: lastErr }] };
+          text = JSON.stringify(parsed);
+        } else if (usedFormat && (usedFormat !== sup.api_format || usedEndpoint !== sup.endpoint_url)) {
+          sb.from("suppliers").update({ api_format: usedFormat, endpoint_url: usedEndpoint }).eq("id", svc.supplier_id).then(() => {});
+        }
       }
-      const text = await r.text();
-      let parsed: any = text;
-      try { parsed = JSON.parse(text); } catch { /* keep as string */ }
 
       // GoIMEICheck branch
       if (sup.type === "goimeicheck") {
