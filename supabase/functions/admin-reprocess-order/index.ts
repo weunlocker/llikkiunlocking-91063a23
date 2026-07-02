@@ -4,6 +4,7 @@
 // the cron poller marks it complete.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
+import { dhruFetch } from "../_shared/dhruFetch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,7 +80,7 @@ Deno.serve(async (req) => {
       params.set("service", action);
       params.set("imei", imei);
     }
-    const r = await fetch(String(sup.endpoint_url), { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
+    const r = await dhruFetch(String(sup.endpoint_url), { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
     const text = await r.text();
     let parsedResp: any = text; try { parsedResp = JSON.parse(text); } catch { /* keep */ }
 
