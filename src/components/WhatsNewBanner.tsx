@@ -36,7 +36,15 @@ export default function WhatsNewBanner() {
         .order("created_at", { ascending: false })
         .limit(20);
       if (cancelled) return;
-      const visible = (anns ?? []) as Announcement[];
+      const all = (anns ?? []) as Announcement[];
+      // Dedupe: keep only the most recent announcement per service (title+kind)
+      const seen = new Set<string>();
+      const visible = all.filter((a) => {
+        const key = `${a.kind}::${a.title}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
       setItems(visible);
       if (visible.length) setOpen(true);
     })();
