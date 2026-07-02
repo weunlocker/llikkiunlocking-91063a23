@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Check, ChevronsUpDown, Eye, EyeOff } from "lucide-react";
 import BrandHeader from "@/components/BrandHeader";
 import Seo from "@/components/Seo";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -21,6 +21,7 @@ export default function Register() {
   const navigate = useNavigate();
   const [search] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [refCode, setRefCode] = useState<string>("");
   const { settings } = useSiteSettings();
   const [form, setForm] = useState({
@@ -141,7 +142,12 @@ export default function Register() {
               </div>
               <div>
                 <Label htmlFor="password">Password *</Label>
-                <Input id="password" type="password" value={form.password} onChange={(e) => setField("password", e.target.value)} placeholder="At least 8 characters" maxLength={72} required />
+                <div className="relative">
+                  <Input id="password" type={showPassword ? "text" : "password"} value={form.password} onChange={(e) => setField("password", e.target.value)} placeholder="At least 8 characters" maxLength={72} required className="pr-10" />
+                  <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showPassword ? "Hide password" : "Show password"}>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <Label htmlFor="phone">Phone</Label>
