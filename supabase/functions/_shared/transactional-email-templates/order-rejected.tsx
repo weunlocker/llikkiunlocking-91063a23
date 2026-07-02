@@ -4,6 +4,11 @@ import { Heading, Text } from 'npm:@react-email/components@0.0.22'
 import { EmailShell, ctaButton, styles, BRAND } from '../email-templates/_layout.tsx'
 import type { TemplateEntry } from './registry.ts'
 
+function stripColorMarkers(text?: string): string {
+  if (!text) return "";
+  return text.replace(/\[\[\/?[cf](?::[^\]]+)?\]\]/g, "");
+}
+
 interface Props {
   name?: string
   orderNumber?: string | number
