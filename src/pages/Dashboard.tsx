@@ -350,7 +350,7 @@ export default function Dashboard() {
             <div className="text-2xl font-bold font-mono text-warning">{orders.filter(o => o.status === "pending").length}</div>
           </div>
           <div className="glass rounded-xl p-4">
-            <div className="text-xs text-muted-foreground">Failed</div>
+            <div className="text-xs text-muted-foreground">Rejected</div>
             <div className="text-2xl font-bold font-mono text-destructive">{orders.filter(o => o.status === "failed").length}</div>
           </div>
           <div className="glass rounded-xl p-4">
