@@ -127,7 +127,7 @@ function AdminDashboard() {
                     <td className="px-5 py-2.5 text-xs">{o.profiles?.email}</td>
                     <td className="px-5 py-2.5 max-w-[260px] truncate" title={o.services?.name ?? undefined}>{o.services?.name}</td>
                     <td className="px-5 py-2.5 font-mono text-xs">{o.imei}</td>
-                    <td className={`px-5 py-2.5 capitalize ${statusColor(o.status)}`}>{o.status}</td>
+                    <td className={`px-5 py-2.5 capitalize ${statusColor(o.status)}`}>{o.status === "failed" ? "Rejected" : o.status}</td>
                     <td className="px-5 py-2.5 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
                   </tr>
                 ))}
