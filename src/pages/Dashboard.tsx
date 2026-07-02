@@ -1024,7 +1024,7 @@ export default function Dashboard() {
                   <div className="bg-gray-900 text-white -m-3 mb-2 p-2 text-[11px] font-semibold uppercase tracking-wide rounded-t-md">Item</div>
                   <div><span className="text-gray-500">Service: </span><span>{invoiceOrder.services?.name ?? "—"}</span></div>
                   <div><span className="text-gray-500">IMEI/SN: </span><span className="font-mono break-all">{invoiceOrder.imei}</span></div>
-                  <div><span className="text-gray-500">Status: </span><span>{invoiceOrder.status.toUpperCase()}</span></div>
+                  <div><span className="text-gray-500">Status: </span><span>{(invoiceOrder.status === "failed" ? "REJECTED" : invoiceOrder.status).toUpperCase()}</span></div>
                   <div><span className="text-gray-500">Amount: </span><span className="font-mono">${Number(invoiceOrder.price_charged).toFixed(2)}</span></div>
                 </div>
 
