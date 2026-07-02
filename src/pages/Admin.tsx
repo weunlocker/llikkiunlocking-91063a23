@@ -332,7 +332,7 @@ function AdminUsers() {
         onClose={() => setEditUser(null)}
         onSaved={load}
         onEditOrder={async (o) => {
-          const { data: sRow } = await supabase.from("services").select("name").eq("id", o.service_id).maybeSingle();
+          const { data: sRow } = await supabase.from("services").select("name,result_font").eq("id", o.service_id).maybeSingle();
           const prof = editUser ? { email: editUser.email, balance: Number((editUser as ProfileRow).balance ?? 0) } : null;
           setEditOrder({
             id: o.id, order_number: o.order_number ?? 0, user_id: editUser?.id ?? "",
@@ -1330,7 +1330,7 @@ function AdminOrders() {
         onClose={() => setEditUser(null)}
         onSaved={load}
         onEditOrder={async (o) => {
-          const { data: sRow } = await supabase.from("services").select("name").eq("id", o.service_id).maybeSingle();
+          const { data: sRow } = await supabase.from("services").select("name,result_font").eq("id", o.service_id).maybeSingle();
           const prof = editUser ? { email: editUser.email, balance: Number((editUser as ProfileRow).balance ?? 0) } : null;
           setView({
             id: o.id, order_number: o.order_number ?? 0, user_id: editUser?.id ?? "",
