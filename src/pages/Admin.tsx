@@ -296,13 +296,14 @@ function AdminUsers() {
         onClose={() => setEditUser(null)}
         onSaved={load}
         onEditOrder={async (o) => {
-          const { data: sRow } = await supabase.from("services").select("name,result_font").eq("id", o.service_id).maybeSingle();
+          const { data: sRow } = await supabase.from("services").select("name,result_font,supplier_id,api_url,suppliers(name)").eq("id", o.service_id).maybeSingle();
+          const s = sRow as { name: string; result_font?: string | null; supplier_id?: string | null; api_url?: string | null; suppliers?: { name: string } | null } | null;
           const prof = editUser ? { email: editUser.email, balance: Number((editUser as ProfileRow).balance ?? 0) } : null;
           setEditOrder({
             id: o.id, order_number: o.order_number ?? 0, user_id: editUser?.id ?? "",
             imei: o.imei, status: o.status, price_charged: Number(o.price_charged),
             result: o.result, error_message: o.error_message, created_at: o.created_at,
-            services: sRow ? { name: sRow.name, result_font: sRow.result_font } : null,
+            services: s ? { name: s.name, result_font: s.result_font, supplier_id: s.supplier_id, api_url: s.api_url, supplier_name: s.suppliers?.name ?? null } : null,
             profiles: prof,
           } as OrderRow);
         }}
