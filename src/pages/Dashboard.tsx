@@ -301,7 +301,7 @@ export default function Dashboard() {
         {customMessage && !msgDismissed && localStorage.getItem("seenAdminMsg") !== customMessage && (
           <button
             type="button"
-            onClick={() => setMsgOpen(true)}
+            onClick={() => { setMsgOpen(true); localStorage.setItem("seenAdminMsg", customMessage); setMsgDismissed(true); }}
             className="w-full glass rounded-2xl p-4 mb-5 border-l-4 border-primary text-left hover:bg-secondary/30 transition-colors"
           >
             <div className="text-xs uppercase tracking-wider text-primary">Message from admin</div>
