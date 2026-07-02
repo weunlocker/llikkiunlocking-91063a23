@@ -1,5 +1,15 @@
 // Strip [[c:...]]...[[/c]] and [[f:...]]...[[/f]] markers used by ColoredResult
 // so copied text contains only the plain human-readable content.
+
+// Hide the internal supplier reference id from client-facing result text.
+// e.g. "Order placed with supplier (ref 195). Awaiting result…" -> "Processing your order. Awaiting result…"
+export function hideSupplierRef(s?: string | null): string {
+  if (!s) return "";
+  return s
+    .replace(/Order placed with supplier\s*\(ref\s*[^)]*\)\.\s*/i, "Processing your order. ")
+    .replace(/Reprocessed\s*—\s*new ref\s+\S+\.\s*/i, "Processing your order. ")
+    .replace(/\(ref\s*[^)]*\)/gi, "");
+}
 export function stripColorMarkers(s?: string | null): string {
   if (!s) return "";
   return s.replace(/\[\[\/?[cf](?::[^\]]+)?\]\]/g, "");
