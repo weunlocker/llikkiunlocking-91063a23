@@ -1333,7 +1333,7 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund, onEditUser }: { or
   const [errorMsg, setErrorMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [supplierRef, setSupplierRef] = useState<string | null>(null);
-  const [connectedApi, setConnectedApi] = useState<string>("—");
+  
   const [services, setServices] = useState<{ id: string; name: string; supplier_id: string | null }[]>([]);
   const [switchServiceId, setSwitchServiceId] = useState<string>("");
   const [reprocessing, setReprocessing] = useState(false);
