@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { dhruFetch } from "../_shared/dhruFetch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -198,7 +199,7 @@ Deno.serve(async (req) => {
       for (const action of actions) {
         for (const endpoint of endpoints) {
           for (const variant of buildRequests(action)) {
-            const r = await fetch(endpoint, {
+            const r = await dhruFetch(endpoint, {
               method: "POST",
               headers: { "Content-Type": "application/x-www-form-urlencoded" },
               body: variant.body,
