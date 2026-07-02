@@ -1015,7 +1015,7 @@ export default function Dashboard() {
                   <div className="mt-4 pt-3 border-t">
                     <div className="font-semibold mb-1 text-[12px]">Result</div>
                     <pre className="font-mono text-[10.5px] sm:text-[11px] whitespace-pre-wrap break-all text-gray-700">
-                      {(invoiceOrder.result || invoiceOrder.error_message || "").replace(/\[\[c:[^\]]+\]\]/g, "").replace(/\[\[\/c\]\]/g, "")}
+                      {hideSupplierRef((invoiceOrder.result || invoiceOrder.error_message || "").replace(/\[\[c:[^\]]+\]\]/g, "").replace(/\[\[\/c\]\]/g, ""))}
                     </pre>
                   </div>
                 )}
