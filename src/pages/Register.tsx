@@ -142,7 +142,12 @@ export default function Register() {
               </div>
               <div>
                 <Label htmlFor="password">Password *</Label>
-                <Input id="password" type="password" value={form.password} onChange={(e) => setField("password", e.target.value)} placeholder="At least 8 characters" maxLength={72} required />
+                <div className="relative">
+                  <Input id="password" type={showPassword ? "text" : "password"} value={form.password} onChange={(e) => setField("password", e.target.value)} placeholder="At least 8 characters" maxLength={72} required className="pr-10" />
+                  <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1} aria-label={showPassword ? "Hide password" : "Show password"}>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <Label htmlFor="phone">Phone</Label>
