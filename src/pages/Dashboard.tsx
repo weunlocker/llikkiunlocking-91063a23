@@ -99,13 +99,22 @@ export default function Dashboard() {
   const [oPage, setOPage] = useState(1);
   const [oPageSize, setOPageSize] = useState(20);
   const [msgOpen, setMsgOpen] = useState(false);
-  const [msgDismissed, setMsgDismissed] = useState(false);
   const rawCustomMessage = (profile as unknown as { custom_message?: string } | null)?.custom_message ?? "";
   const customMessage = rawCustomMessage
     .replace(/\{\{\s*name\s*\}\}/gi, profile?.display_name ?? "")
     .replace(/\{\{\s*email\s*\}\}/gi, profile?.email ?? "")
     .replace(/\{\{\s*balance\s*\}\}/gi, `$${Number(profile?.balance ?? 0).toFixed(2)}`)
     .replace(/\{\{\s*group\s*\}\}/gi, (profile as unknown as { user_group?: string } | null)?.user_group ?? "standard");
+  const [msgDismissed, setMsgDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("seenAdminMsg") === rawCustomMessage;
+  });
+  const dismissAdminMsg = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("seenAdminMsg", rawCustomMessage);
+    }
+    setMsgDismissed(true);
+  };
   const [serviceView, setServiceView] = useState<"grid" | "list">(() => (localStorage.getItem("serviceView") as "grid" | "list") || "grid");
   useEffect(() => { localStorage.setItem("serviceView", serviceView); }, [serviceView]);
   const [paySettings, setPaySettings] = useState<{ binance_enabled: boolean; topup_amounts: number[]; ask_admin_enabled: boolean } | null>(null);
@@ -298,10 +307,10 @@ export default function Dashboard() {
       <div className="container py-10">
         <h1 className="sr-only">Customer Dashboard</h1>
         <WhatsNewBanner />
-        {customMessage && !msgDismissed && localStorage.getItem("seenAdminMsg") !== customMessage && (
+        {customMessage && !msgDismissed && (
           <button
             type="button"
-            onClick={() => { setMsgOpen(true); localStorage.setItem("seenAdminMsg", customMessage); setMsgDismissed(true); }}
+            onClick={() => { setMsgOpen(true); dismissAdminMsg(); }}
             className="w-full glass rounded-2xl p-4 mb-5 border-l-4 border-primary text-left hover:bg-secondary/30 transition-colors"
           >
             <div className="text-xs uppercase tracking-wider text-primary">Message from admin</div>
@@ -313,7 +322,7 @@ export default function Dashboard() {
             <DialogHeader><DialogTitle>Message from admin</DialogTitle></DialogHeader>
             <div className="text-sm whitespace-pre-wrap py-2">{customMessage}</div>
             <div className="flex justify-end">
-              <Button variant="hero" onClick={() => { localStorage.setItem("seenAdminMsg", customMessage); setMsgOpen(false); setMsgDismissed(true); }}>Close</Button>
+              <Button variant="hero" onClick={() => { dismissAdminMsg(); setMsgOpen(false); }}>Close</Button>
             </div>
           </DialogContent>
         </Dialog>
