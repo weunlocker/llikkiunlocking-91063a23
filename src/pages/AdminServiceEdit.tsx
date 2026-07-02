@@ -436,8 +436,12 @@ export default function AdminServiceEdit() {
                   return (
                   <div>
                     <Label className="text-sm">API Service</Label>
-                    {selectedSvc && (
-                      <div className="mt-1 mb-2 flex items-center justify-between gap-2 rounded border border-primary/50 bg-primary/10 px-3 py-2 text-xs">
+                    {selectedSvc && !svcOpen && (
+                      <button
+                        type="button"
+                        onClick={() => setSvcOpen(true)}
+                        className="mt-1 mb-2 w-full flex items-center justify-between gap-2 rounded border border-primary/50 bg-primary/10 px-3 py-2 text-xs text-left hover:bg-primary/15"
+                      >
                         <span className="truncate">
                           <span className="font-mono text-primary">#{selectedSvc.action_code}</span> {selectedSvc.name}
                         </span>
@@ -446,26 +450,43 @@ export default function AdminServiceEdit() {
                             {selectedSvc.credit != null ? `${selectedSvc.credit} credit` : ""}
                             {selectedSvc.delivery_time ? ` · ${selectedSvc.delivery_time}` : ""}
                           </span>
+                          <ChevronDown className="w-4 h-4 text-primary" />
+                        </div>
+                      </button>
+                    )}
+                    {svcOpen && (
+                      <>
+                        <div className="mt-1 mb-2 flex items-center gap-2">
+                          <Input
+                            className="flex-1"
+                            placeholder={`Search ${supSvc.length} synced services…`}
+                            value={supSvcQ}
+                            onChange={(e) => setSupSvcQ(e.target.value)}
+                            autoFocus
+                          />
+                          {selectedSvc && (
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-9 w-9 shrink-0"
+                              onClick={() => update({ supplier_action: null })}
+                              title="Clear selection"
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          )}
                           <Button
                             type="button"
                             size="icon"
                             variant="ghost"
-                            className="h-6 w-6"
-                            onClick={() => update({ supplier_action: null })}
+                            className="h-9 w-9 shrink-0"
+                            onClick={() => setSvcOpen(false)}
+                            title="Close"
                           >
-                            <Trash2 className="w-3 h-3 text-destructive" />
+                            <ChevronUp className="w-4 h-4 text-muted-foreground" />
                           </Button>
                         </div>
-                      </div>
-                    )}
-                    {!selectedSvc && (
-                      <>
-                        <Input
-                          className="mt-1 mb-2"
-                          placeholder={`Search ${supSvc.length} synced services…`}
-                          value={supSvcQ}
-                          onChange={(e) => setSupSvcQ(e.target.value)}
-                        />
                         <div className="max-h-72 overflow-y-auto rounded border border-border/50 bg-background/50 divide-y divide-border/40">
                           {supSvc
                             .filter((s) => !supSvcQ || s.name.toLowerCase().includes(supSvcQ.toLowerCase()) || s.action_code.includes(supSvcQ))
@@ -476,14 +497,17 @@ export default function AdminServiceEdit() {
                                 <button
                                   key={s.action_code}
                                   type="button"
-                                  onClick={() => update({
-                                    supplier_action: s.action_code,
-                                    name: service.name || s.name,
-                                    delivery_time: service.delivery_time && service.delivery_time !== "Instant" ? service.delivery_time : (s.delivery_time || "Instant"),
-                                    price: service.price && Number(service.price) > 0 ? service.price : (s.credit != null ? Number(s.credit) : service.price),
-                                    service_type: s.service_type ?? "imei",
-                                    custom_fields: s.service_type === "server" ? (s.fields ?? []) : [],
-                                  })}
+                                  onClick={() => {
+                                    setSvcOpen(false);
+                                    update({
+                                      supplier_action: s.action_code,
+                                      name: service.name || s.name,
+                                      delivery_time: service.delivery_time && service.delivery_time !== "Instant" ? service.delivery_time : (s.delivery_time || "Instant"),
+                                      price: service.price && Number(service.price) > 0 ? service.price : (s.credit != null ? Number(s.credit) : service.price),
+                                      service_type: s.service_type ?? "imei",
+                                      custom_fields: s.service_type === "server" ? (s.fields ?? []) : [],
+                                    });
+                                  }}
                                   className={`w-full text-left px-3 py-2 text-xs flex justify-between gap-2 hover:bg-primary/10 ${selected ? "bg-primary/20 ring-1 ring-primary" : ""}`}
                                 >
                                   <span className="truncate"><span className="font-mono text-primary">#{s.action_code}</span> {s.name}</span>
@@ -494,6 +518,15 @@ export default function AdminServiceEdit() {
                           {supSvc.length === 0 && <div className="px-3 py-3 text-xs text-muted-foreground">No synced services. Go to Suppliers → Sync.</div>}
                         </div>
                       </>
+                    )}
+                    {!selectedSvc && !svcOpen && (
+                      <button
+                        type="button"
+                        onClick={() => setSvcOpen(true)}
+                        className="mt-1 mb-2 w-full text-left px-3 py-2 rounded border border-dashed border-border/60 bg-background/50 text-xs text-muted-foreground hover:bg-primary/5"
+                      >
+                        + Select an API service
+                      </button>
                     )}
                     {apiOriginalPrice != null && (
                       <p className="text-xs text-muted-foreground mt-2">Price from API: <b className="font-mono">{Number(apiOriginalPrice).toFixed(3)} credit</b></p>
