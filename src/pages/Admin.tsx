@@ -84,7 +84,7 @@ function AdminDashboard() {
     { label: "Orders", value: stats.orders, icon: ListOrdered, color: "text-success", to: "/admin/orders" },
     { label: "Top-up Revenue", value: `$${stats.revenue.toFixed(2)}`, icon: DollarSign, color: "text-warning", to: "/admin/transactions" },
     { label: "Pending Orders", value: stats.pending, icon: TrendingUp, color: "text-warning", to: "/admin/orders" },
-    { label: "Failed Orders", value: stats.failed, icon: AlertCircle, color: "text-destructive", to: "/admin/orders" },
+    { label: "Rejected Orders", value: stats.failed, icon: AlertCircle, color: "text-destructive", to: "/admin/orders" },
   ];
 
   return (
