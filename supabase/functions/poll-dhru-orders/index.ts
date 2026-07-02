@@ -2,6 +2,7 @@
 // Updates each order: pending -> completed/failed, refunds on failure, notifies user.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { notifyUserEmail } from "../_shared/email.ts";
+import { dhruFetch } from "../_shared/dhruFetch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -247,7 +248,7 @@ Deno.serve(async (req) => {
       for (const endpoint of endpointCandidates(String(sup.endpoint_url ?? ""))) {
         for (const format of dhruFormats(sup.api_format)) {
           const body = makeDhruPlaceBody(format, { username, apiKey, action: dhruAction, serviceCode: action, imei: o.imei, isServer, fields: submittedFields });
-          const r = await fetch(endpoint, {
+          const r = await dhruFetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json, text/plain, */*" },
             body,
@@ -348,7 +349,7 @@ Deno.serve(async (req) => {
         for (const endpoint of endpointCandidates(String(sup.endpoint_url ?? ""))) {
           for (const format of dhruFormats(sup.api_format)) {
             const body = makeDhruStatusBody(format, { username: String(username), apiKey: String(apiKey), action: getAction, refId });
-            const r = await fetch(endpoint, {
+            const r = await dhruFetch(endpoint, {
               method: "POST",
               headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json, text/plain, */*" },
               body,
