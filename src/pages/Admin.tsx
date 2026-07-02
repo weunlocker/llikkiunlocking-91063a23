@@ -1344,23 +1344,21 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund, onEditUser }: { or
       setResult(extractResponse(order.result ?? ""));
       setErrorMsg(order.error_message ?? "");
       setSwitchServiceId("");
-      setConnectedApi("—");
-      supabase.from("orders").select("supplier_reference,service_id").eq("id", order.id).maybeSingle()
-        .then(async ({ data }) => {
-          const row = data as { supplier_reference: string | null; service_id: string } | null;
-          setSupplierRef(row?.supplier_reference ?? null);
-          setSwitchServiceId(row?.service_id ?? "");
-          if (row?.service_id) {
-            const { data: svc } = await supabase.from("services").select("api_url,supplier_id,suppliers(name)").eq("id", row.service_id).maybeSingle();
-            const s = svc as { api_url: string | null; supplier_id: string | null; suppliers: { name: string } | null } | null;
-            if (s?.supplier_id && s.suppliers?.name) setConnectedApi(s.suppliers.name);
-            else if (s?.api_url) { try { setConnectedApi(new URL(s.api_url).hostname.replace(/^www\./, "")); } catch { setConnectedApi("Simple Link"); } }
-            else setConnectedApi("Simple Link");
-          }
+      supabase.from("orders").select("supplier_reference").eq("id", order.id).maybeSingle()
+        .then(({ data }) => {
+          setSupplierRef((data as { supplier_reference: string | null } | null)?.supplier_reference ?? null);
         });
       supabase.from("services").select("id,name,supplier_id").not("supplier_id", "is", null).order("name")
         .then(({ data }) => setServices((data ?? []) as { id: string; name: string; supplier_id: string | null }[]));
     }
+  }, [order]);
+
+  const connectedApi = useMemo(() => {
+    if (!order?.services) return "—";
+    if (order.services.supplier_name) return order.services.supplier_name;
+    if (order.services.supplier_id) return "Supplier";
+    if (order.services.api_url) return "Simple Link";
+    return "—";
   }, [order]);
 
 
