@@ -338,7 +338,7 @@ function AdminUsers() {
             id: o.id, order_number: o.order_number ?? 0, user_id: editUser?.id ?? "",
             imei: o.imei, status: o.status, price_charged: Number(o.price_charged),
             result: o.result, error_message: o.error_message, created_at: o.created_at,
-            services: sRow ? { name: sRow.name } : null,
+            services: sRow ? { name: sRow.name, result_font: sRow.result_font } : null,
             profiles: prof,
           } as OrderRow);
         }}
@@ -1336,7 +1336,7 @@ function AdminOrders() {
             id: o.id, order_number: o.order_number ?? 0, user_id: editUser?.id ?? "",
             imei: o.imei, status: o.status, price_charged: Number(o.price_charged),
             result: o.result, error_message: o.error_message, created_at: o.created_at,
-            services: sRow ? { name: sRow.name } : null,
+            services: sRow ? { name: sRow.name, result_font: sRow.result_font } : null,
             profiles: prof,
           } as OrderRow);
         }}
