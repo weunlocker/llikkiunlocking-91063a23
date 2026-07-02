@@ -84,7 +84,7 @@ function AdminDashboard() {
     { label: "Orders", value: stats.orders, icon: ListOrdered, color: "text-success", to: "/admin/orders" },
     { label: "Top-up Revenue", value: `$${stats.revenue.toFixed(2)}`, icon: DollarSign, color: "text-warning", to: "/admin/transactions" },
     { label: "Pending Orders", value: stats.pending, icon: TrendingUp, color: "text-warning", to: "/admin/orders" },
-    { label: "Failed Orders", value: stats.failed, icon: AlertCircle, color: "text-destructive", to: "/admin/orders" },
+    { label: "Rejected Orders", value: stats.failed, icon: AlertCircle, color: "text-destructive", to: "/admin/orders" },
   ];
 
   return (
@@ -127,7 +127,7 @@ function AdminDashboard() {
                     <td className="px-5 py-2.5 text-xs">{o.profiles?.email}</td>
                     <td className="px-5 py-2.5 max-w-[260px] truncate" title={o.services?.name ?? undefined}>{o.services?.name}</td>
                     <td className="px-5 py-2.5 font-mono text-xs">{o.imei}</td>
-                    <td className={`px-5 py-2.5 capitalize ${statusColor(o.status)}`}>{o.status}</td>
+                    <td className={`px-5 py-2.5 capitalize ${statusColor(o.status)}`}>{o.status === "failed" ? "Rejected" : o.status}</td>
                     <td className="px-5 py-2.5 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
                   </tr>
                 ))}
@@ -1272,7 +1272,7 @@ function AdminOrders() {
                   <td className="px-5 py-3 text-xs">{o.profiles?.email}</td>
                   <td className="px-5 py-3 max-w-[260px] truncate" title={o.services?.name ?? undefined}>{o.services?.name}</td>
                   <td className="px-5 py-3 font-mono text-xs">{o.imei}</td>
-                  <td className={`px-5 py-3 capitalize ${statusColor(o.status)}`}>{o.status}</td>
+                  <td className={`px-5 py-3 capitalize ${statusColor(o.status)}`}>{o.status === "failed" ? "Rejected" : o.status}</td>
                   <td className="px-5 py-3 text-right font-mono">${Number(o.price_charged).toFixed(2)}</td>
                   <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(o.created_at).toLocaleString()}</td>
                   <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>

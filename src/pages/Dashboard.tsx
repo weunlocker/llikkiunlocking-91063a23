@@ -288,7 +288,8 @@ export default function Dashboard() {
       processing:"bg-primary/15 text-primary border-primary/40",
     };
     const cls = map[s] ?? "bg-secondary text-foreground border-border";
-    const label = s.replace(/_/g, " ").toUpperCase() || "—";
+    const labelMap: Record<string, string> = { failed: "REJECTED", rejected: "REJECTED" };
+    const label = labelMap[s] || s.replace(/_/g, " ").toUpperCase() || "—";
     return (
       <span className={`inline-flex items-center px-2.5 py-1 rounded-md border text-xs font-extrabold tracking-wider uppercase ${cls}`}>
         {label}
@@ -349,7 +350,7 @@ export default function Dashboard() {
             <div className="text-2xl font-bold font-mono text-warning">{orders.filter(o => o.status === "pending").length}</div>
           </div>
           <div className="glass rounded-xl p-4">
-            <div className="text-xs text-muted-foreground">Failed</div>
+            <div className="text-xs text-muted-foreground">Rejected</div>
             <div className="text-2xl font-bold font-mono text-destructive">{orders.filter(o => o.status === "failed").length}</div>
           </div>
           <div className="glass rounded-xl p-4">
@@ -589,7 +590,7 @@ export default function Dashboard() {
                   <SelectContent>
                     <SelectItem value="all">All status</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="failed">Rejected</SelectItem>
                     <SelectItem value="refunded">Refunded</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                   </SelectContent>
@@ -1012,7 +1013,7 @@ export default function Dashboard() {
                     <tr className="bg-gray-50">
                       <td className="p-2 align-top">{invoiceOrder.services?.name ?? "—"}</td>
                       <td className="p-2 align-top font-mono">{invoiceOrder.imei}</td>
-                      <td className="p-2 align-top">{invoiceOrder.status.toUpperCase()}</td>
+                      <td className="p-2 align-top">{(invoiceOrder.status === "failed" ? "REJECTED" : invoiceOrder.status).toUpperCase()}</td>
                       <td className="p-2 align-top text-right font-mono">${Number(invoiceOrder.price_charged).toFixed(2)}</td>
                     </tr>
                   </tbody>
@@ -1023,7 +1024,7 @@ export default function Dashboard() {
                   <div className="bg-gray-900 text-white -m-3 mb-2 p-2 text-[11px] font-semibold uppercase tracking-wide rounded-t-md">Item</div>
                   <div><span className="text-gray-500">Service: </span><span>{invoiceOrder.services?.name ?? "—"}</span></div>
                   <div><span className="text-gray-500">IMEI/SN: </span><span className="font-mono break-all">{invoiceOrder.imei}</span></div>
-                  <div><span className="text-gray-500">Status: </span><span>{invoiceOrder.status.toUpperCase()}</span></div>
+                  <div><span className="text-gray-500">Status: </span><span>{(invoiceOrder.status === "failed" ? "REJECTED" : invoiceOrder.status).toUpperCase()}</span></div>
                   <div><span className="text-gray-500">Amount: </span><span className="font-mono">${Number(invoiceOrder.price_charged).toFixed(2)}</span></div>
                 </div>
 
