@@ -1134,15 +1134,24 @@ function AdminOrders() {
     const [o, profs, svcs] = await Promise.all([
       supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("profiles").select("id,email,balance"),
-      supabase.from("services").select("id,name,result_font"),
+      supabase.from("services").select("id,name,result_font,supplier_id,api_url,suppliers(name)"),
     ]);
     const profMap = new Map((profs.data ?? []).map((p: { id: string; email: string | null; balance: number | null }) => [p.id, p]));
-    const svcMap = new Map((svcs.data ?? []).map((s: { id: string; name: string; result_font?: string | null }) => [s.id, s]));
-    const enriched = (o.data ?? []).map((row: { user_id: string; service_id: string; [k: string]: unknown }) => ({
-      ...row,
-      profiles: { email: profMap.get(row.user_id)?.email ?? null, balance: profMap.get(row.user_id)?.balance ?? null },
-      services: svcMap.get(row.service_id) ? { name: svcMap.get(row.service_id)!.name, result_font: svcMap.get(row.service_id)!.result_font } : { name: "—" },
-    })) as unknown as OrderRow[];
+    const svcMap = new Map((svcs.data ?? []).map((s: { id: string; name: string; result_font?: string | null; supplier_id?: string | null; api_url?: string | null; suppliers?: { name: string } | null }) => [s.id, s]));
+    const enriched = (o.data ?? []).map((row: { user_id: string; service_id: string; [k: string]: unknown }) => {
+      const svc = svcMap.get(row.service_id);
+      return {
+        ...row,
+        profiles: { email: profMap.get(row.user_id)?.email ?? null, balance: profMap.get(row.user_id)?.balance ?? null },
+        services: svc ? {
+          name: svc.name,
+          result_font: svc.result_font,
+          supplier_id: svc.supplier_id,
+          api_url: svc.api_url,
+          supplier_name: svc.suppliers?.name ?? null,
+        } : { name: "—" },
+      };
+    }) as unknown as OrderRow[];
     setOrders(enriched); setLoading(false);
   };
   useEffect(() => { load(); }, []);
