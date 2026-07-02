@@ -26,7 +26,7 @@ export type CustomField = { name: string; label: string; type: string; required:
 type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; sort_order: number | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
 type Supplier = { id: string; name: string; type: "dhru" | "generic" | "ifree" | "goimeicheck"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
 type ProfileRow = { id: string; email: string | null; display_name: string | null; balance: number; banned: boolean; created_at: string };
-type OrderRow = { id: string; order_number: number; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string; result_font?: string | null } | null; profiles: { email: string | null; balance?: number | null } | null };
+type OrderRow = { id: string; order_number: number; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string; result_font?: string | null; supplier_id?: string | null; supplier_name?: string | null; api_url?: string | null } | null; profiles: { email: string | null; balance?: number | null } | null };
 type TxRow = { id: string; user_id: string; amount: number; type: string; balance_after: number; description: string | null; created_at: string; profiles?: { email: string | null } | null };
 
 const empty: Partial<Service> = { name: "", description: "", price: 0, delivery_time: "Instant", api_url: "", api_method: "GET", api_request_body: "", response_template: "", sample_result: "", result_font: "mono", result_color: "#e2e8f0", active: true, is_free: false, category: "general", success_rules: [], supplier_id: null, supplier_action: "", service_type: "imei", custom_fields: [] };
@@ -296,13 +296,14 @@ function AdminUsers() {
         onClose={() => setEditUser(null)}
         onSaved={load}
         onEditOrder={async (o) => {
-          const { data: sRow } = await supabase.from("services").select("name,result_font").eq("id", o.service_id).maybeSingle();
+          const { data: sRow } = await supabase.from("services").select("name,result_font,supplier_id,api_url,suppliers(name)").eq("id", o.service_id).maybeSingle();
+          const s = sRow as { name: string; result_font?: string | null; supplier_id?: string | null; api_url?: string | null; suppliers?: { name: string } | null } | null;
           const prof = editUser ? { email: editUser.email, balance: Number((editUser as ProfileRow).balance ?? 0) } : null;
           setEditOrder({
             id: o.id, order_number: o.order_number ?? 0, user_id: editUser?.id ?? "",
             imei: o.imei, status: o.status, price_charged: Number(o.price_charged),
             result: o.result, error_message: o.error_message, created_at: o.created_at,
-            services: sRow ? { name: sRow.name, result_font: sRow.result_font } : null,
+            services: s ? { name: s.name, result_font: s.result_font, supplier_id: s.supplier_id, api_url: s.api_url, supplier_name: s.suppliers?.name ?? null } : null,
             profiles: prof,
           } as OrderRow);
         }}
@@ -1134,15 +1135,24 @@ function AdminOrders() {
     const [o, profs, svcs] = await Promise.all([
       supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("profiles").select("id,email,balance"),
-      supabase.from("services").select("id,name,result_font"),
+      supabase.from("services").select("id,name,result_font,supplier_id,api_url,suppliers(name)"),
     ]);
     const profMap = new Map((profs.data ?? []).map((p: { id: string; email: string | null; balance: number | null }) => [p.id, p]));
-    const svcMap = new Map((svcs.data ?? []).map((s: { id: string; name: string; result_font?: string | null }) => [s.id, s]));
-    const enriched = (o.data ?? []).map((row: { user_id: string; service_id: string; [k: string]: unknown }) => ({
-      ...row,
-      profiles: { email: profMap.get(row.user_id)?.email ?? null, balance: profMap.get(row.user_id)?.balance ?? null },
-      services: svcMap.get(row.service_id) ? { name: svcMap.get(row.service_id)!.name, result_font: svcMap.get(row.service_id)!.result_font } : { name: "—" },
-    })) as unknown as OrderRow[];
+    const svcMap = new Map((svcs.data ?? []).map((s: { id: string; name: string; result_font?: string | null; supplier_id?: string | null; api_url?: string | null; suppliers?: { name: string } | null }) => [s.id, s]));
+    const enriched = (o.data ?? []).map((row: { user_id: string; service_id: string; [k: string]: unknown }) => {
+      const svc = svcMap.get(row.service_id);
+      return {
+        ...row,
+        profiles: { email: profMap.get(row.user_id)?.email ?? null, balance: profMap.get(row.user_id)?.balance ?? null },
+        services: svc ? {
+          name: svc.name,
+          result_font: svc.result_font,
+          supplier_id: svc.supplier_id,
+          api_url: svc.api_url,
+          supplier_name: svc.suppliers?.name ?? null,
+        } : { name: "—" },
+      };
+    }) as unknown as OrderRow[];
     setOrders(enriched); setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -1323,7 +1333,7 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund, onEditUser }: { or
   const [errorMsg, setErrorMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [supplierRef, setSupplierRef] = useState<string | null>(null);
-  const [connectedApi, setConnectedApi] = useState<string>("—");
+  
   const [services, setServices] = useState<{ id: string; name: string; supplier_id: string | null }[]>([]);
   const [switchServiceId, setSwitchServiceId] = useState<string>("");
   const [reprocessing, setReprocessing] = useState(false);
@@ -1334,23 +1344,21 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund, onEditUser }: { or
       setResult(extractResponse(order.result ?? ""));
       setErrorMsg(order.error_message ?? "");
       setSwitchServiceId("");
-      setConnectedApi("—");
-      supabase.from("orders").select("supplier_reference,service_id").eq("id", order.id).maybeSingle()
-        .then(async ({ data }) => {
-          const row = data as { supplier_reference: string | null; service_id: string } | null;
-          setSupplierRef(row?.supplier_reference ?? null);
-          setSwitchServiceId(row?.service_id ?? "");
-          if (row?.service_id) {
-            const { data: svc } = await supabase.from("services").select("api_url,supplier_id,suppliers(name)").eq("id", row.service_id).maybeSingle();
-            const s = svc as { api_url: string | null; supplier_id: string | null; suppliers: { name: string } | null } | null;
-            if (s?.supplier_id && s.suppliers?.name) setConnectedApi(s.suppliers.name);
-            else if (s?.api_url) { try { setConnectedApi(new URL(s.api_url).hostname.replace(/^www\./, "")); } catch { setConnectedApi("Simple Link"); } }
-            else setConnectedApi("Simple Link");
-          }
+      supabase.from("orders").select("supplier_reference").eq("id", order.id).maybeSingle()
+        .then(({ data }) => {
+          setSupplierRef((data as { supplier_reference: string | null } | null)?.supplier_reference ?? null);
         });
       supabase.from("services").select("id,name,supplier_id").not("supplier_id", "is", null).order("name")
         .then(({ data }) => setServices((data ?? []) as { id: string; name: string; supplier_id: string | null }[]));
     }
+  }, [order]);
+
+  const connectedApi = useMemo(() => {
+    if (!order?.services) return "—";
+    if (order.services.supplier_name) return order.services.supplier_name;
+    if (order.services.supplier_id) return "Supplier";
+    if (order.services.api_url) return "Simple Link";
+    return "—";
   }, [order]);
 
 
