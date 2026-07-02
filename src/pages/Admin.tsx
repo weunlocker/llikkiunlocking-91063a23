@@ -1463,10 +1463,6 @@ function OrderEditDialog({ order, onClose, onSaved, onRefund, onEditUser }: { or
               <Label>Result text</Label>
               <Textarea rows={8} value={result} onChange={(e) => setResult(e.target.value)} className="font-mono text-xs" placeholder="Result shown to the customer" />
             </div>
-            <div>
-              <Label>Error / rejection message</Label>
-              <Textarea rows={3} value={errorMsg} onChange={(e) => setErrorMsg(e.target.value)} className="text-xs" placeholder="Optional" />
-            </div>
             <div className="flex justify-between gap-2 pt-2 border-t border-border/50">
               {order.status !== "refunded" && Number(order.price_charged) > 0 ? (
                 <Button variant="ghost" onClick={() => onRefund(order)}><RotateCcw className="w-4 h-4 mr-1" /> Refund</Button>
