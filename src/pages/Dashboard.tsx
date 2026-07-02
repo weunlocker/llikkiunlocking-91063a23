@@ -614,7 +614,7 @@ export default function Dashboard() {
                         <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(o.created_at).toLocaleString()}</td>
                         <td className="px-5 py-3 text-[13px] leading-relaxed max-w-md" onClick={(e) => e.stopPropagation()}>
                           {o.result
-                            ? <div className="max-h-40 overflow-auto"><ColoredResult text={extractResponse(o.result)} font={o.services?.result_font ?? undefined} /></div>
+                            ? <div className="max-h-40 overflow-auto"><ColoredResult text={hideSupplierRef(extractResponse(o.result))} font={o.services?.result_font ?? undefined} /></div>
                             : <span className="text-muted-foreground text-xs">{sanitizeError(o.error_message) || (o.status === "pending" ? "Waiting…" : "—")}</span>}
                         </td>
                       </tr>
