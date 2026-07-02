@@ -509,12 +509,11 @@ Deno.serve(async (req) => {
         "rejected", "cancelled", "canceled", "failed", "error", "3", "4",
       ].includes(statusText);
       if (genericFallbackOnly || finalStatusWithoutSupplierCode) {
+        // Don't flip status yet — wait for the real CODE so status + result
+        // land in the same UI update. Only bump poll bookkeeping.
         await sb.from("orders").update({
-          status: "in_process",
-          result: "Waiting for supplier CODE response…",
           last_polled_at: new Date().toISOString(),
           poll_attempts: newAttempts,
-          error_message: "Waiting for supplier CODE response",
         }).eq("id", o.id);
         stillPending++;
         continue;
