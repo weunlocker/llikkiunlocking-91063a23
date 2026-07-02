@@ -21,6 +21,7 @@ export default function Register() {
   const navigate = useNavigate();
   const [search] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [refCode, setRefCode] = useState<string>("");
   const { settings } = useSiteSettings();
   const [form, setForm] = useState({
