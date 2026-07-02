@@ -60,6 +60,150 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
+type DhruFormat = "v6" | "classic" | "bulk";
+
+const DHRU_FORMATS: DhruFormat[] = ["v6", "classic", "bulk"];
+
+function dhruFormats(apiFormat: unknown): DhruFormat[] {
+  const preferred = String(apiFormat ?? "").toLowerCase() as DhruFormat;
+  return DHRU_FORMATS.includes(preferred)
+    ? [preferred, ...DHRU_FORMATS.filter((f) => f !== preferred)]
+    : DHRU_FORMATS;
+}
+
+function endpointCandidates(rawEndpoint: string): string[] {
+  const out: string[] = [];
+  const add = (url: string) => {
+    const trimmed = url.trim();
+    if (trimmed && !out.includes(trimmed)) out.push(trimmed);
+  };
+  add(rawEndpoint);
+  try {
+    const u = new URL(rawEndpoint.trim());
+    const barePath = u.pathname === "/" || u.pathname === "";
+    if (barePath) {
+      add(`${u.origin}/supplier_api.php`);
+      add(`${u.origin}/api/index.php`);
+    }
+    if (u.hostname.startsWith("www.")) {
+      add(`${u.protocol}//server.${u.hostname.slice(4)}/supplier_api.php`);
+    }
+  } catch { /* keep original only */ }
+  return out;
+}
+
+function dhruErrorMessage(parsed: any): string | null {
+  const errBlock = parsed?.ERROR ?? parsed?.error;
+  if (!errBlock) return null;
+  const eArr = Array.isArray(errBlock) ? errBlock[0] : errBlock;
+  return String(eArr?.MESSAGE ?? eArr?.message ?? eArr?.FACTOR ?? eArr?.factor ?? "Supplier returned an error");
+}
+
+function isRetryableDhruFormatError(message: string): boolean {
+  return /access\s*key|api\s*key|username|credential|auth|command\s*not\s*found|invalid\s*action|action\s*request|unknown\s*action|missing\s*(key|api)/i.test(message);
+}
+
+function findRef(n: any): string | null {
+  if (!n || typeof n !== "object") return null;
+  const ref = n.REFERENCEID ?? n.referenceid ?? n.REFERENCE ?? n.reference ?? n.ID ?? n.id;
+  if (ref != null && (typeof ref === "string" || typeof ref === "number")) return String(ref);
+  for (const v of Object.values(n)) {
+    const r2 = findRef(v);
+    if (r2) return r2;
+  }
+  return null;
+}
+
+function makeDhruPlaceBody(format: DhruFormat, ctx: {
+  username: string;
+  apiKey: string;
+  action: string;
+  serviceCode: string;
+  imei: string | null;
+  isServer: boolean;
+  fields: Record<string, string>;
+}): string {
+  const params = new URLSearchParams();
+  if (format === "bulk") {
+    const payload: Record<string, unknown> = {
+      username: ctx.username,
+      apikey: ctx.apiKey,
+      apiaccesskey: ctx.apiKey,
+      action: ctx.action,
+      service: ctx.serviceCode,
+    };
+    if (ctx.isServer) {
+      payload.custom = ctx.fields;
+      if (!ctx.fields.imei && ctx.imei) payload.imei = ctx.imei;
+    } else {
+      payload.imei = ctx.imei;
+    }
+    params.set("data", JSON.stringify(payload));
+  } else if (format === "v6") {
+    params.set("apiaccesskey", ctx.apiKey);
+    params.set("action", ctx.action);
+    params.set("requestformat", "JSON");
+    if (ctx.username) params.set("username", ctx.username);
+    let inner = `<ID>${escapeXml(ctx.serviceCode)}</ID>`;
+    if (ctx.isServer) {
+      for (const [k, v] of Object.entries(ctx.fields)) {
+        inner += `<${escapeXml(k)}>${escapeXml(String(v ?? ""))}</${escapeXml(k)}>`;
+      }
+      if (!ctx.fields.imei && ctx.imei) inner += `<IMEI>${escapeXml(ctx.imei)}</IMEI>`;
+    } else if (ctx.imei) {
+      inner += `<IMEI>${escapeXml(ctx.imei)}</IMEI>`;
+    }
+    params.set("parameters", `<PARAMETERS>${inner}</PARAMETERS>`);
+  } else {
+    params.set("username", ctx.username);
+    params.set("apikey", ctx.apiKey);
+    params.set("apiaccesskey", ctx.apiKey);
+    params.set("action", ctx.action);
+    params.set("service", ctx.serviceCode);
+    if (ctx.isServer) {
+      for (const [k, v] of Object.entries(ctx.fields)) params.set(k, String(v ?? ""));
+      if (!ctx.fields.imei && ctx.imei) params.set("imei", ctx.imei);
+    } else if (ctx.imei) {
+      params.set("imei", ctx.imei);
+    }
+  }
+  return params.toString();
+}
+
+function makeDhruStatusBody(format: DhruFormat, ctx: {
+  username: string;
+  apiKey: string;
+  action: string;
+  refId: string;
+}): string {
+  const params = new URLSearchParams();
+  if (format === "bulk") {
+    params.set("data", JSON.stringify({
+      username: ctx.username,
+      apikey: ctx.apiKey,
+      apiaccesskey: ctx.apiKey,
+      action: ctx.action,
+      id: ctx.refId,
+      ID: ctx.refId,
+    }));
+  } else if (format === "v6") {
+    params.set("apiaccesskey", ctx.apiKey);
+    params.set("action", ctx.action);
+    params.set("requestformat", "JSON");
+    if (ctx.username) params.set("username", ctx.username);
+    params.set("ID", ctx.refId);
+    params.set("parameters", `<PARAMETERS><ID>${escapeXml(ctx.refId)}</ID></PARAMETERS>`);
+  } else {
+    params.set("username", ctx.username);
+    params.set("apikey", ctx.apiKey);
+    params.set("apiaccesskey", ctx.apiKey);
+    params.set("action", ctx.action);
+    params.set("id", ctx.refId);
+    params.set("ID", ctx.refId);
+  }
+  return params.toString();
+}
+
 // Per admin policy: never auto-fail or auto-refund. Keep polling forever
 // until supplier returns a final success. On supplier error/reject, store the
 // error message but keep status=pending so an admin can Reprocess or Switch API.
