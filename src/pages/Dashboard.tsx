@@ -288,7 +288,8 @@ export default function Dashboard() {
       processing:"bg-primary/15 text-primary border-primary/40",
     };
     const cls = map[s] ?? "bg-secondary text-foreground border-border";
-    const label = s.replace(/_/g, " ").toUpperCase() || "—";
+    const labelMap: Record<string, string> = { failed: "REJECTED", rejected: "REJECTED" };
+    const label = labelMap[s] || s.replace(/_/g, " ").toUpperCase() || "—";
     return (
       <span className={`inline-flex items-center px-2.5 py-1 rounded-md border text-xs font-extrabold tracking-wider uppercase ${cls}`}>
         {label}
