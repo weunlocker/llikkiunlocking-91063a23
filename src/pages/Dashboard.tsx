@@ -307,10 +307,10 @@ export default function Dashboard() {
       <div className="container py-10">
         <h1 className="sr-only">Customer Dashboard</h1>
         <WhatsNewBanner />
-        {customMessage && !msgDismissed && localStorage.getItem("seenAdminMsg") !== customMessage && (
+        {customMessage && !msgDismissed && (
           <button
             type="button"
-            onClick={() => { setMsgOpen(true); localStorage.setItem("seenAdminMsg", customMessage); setMsgDismissed(true); }}
+            onClick={() => { setMsgOpen(true); dismissAdminMsg(); }}
             className="w-full glass rounded-2xl p-4 mb-5 border-l-4 border-primary text-left hover:bg-secondary/30 transition-colors"
           >
             <div className="text-xs uppercase tracking-wider text-primary">Message from admin</div>
@@ -322,7 +322,7 @@ export default function Dashboard() {
             <DialogHeader><DialogTitle>Message from admin</DialogTitle></DialogHeader>
             <div className="text-sm whitespace-pre-wrap py-2">{customMessage}</div>
             <div className="flex justify-end">
-              <Button variant="hero" onClick={() => { localStorage.setItem("seenAdminMsg", customMessage); setMsgOpen(false); setMsgDismissed(true); }}>Close</Button>
+              <Button variant="hero" onClick={() => { dismissAdminMsg(); setMsgOpen(false); }}>Close</Button>
             </div>
           </DialogContent>
         </Dialog>
