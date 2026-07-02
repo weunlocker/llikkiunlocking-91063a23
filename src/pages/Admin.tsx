@@ -1170,7 +1170,7 @@ function AdminOrders() {
     const [o, profs, svcs] = await Promise.all([
       supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("profiles").select("id,email,balance"),
-      supabase.from("services").select("id,name"),
+      supabase.from("services").select("id,name,result_font"),
     ]);
     const profMap = new Map((profs.data ?? []).map((p: { id: string; email: string | null; balance: number | null }) => [p.id, p]));
     const svcMap = new Map((svcs.data ?? []).map((s: { id: string; name: string; result_font?: string | null }) => [s.id, s]));
