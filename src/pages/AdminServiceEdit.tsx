@@ -457,39 +457,43 @@ export default function AdminServiceEdit() {
                         </div>
                       </div>
                     )}
-                    <Input
-                      className="mt-1 mb-2"
-                      placeholder={`Search ${supSvc.length} synced services…`}
-                      value={supSvcQ}
-                      onChange={(e) => setSupSvcQ(e.target.value)}
-                    />
-                    <div className="max-h-72 overflow-y-auto rounded border border-border/50 bg-background/50 divide-y divide-border/40">
-                      {supSvc
-                        .filter((s) => !supSvcQ || s.name.toLowerCase().includes(supSvcQ.toLowerCase()) || s.action_code.includes(supSvcQ))
-                        .slice(0, 200)
-                        .map((s) => {
-                          const selected = service.supplier_action === s.action_code;
-                          return (
-                            <button
-                              key={s.action_code}
-                              type="button"
-                              onClick={() => update({
-                                supplier_action: s.action_code,
-                                name: service.name || s.name,
-                                delivery_time: service.delivery_time && service.delivery_time !== "Instant" ? service.delivery_time : (s.delivery_time || "Instant"),
-                                price: service.price && Number(service.price) > 0 ? service.price : (s.credit != null ? Number(s.credit) : service.price),
-                                service_type: s.service_type ?? "imei",
-                                custom_fields: s.service_type === "server" ? (s.fields ?? []) : [],
-                              })}
-                              className={`w-full text-left px-3 py-2 text-xs flex justify-between gap-2 hover:bg-primary/10 ${selected ? "bg-primary/20 ring-1 ring-primary" : ""}`}
-                            >
-                              <span className="truncate"><span className="font-mono text-primary">#{s.action_code}</span> {s.name}</span>
-                              <span className="text-muted-foreground whitespace-nowrap">{s.credit != null ? `${s.credit} credit` : ""}{s.delivery_time ? ` · ${s.delivery_time}` : ""}</span>
-                            </button>
-                          );
-                        })}
-                      {supSvc.length === 0 && <div className="px-3 py-3 text-xs text-muted-foreground">No synced services. Go to Suppliers → Sync.</div>}
-                    </div>
+                    {!selectedSvc && (
+                      <>
+                        <Input
+                          className="mt-1 mb-2"
+                          placeholder={`Search ${supSvc.length} synced services…`}
+                          value={supSvcQ}
+                          onChange={(e) => setSupSvcQ(e.target.value)}
+                        />
+                        <div className="max-h-72 overflow-y-auto rounded border border-border/50 bg-background/50 divide-y divide-border/40">
+                          {supSvc
+                            .filter((s) => !supSvcQ || s.name.toLowerCase().includes(supSvcQ.toLowerCase()) || s.action_code.includes(supSvcQ))
+                            .slice(0, 200)
+                            .map((s) => {
+                              const selected = service.supplier_action === s.action_code;
+                              return (
+                                <button
+                                  key={s.action_code}
+                                  type="button"
+                                  onClick={() => update({
+                                    supplier_action: s.action_code,
+                                    name: service.name || s.name,
+                                    delivery_time: service.delivery_time && service.delivery_time !== "Instant" ? service.delivery_time : (s.delivery_time || "Instant"),
+                                    price: service.price && Number(service.price) > 0 ? service.price : (s.credit != null ? Number(s.credit) : service.price),
+                                    service_type: s.service_type ?? "imei",
+                                    custom_fields: s.service_type === "server" ? (s.fields ?? []) : [],
+                                  })}
+                                  className={`w-full text-left px-3 py-2 text-xs flex justify-between gap-2 hover:bg-primary/10 ${selected ? "bg-primary/20 ring-1 ring-primary" : ""}`}
+                                >
+                                  <span className="truncate"><span className="font-mono text-primary">#{s.action_code}</span> {s.name}</span>
+                                  <span className="text-muted-foreground whitespace-nowrap">{s.credit != null ? `${s.credit} credit` : ""}{s.delivery_time ? ` · ${s.delivery_time}` : ""}</span>
+                                </button>
+                              );
+                            })}
+                          {supSvc.length === 0 && <div className="px-3 py-3 text-xs text-muted-foreground">No synced services. Go to Suppliers → Sync.</div>}
+                        </div>
+                      </>
+                    )}
                     {apiOriginalPrice != null && (
                       <p className="text-xs text-muted-foreground mt-2">Price from API: <b className="font-mono">{Number(apiOriginalPrice).toFixed(3)} credit</b></p>
                     )}
