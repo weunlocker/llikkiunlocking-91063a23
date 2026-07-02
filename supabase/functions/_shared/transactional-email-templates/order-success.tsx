@@ -38,7 +38,7 @@ const OrderSuccessEmail = ({ name, orderNumber, service, imei, result, charged, 
     {result && (
       <div style={{ ...styles.infoBox, background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
         <Text style={{ ...styles.row, color: '#15803D', whiteSpace: 'pre-wrap' as const }}>
-          <span style={styles.rowKey}>Result:</span><br />{renderColored(result)}
+          <span style={styles.rowKey}>Result:</span><br />{stripColorMarkers(result)}
         </Text>
       </div>
     )}
