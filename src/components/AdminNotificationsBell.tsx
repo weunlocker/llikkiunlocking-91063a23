@@ -55,7 +55,7 @@ export default function AdminNotificationsBell() {
         .limit(10),
       supabase
         .from("payment_orders")
-        .select("id, provider, amount, currency, status, created_at")
+        .select("id, user_id, provider, amount, currency, coin, memo, status, created_at")
         .in("status", ["pending", "awaiting_review"])
         .order("created_at", { ascending: false })
         .limit(10),
@@ -63,7 +63,15 @@ export default function AdminNotificationsBell() {
     setPendingOrders(po.data ?? []);
     setStuckOrders(so.data ?? []);
     setSupportTickets(st.data ?? []);
-    setPendingPayments(pp.data ?? []);
+    const payments = pp.data ?? [];
+    // Enrich payments with user email so the notification is meaningful
+    const userIds = Array.from(new Set(payments.map((p: any) => p.user_id).filter(Boolean)));
+    let emailMap: Record<string, string> = {};
+    if (userIds.length) {
+      const { data: profs } = await supabase.from("profiles").select("id,email,display_name").in("id", userIds);
+      (profs ?? []).forEach((p: any) => { emailMap[p.id] = p.display_name || p.email || ""; });
+    }
+    setPendingPayments(payments.map((p: any) => ({ ...p, _user: emailMap[p.user_id] || "unknown user" })));
     setLoading(false);
   };
 
