@@ -2469,6 +2469,7 @@ import AdminServiceEdit from "./AdminServiceEdit";
 import AdminStock from "./AdminStock";
 import AdminEmailTemplates from "./AdminEmailTemplates";
 import AdminAISettings from "./AdminAISettings";
+import AdminInvoices from "./AdminInvoices";
 
 
 
