@@ -33,6 +33,7 @@ const baseNavItems: NavItem[] = [
   { to: "/admin/stock", label: "Digital Stock", icon: Package },
 
   { to: "/admin/orders", label: "Orders", icon: ListOrdered },
+  { to: "/admin/invoices", label: "Invoices", icon: FileText },
   { to: "/admin/transactions", label: "Transactions", icon: Wallet },
   { to: "/admin/support", label: "Support", icon: MessageSquare },
   { to: "/admin/payments", label: "Payments", icon: CreditCard },
