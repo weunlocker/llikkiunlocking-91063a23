@@ -53,6 +53,8 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
   const [orders, setOrders] = useState<UserOrderRow[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [invoices, setInvoices] = useState<Array<{ id: string; invoice_number: number; amount: number; currency: string; coin: string | null; status: string; issued_at: string; provider: string }>>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingSvc, setLoadingSvc] = useState(false);
   const [svcQuery, setSvcQuery] = useState("");
