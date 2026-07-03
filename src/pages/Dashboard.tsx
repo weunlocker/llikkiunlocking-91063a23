@@ -710,6 +710,37 @@ export default function Dashboard() {
             </div>
           </TabsContent>
 
+          <TabsContent value="invoices" className="mt-5">
+            <div className="glass rounded-2xl overflow-x-auto">
+              {invoices.length === 0 ? (
+                <div className="p-12 text-center text-muted-foreground">No invoices yet. Invoices are generated automatically when your wallet top-ups are confirmed.</div>
+              ) : (
+                <table className="w-full text-sm min-w-[560px]">
+                  <thead className="bg-secondary/40 text-left">
+                    <tr>
+                      <th className="px-5 py-3">Invoice #</th>
+                      <th className="px-5 py-3">Method</th>
+                      <th className="px-5 py-3 text-right">Amount</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoices.map((i) => (
+                      <tr key={i.id} className="border-t border-border/50">
+                        <td className="px-5 py-3 font-mono">INV-{String(i.invoice_number).padStart(5, "0")}</td>
+                        <td className="px-5 py-3 capitalize">{i.provider}{i.coin ? ` · ${i.coin}` : ""}</td>
+                        <td className="px-5 py-3 text-right font-mono font-bold">${Number(i.amount).toFixed(2)}</td>
+                        <td className={`px-5 py-3 capitalize ${i.status === "paid" ? "text-success" : i.status === "pending" ? "text-warning" : "text-muted-foreground"}`}>{i.status}</td>
+                        <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(i.issued_at).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </TabsContent>
+
           <TabsContent value="referrals" className="mt-5">
             <ReferralsPanel />
           </TabsContent>
