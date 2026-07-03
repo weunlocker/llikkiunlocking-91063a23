@@ -68,6 +68,7 @@ export default function Dashboard() {
   
   const [orders, setOrders] = useState<Order[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
+  const [invoices, setInvoices] = useState<Array<{ id: string; invoice_number: number; amount: number; currency: string; coin: string | null; status: string; issued_at: string; provider: string }>>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
   const [categoryOrder, setCategoryOrder] = useState<Record<string, number>>({});
