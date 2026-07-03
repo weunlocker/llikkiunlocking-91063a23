@@ -158,9 +158,15 @@ export default function AdminGlobalSearch() {
 
   return (
     <>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
-        <Search className="w-4 h-4" /> <span className="hidden sm:inline">Search</span>
-      </Button>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 h-9 px-3 rounded-md border border-border/60 bg-muted/40 hover:bg-muted/60 text-sm text-muted-foreground w-full md:w-72 transition-colors"
+      >
+        <Search className="w-4 h-4 shrink-0" />
+        <span className="truncate">Intelligent Search…</span>
+      </button>
+
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">

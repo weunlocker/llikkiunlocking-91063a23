@@ -1117,6 +1117,7 @@ function AdminServices() {
 /* ---------- Orders ---------- */
 function AdminOrders() {
   const confirm = useConfirm();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [fOrderId, setFOrderId] = useState("");
@@ -1130,6 +1131,7 @@ function AdminOrders() {
   const [editUser, setEditUser] = useState<ProfileRow | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+
 
   const load = async () => {
     const [o, profs, svcs] = await Promise.all([
@@ -1156,6 +1158,21 @@ function AdminOrders() {
     setOrders(enriched); setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  // Deep-link support: /admin/orders?open=<id> opens the order dialog directly
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (!openId || orders.length === 0) return;
+    const found = orders.find((o) => o.id === openId);
+    if (found) {
+      setView(found);
+      const next = new URLSearchParams(searchParams);
+      next.delete("open");
+      setSearchParams(next, { replace: true });
+    }
+  }, [orders, searchParams, setSearchParams]);
+
+
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
