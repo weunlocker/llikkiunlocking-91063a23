@@ -2469,6 +2469,7 @@ import AdminServiceEdit from "./AdminServiceEdit";
 import AdminStock from "./AdminStock";
 import AdminEmailTemplates from "./AdminEmailTemplates";
 import AdminAISettings from "./AdminAISettings";
+import AdminInvoices from "./AdminInvoices";
 
 
 
@@ -2492,6 +2493,7 @@ export default function Admin() {
       <Route path="stock" element={<AdminStock />} />
 
       <Route path="orders" element={<AdminOrders />} />
+      <Route path="invoices" element={<AdminInvoices />} />
       <Route path="transactions" element={<AdminTransactions />} />
       <Route path="notifications" element={<AdminNotifications />} />
       <Route path="telegram-bot" element={<AdminTelegramBot />} />

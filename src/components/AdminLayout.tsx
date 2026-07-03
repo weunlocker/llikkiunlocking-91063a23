@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, Briefcase, ListOrdered, Wallet, Settings,
-  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, X, Send, Network, CreditCard, Shield, Crown, Gift, BarChart3, MessageSquare, Activity, ChevronDown, Smartphone, Server, Package, Menu, Bot,
+  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, X, Send, Network, CreditCard, Shield, Crown, Gift, BarChart3, MessageSquare, Activity, ChevronDown, Smartphone, Server, Package, Menu, Bot, FileText,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -33,6 +33,7 @@ const baseNavItems: NavItem[] = [
   { to: "/admin/stock", label: "Digital Stock", icon: Package },
 
   { to: "/admin/orders", label: "Orders", icon: ListOrdered },
+  { to: "/admin/invoices", label: "Invoices", icon: FileText },
   { to: "/admin/transactions", label: "Transactions", icon: Wallet },
   { to: "/admin/support", label: "Support", icon: MessageSquare },
   { to: "/admin/payments", label: "Payments", icon: CreditCard },

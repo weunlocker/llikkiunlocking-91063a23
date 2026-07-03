@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Save, User as UserIcon, MapPin, Crown, MessageSquare, Layers, ShoppingBag } from "lucide-react";
+import { Loader2, Search, Save, User as UserIcon, MapPin, Crown, MessageSquare, Layers, ShoppingBag, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -53,6 +53,8 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
   const [orders, setOrders] = useState<UserOrderRow[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [invoices, setInvoices] = useState<Array<{ id: string; invoice_number: number; amount: number; currency: string; coin: string | null; status: string; issued_at: string; provider: string }>>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingSvc, setLoadingSvc] = useState(false);
   const [svcQuery, setSvcQuery] = useState("");
@@ -116,6 +118,20 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
     setLoadingOrders(false);
   };
   useEffect(() => { setOrders([]); if (user) loadOrders(); }, [user?.id]);
+
+  const loadInvoices = async () => {
+    if (!user) return;
+    setLoadingInvoices(true);
+    const { data } = await supabase
+      .from("invoices")
+      .select("id,invoice_number,amount,currency,coin,status,issued_at,provider")
+      .eq("user_id", user.id)
+      .order("invoice_number", { ascending: false });
+    setInvoices((data ?? []) as any);
+    setLoadingInvoices(false);
+  };
+  useEffect(() => { setInvoices([]); if (user) loadInvoices(); }, [user?.id]);
+
 
   const setField = <K extends keyof EditableUser>(k: K, v: EditableUser[K]) =>
     setForm((f) => f ? { ...f, [k]: v } : f);
@@ -182,6 +198,7 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
               <TabsTrigger value="group"><Crown className="w-4 h-4 mr-1" /> Group & API</TabsTrigger>
               <TabsTrigger value="services"><Layers className="w-4 h-4 mr-1" /> Services</TabsTrigger>
               <TabsTrigger value="orders"><ShoppingBag className="w-4 h-4 mr-1" /> Orders</TabsTrigger>
+              <TabsTrigger value="invoices"><FileText className="w-4 h-4 mr-1" /> Invoices</TabsTrigger>
               <TabsTrigger value="message"><MessageSquare className="w-4 h-4 mr-1" /> Message</TabsTrigger>
             </TabsList>
 
@@ -314,6 +331,45 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
               <p className="text-xs text-muted-foreground">Click any order to open its edit view.</p>
             </TabsContent>
 
+            <TabsContent value="invoices" className="mt-4 space-y-3">
+              {loadingInvoices ? (
+                <div className="py-10 flex justify-center"><Loader2 className="animate-spin" /></div>
+              ) : invoices.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground text-sm border border-border/50 rounded-lg">No invoices for this client.</div>
+              ) : (
+                <div className="border border-border/50 rounded-lg overflow-x-auto max-h-[55vh] overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-secondary/40 text-left uppercase tracking-wider sticky top-0">
+                      <tr>
+                        <th className="px-3 py-2">Invoice</th>
+                        <th className="px-3 py-2">Provider</th>
+                        <th className="px-3 py-2">Coin</th>
+                        <th className="px-3 py-2 text-right">Amount</th>
+                        <th className="px-3 py-2">Status</th>
+                        <th className="px-3 py-2">Issued</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoices.map((i) => (
+                        <tr
+                          key={i.id}
+                          className="border-t border-border/40 cursor-pointer hover:bg-secondary/30"
+                          onClick={() => { window.open(`/admin/invoices?open=${i.id}`, "_blank"); }}
+                        >
+                          <td className="px-3 py-2 font-mono">INV-{String(i.invoice_number).padStart(5, "0")}</td>
+                          <td className="px-3 py-2 capitalize">{i.provider}</td>
+                          <td className="px-3 py-2">{i.coin ?? i.currency}</td>
+                          <td className="px-3 py-2 text-right font-mono">${Number(i.amount).toFixed(2)}</td>
+                          <td className={`px-3 py-2 capitalize ${statusColor(i.status)}`}>{i.status}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{new Date(i.issued_at).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Click any invoice to open it in the Invoices page for editing.</p>
+            </TabsContent>
 
             <TabsContent value="message" className="mt-4 space-y-3">
               <Label>Custom dashboard message</Label>

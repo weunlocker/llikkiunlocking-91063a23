@@ -248,6 +248,65 @@ export type Database = {
         }
         Relationships: []
       }
+      invoices: {
+        Row: {
+          amount: number
+          coin: string | null
+          created_at: string
+          currency: string
+          id: string
+          invoice_number: number
+          issued_at: string
+          notes: string | null
+          payment_order_id: string | null
+          provider: string
+          status: string
+          tx_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          coin?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_number?: number
+          issued_at?: string
+          notes?: string | null
+          payment_order_id?: string | null
+          provider?: string
+          status?: string
+          tx_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          coin?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_number?: number
+          issued_at?: string
+          notes?: string | null
+          payment_order_id?: string | null
+          provider?: string
+          status?: string
+          tx_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_payment_order_id_fkey"
+            columns: ["payment_order_id"]
+            isOneToOne: true
+            referencedRelation: "payment_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           created_at: string

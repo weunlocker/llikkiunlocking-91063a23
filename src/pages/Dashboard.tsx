@@ -68,6 +68,7 @@ export default function Dashboard() {
   
   const [orders, setOrders] = useState<Order[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
+  const [invoices, setInvoices] = useState<Array<{ id: string; invoice_number: number; amount: number; currency: string; coin: string | null; status: string; issued_at: string; provider: string }>>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [categoryNames, setCategoryNames] = useState<Record<string, string>>({});
   const [categoryOrder, setCategoryOrder] = useState<Record<string, number>>({});
@@ -216,6 +217,18 @@ export default function Dashboard() {
   };
 
   useEffect(() => { load(); }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("invoices")
+        .select("id,invoice_number,amount,currency,coin,status,issued_at,provider")
+        .eq("user_id", user.id)
+        .order("invoice_number", { ascending: false });
+      setInvoices((data ?? []) as any);
+    })();
+  }, [user]);
 
   // Realtime: refresh orders when status/result updates so both change together
   useEffect(() => {
@@ -378,6 +391,7 @@ export default function Dashboard() {
               </>
             )}
             <TabsTrigger value="wallet"><Wallet className="w-4 h-4 mr-2" />Wallet History</TabsTrigger>
+            <TabsTrigger value="invoices"><FileText className="w-4 h-4 mr-2" />Invoices</TabsTrigger>
             <TabsTrigger value="referrals"><Gift className="w-4 h-4 mr-2" />Referrals</TabsTrigger>
             <TabsTrigger value="support" className="relative"><MessageSquare className="w-4 h-4 mr-2" />Support{supportUnread > 0 && (<span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">{supportUnread > 99 ? "99+" : supportUnread}</span>)}</TabsTrigger>
             <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-2" />Notifications</TabsTrigger>
@@ -693,6 +707,37 @@ export default function Dashboard() {
                     ))}
                   </tbody>
                 </table>}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="invoices" className="mt-5">
+            <div className="glass rounded-2xl overflow-x-auto">
+              {invoices.length === 0 ? (
+                <div className="p-12 text-center text-muted-foreground">No invoices yet. Invoices are generated automatically when your wallet top-ups are confirmed.</div>
+              ) : (
+                <table className="w-full text-sm min-w-[560px]">
+                  <thead className="bg-secondary/40 text-left">
+                    <tr>
+                      <th className="px-5 py-3">Invoice #</th>
+                      <th className="px-5 py-3">Method</th>
+                      <th className="px-5 py-3 text-right">Amount</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoices.map((i) => (
+                      <tr key={i.id} className="border-t border-border/50">
+                        <td className="px-5 py-3 font-mono">INV-{String(i.invoice_number).padStart(5, "0")}</td>
+                        <td className="px-5 py-3 capitalize">{i.provider}{i.coin ? ` · ${i.coin}` : ""}</td>
+                        <td className="px-5 py-3 text-right font-mono font-bold">${Number(i.amount).toFixed(2)}</td>
+                        <td className={`px-5 py-3 capitalize ${i.status === "paid" ? "text-success" : i.status === "pending" ? "text-warning" : "text-muted-foreground"}`}>{i.status}</td>
+                        <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(i.issued_at).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </TabsContent>
 
