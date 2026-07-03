@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Save, User as UserIcon, MapPin, Crown, MessageSquare, Layers, ShoppingBag } from "lucide-react";
+import { Loader2, Search, Save, User as UserIcon, MapPin, Crown, MessageSquare, Layers, ShoppingBag, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
