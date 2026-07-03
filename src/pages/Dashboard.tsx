@@ -80,8 +80,6 @@ export default function Dashboard() {
   const [now, setNow] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<Order | null>(null);
-  const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
-  const [invoiceDownloading, setInvoiceDownloading] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [serviceQuery, setServiceQuery] = useState("");
   const [svcGroup, setSvcGroup] = useState("all");
