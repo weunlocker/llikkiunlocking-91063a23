@@ -119,6 +119,20 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
   };
   useEffect(() => { setOrders([]); if (user) loadOrders(); }, [user?.id]);
 
+  const loadInvoices = async () => {
+    if (!user) return;
+    setLoadingInvoices(true);
+    const { data } = await supabase
+      .from("invoices")
+      .select("id,invoice_number,amount,currency,coin,status,issued_at,provider")
+      .eq("user_id", user.id)
+      .order("invoice_number", { ascending: false });
+    setInvoices((data ?? []) as any);
+    setLoadingInvoices(false);
+  };
+  useEffect(() => { setInvoices([]); if (user) loadInvoices(); }, [user?.id]);
+
+
   const setField = <K extends keyof EditableUser>(k: K, v: EditableUser[K]) =>
     setForm((f) => f ? { ...f, [k]: v } : f);
 
