@@ -11,6 +11,7 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { supabase } from "@/integrations/supabase/client";
 import AdminProfileMenu from "@/components/AdminProfileMenu";
 import AdminNotificationsBell from "@/components/AdminNotificationsBell";
+import AdminGlobalSearch from "@/components/AdminGlobalSearch";
 
 type NavItem = {
   to: string;
