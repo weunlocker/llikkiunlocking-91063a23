@@ -1159,6 +1159,21 @@ function AdminOrders() {
   };
   useEffect(() => { load(); }, []);
 
+  // Deep-link support: /admin/orders?open=<id> opens the order dialog directly
+  useEffect(() => {
+    const openId = searchParams.get("open");
+    if (!openId || orders.length === 0) return;
+    const found = orders.find((o) => o.id === openId);
+    if (found) {
+      setView(found);
+      const next = new URLSearchParams(searchParams);
+      next.delete("open");
+      setSearchParams(next, { replace: true });
+    }
+  }, [orders, searchParams, setSearchParams]);
+
+
+
   const filtered = useMemo(() => {
     return orders.filter((o) => {
       if (filter !== "all" && o.status !== filter) return false;
