@@ -87,7 +87,7 @@ export default function AdminInvoices() {
   }, [rows, q]);
 
   const remove = async (r: InvoiceRow) => {
-    const ok = await confirm({ title: `Delete ${invoiceNo(r.invoice_number)}?`, description: "This cannot be undone. The wallet top-up itself is not touched.", confirmText: "Delete", variant: "destructive" });
+    const ok = await confirm({ title: `Delete ${invoiceNo(r.invoice_number)}?`, description: "This cannot be undone. The wallet top-up itself is not touched.", confirmText: "Delete" });
     if (!ok) return;
     const { error } = await supabase.from("invoices").delete().eq("id", r.id);
     if (error) { toast.error(error.message); return; }
