@@ -931,18 +931,7 @@ export default function Dashboard() {
       <Dialog open={!!orderDetail} onOpenChange={(o) => !o && setOrderDetail(null)}>
         <DialogContent className="glass max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <div className="flex items-start justify-between gap-3">
-              <DialogTitle>{orderDetail?.services?.name}</DialogTitle>
-              {orderDetail && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setInvoiceOrder(orderDetail)}
-                >
-                  <FileText className="w-4 h-4 mr-2" /> Invoice
-                </Button>
-              )}
-            </div>
+            <DialogTitle>{orderDetail?.services?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-2 text-sm">
