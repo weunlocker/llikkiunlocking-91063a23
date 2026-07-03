@@ -66,12 +66,14 @@ export default function AdminGlobalSearch() {
     })());
 
     if (active.has("orders")) tasks.push((async () => {
-      const filters = [`imei.ilike.${like}`, `order_number.ilike.${like}`, `supplier_reference.ilike.${like}`];
+      const filters = [`imei.ilike.${like}`, `supplier_reference.ilike.${like}`];
       if (isUuid(term)) filters.push(`id.eq.${term}`);
-      const { data } = await supabase.from("orders")
+      if (/^\d+$/.test(term)) filters.push(`order_number.eq.${term}`);
+      const { data, error } = await supabase.from("orders")
         .select("id,order_number,imei,status,price_charged,created_at")
         .or(filters.join(","))
         .order("created_at", { ascending: false }).limit(15);
+      if (error) console.error("orders search", error);
       (data ?? []).forEach((r: any) => results.push({
         scope: "orders", id: r.id,
         title: `#${r.order_number ?? r.id.slice(0, 8)} • ${r.imei ?? ""}`,
@@ -81,12 +83,13 @@ export default function AdminGlobalSearch() {
     })());
 
     if (active.has("payments")) tasks.push((async () => {
-      const filters = [`description.ilike.${like}`, `type.ilike.${like}`];
+      const filters = [`description.ilike.${like}`];
       if (isUuid(term)) filters.push(`id.eq.${term}`, `user_id.eq.${term}`);
-      const { data } = await supabase.from("transactions")
+      const { data, error } = await supabase.from("transactions")
         .select("id,type,amount,description,created_at,user_id")
         .or(filters.join(","))
         .order("created_at", { ascending: false }).limit(15);
+      if (error) console.error("tx search", error);
       (data ?? []).forEach((r: any) => results.push({
         scope: "payments", id: r.id,
         title: `${r.type} • $${Number(r.amount ?? 0).toFixed(2)}`,
@@ -109,7 +112,7 @@ export default function AdminGlobalSearch() {
     })());
 
     if (active.has("support")) tasks.push((async () => {
-      const filters = [`subject.ilike.${like}`, `status.ilike.${like}`];
+      const filters = [`subject.ilike.${like}`];
       if (isUuid(term)) filters.push(`id.eq.${term}`);
       const { data } = await supabase.from("support_tickets")
         .select("id,subject,status,last_message_at")
