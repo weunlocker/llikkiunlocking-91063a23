@@ -173,6 +173,19 @@ function AdminUsers() {
   };
   useEffect(() => { load(); }, []);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const openId = searchParams.get("openUser");
+    if (!openId || users.length === 0) return;
+    const u = users.find((x) => x.id === openId);
+    if (u) {
+      setEditUser(u);
+      const next = new URLSearchParams(searchParams);
+      next.delete("openUser");
+      setSearchParams(next, { replace: true });
+    }
+  }, [users, searchParams, setSearchParams]);
+
   const verifyUser = async (u: ProfileRow) => {
     setVerifyingId(u.id);
     const { data, error } = await supabase.functions.invoke("admin-verify-user", {
