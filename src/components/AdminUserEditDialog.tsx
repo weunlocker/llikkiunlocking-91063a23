@@ -331,6 +331,45 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
               <p className="text-xs text-muted-foreground">Click any order to open its edit view.</p>
             </TabsContent>
 
+            <TabsContent value="invoices" className="mt-4 space-y-3">
+              {loadingInvoices ? (
+                <div className="py-10 flex justify-center"><Loader2 className="animate-spin" /></div>
+              ) : invoices.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground text-sm border border-border/50 rounded-lg">No invoices for this client.</div>
+              ) : (
+                <div className="border border-border/50 rounded-lg overflow-x-auto max-h-[55vh] overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-secondary/40 text-left uppercase tracking-wider sticky top-0">
+                      <tr>
+                        <th className="px-3 py-2">Invoice</th>
+                        <th className="px-3 py-2">Provider</th>
+                        <th className="px-3 py-2">Coin</th>
+                        <th className="px-3 py-2 text-right">Amount</th>
+                        <th className="px-3 py-2">Status</th>
+                        <th className="px-3 py-2">Issued</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoices.map((i) => (
+                        <tr
+                          key={i.id}
+                          className="border-t border-border/40 cursor-pointer hover:bg-secondary/30"
+                          onClick={() => { window.open(`/admin/invoices?open=${i.id}`, "_blank"); }}
+                        >
+                          <td className="px-3 py-2 font-mono">INV-{String(i.invoice_number).padStart(5, "0")}</td>
+                          <td className="px-3 py-2 capitalize">{i.provider}</td>
+                          <td className="px-3 py-2">{i.coin ?? i.currency}</td>
+                          <td className="px-3 py-2 text-right font-mono">${Number(i.amount).toFixed(2)}</td>
+                          <td className={`px-3 py-2 capitalize ${statusColor(i.status)}`}>{i.status}</td>
+                          <td className="px-3 py-2 text-muted-foreground">{new Date(i.issued_at).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Click any invoice to open it in the Invoices page for editing.</p>
+            </TabsContent>
 
             <TabsContent value="message" className="mt-4 space-y-3">
               <Label>Custom dashboard message</Label>
