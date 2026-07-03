@@ -111,6 +111,9 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <div className="mb-2">
+          <AdminGlobalSearch />
+        </div>
         {navItems.map((item) => {
           const Icon = item.icon;
           if (item.children) {
