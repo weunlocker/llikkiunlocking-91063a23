@@ -218,6 +218,18 @@ export default function Dashboard() {
 
   useEffect(() => { load(); }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("invoices")
+        .select("id,invoice_number,amount,currency,coin,status,issued_at,provider")
+        .eq("user_id", user.id)
+        .order("invoice_number", { ascending: false });
+      setInvoices((data ?? []) as any);
+    })();
+  }, [user]);
+
   // Realtime: refresh orders when status/result updates so both change together
   useEffect(() => {
     if (!user) return;
