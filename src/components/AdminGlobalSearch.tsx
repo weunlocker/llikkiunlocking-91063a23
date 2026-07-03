@@ -68,7 +68,7 @@ export default function AdminGlobalSearch() {
     if (active.has("orders")) tasks.push((async () => {
       const filters = [`imei.ilike.${like}`, `supplier_reference.ilike.${like}`];
       if (isUuid(term)) filters.push(`id.eq.${term}`);
-      if (/^\d+$/.test(term)) filters.push(`order_number.eq.${term}`);
+      if (/^\d+$/.test(term) && Number(term) <= 2147483647) filters.push(`order_number.eq.${term}`);
       const { data, error } = await supabase.from("orders")
         .select("id,order_number,imei,status,price_charged,created_at")
         .or(filters.join(","))
