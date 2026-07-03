@@ -111,6 +111,9 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <div className="mb-2">
+          <AdminGlobalSearch />
+        </div>
         {navItems.map((item) => {
           const Icon = item.icon;
           if (item.children) {
@@ -217,9 +220,8 @@ export default function AdminLayout({ children, title, subtitle, actions }: {
               </div>
             </div>
             {(actions || true) && (
-              <div className="flex flex-wrap items-center gap-2 md:shrink-0 [&>div.relative]:flex-1 [&>div.relative]:min-w-0 md:[&>div.relative]:w-64 md:[&>div.relative]:flex-none">
+              <div className="flex flex-wrap items-center gap-2 md:shrink-0">
                 {actions}
-                <AdminGlobalSearch />
                 <AdminNotificationsBell />
                 <AdminProfileMenu />
               </div>
