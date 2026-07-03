@@ -161,7 +161,7 @@ export default function AdminGlobalSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 h-9 px-3 rounded-md border border-border/60 bg-muted/40 hover:bg-muted/60 text-sm text-muted-foreground w-full md:w-72 transition-colors"
+        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground bg-muted/40 hover:bg-muted/60 border border-border/60 transition-colors"
       >
         <Search className="w-4 h-4 shrink-0" />
         <span className="truncate">Intelligent Search…</span>
