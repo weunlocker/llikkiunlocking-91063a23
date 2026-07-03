@@ -125,13 +125,13 @@ export default function AdminNotificationsBell() {
         time: t.last_message_at,
       })
     );
-    pendingPayments.forEach((p) =>
+    pendingPayments.forEach((p: any) =>
       list.push({
         id: `pay-${p.id}`,
         icon: CreditCard,
-        title: `Top-up ${p.amount} ${p.currency || ""}`.trim(),
-        description: `${p.provider} · ${p.status}`,
-        to: `/admin/payments`,
+        title: `${p._user || "User"} — top-up $${p.amount} ${p.coin || p.currency || ""}`.trim(),
+        description: `${p.provider} · ${p.status}${p.memo ? ` · memo ${p.memo}` : ""}`,
+        to: `/admin/users?openUser=${p.user_id}`,
         tone: "info",
         time: p.created_at,
       })
