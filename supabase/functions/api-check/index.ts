@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
     if (action === "imeiservicelist" || action === "servicelist") {
       const { data: svc } = await supabase
         .from("services")
-        .select("id, service_code, name, price, delivery_time, category, supplier_id, suppliers(type)")
+        .select("id, service_code, name, price, silver_price, gold_price, diamond_price, delivery_time, category, supplier_id, suppliers(type)")
         .eq("active", true)
         .eq("is_free", false)
         .order("service_code");
@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
         if (ov && ov.enabled === false) continue;
         const effective = ov?.custom_price != null
           ? Number(ov.custom_price)
-          : +(Number(s.price) * (1 - discount)).toFixed(2);
+          : +priceForGroup(s).toFixed(2);
         const groupName = String(s.category || "IMEI").trim() || "IMEI";
         const groupKey = groupName.toUpperCase().replace(/[^A-Z0-9]+/g, "_") || "IMEI";
         if (!groups[groupKey]) {
