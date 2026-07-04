@@ -540,6 +540,9 @@ function AdminServices() {
     if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
     const payload = {
       name: parsed.data.name, description: parsed.data.description ?? null, price: parsed.data.price,
+      silver_price: editing.silver_price == null || Number.isNaN(Number(editing.silver_price)) ? null : Number(editing.silver_price),
+      gold_price: editing.gold_price == null || Number.isNaN(Number(editing.gold_price)) ? null : Number(editing.gold_price),
+      diamond_price: editing.diamond_price == null || Number.isNaN(Number(editing.diamond_price)) ? null : Number(editing.diamond_price),
       delivery_time: parsed.data.delivery_time,
       api_url: usingSupplier ? null : (parsed.data.api_url || null),
       api_method: parsed.data.api_method,
