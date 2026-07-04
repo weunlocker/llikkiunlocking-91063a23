@@ -55,8 +55,9 @@ export default function AdminNotificationsBell() {
         .limit(10),
       supabase
         .from("payment_orders")
-        .select("id, user_id, provider, amount, currency, coin, memo, status, created_at")
+        .select("id, user_id, provider, amount, currency, coin, memo, status, created_at, expires_at")
         .in("status", ["pending", "awaiting_review"])
+        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
         .order("created_at", { ascending: false })
         .limit(10),
     ]);
