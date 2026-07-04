@@ -92,7 +92,7 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
     if (!user) return;
     setLoadingSvc(true);
     Promise.all([
-      supabase.from("services").select("id,service_code,name,price,category,active").order("category").order("sort_order").order("name"),
+      supabase.from("services").select("id,service_code,name,price,silver_price,gold_price,diamond_price,category,active").order("category").order("sort_order").order("name"),
       supabase.from("user_service_overrides").select("service_id,enabled,custom_price").eq("user_id", user.id),
     ]).then(([s, o]) => {
       setServices((s.data ?? []) as Service[]);
