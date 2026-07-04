@@ -143,8 +143,13 @@ Deno.serve(async (req) => {
     const { data: gate } = await supabase
       .from("profiles").select("api_enabled, user_group").eq("id", apiKey.user_id).maybeSingle();
     if (gate && gate.api_enabled === false) return dhruError("API access disabled for this account", 403);
-    const groupDiscount: Record<string, number> = { silver: 0.10, gold: 0.30, diamond: 0.50 };
-    const discount = groupDiscount[String(gate?.user_group ?? "").toLowerCase()] ?? 0;
+    const grp = String(gate?.user_group ?? "").toLowerCase();
+    const priceForGroup = (s: { price: number | string; silver_price?: number | string | null; gold_price?: number | string | null; diamond_price?: number | string | null }) => {
+      if (grp === "silver" && s.silver_price != null) return Number(s.silver_price);
+      if (grp === "gold" && s.gold_price != null) return Number(s.gold_price);
+      if (grp === "diamond" && s.diamond_price != null) return Number(s.diamond_price);
+      return Number(s.price);
+    };
 
     // Optional username check (DHRU compatibility). If supplied, must match the user's email.
     const username = params.get("username");
