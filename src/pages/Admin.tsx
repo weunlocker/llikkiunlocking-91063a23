@@ -2392,11 +2392,11 @@ function AdminTelegramBot() {
 
 
 /* ---------- Groups ---------- */
-const GROUPS_META: { key: string; label: string; discount: number; tone: string }[] = [
-  { key: "standard", label: "Standard (Default)", discount: 0, tone: "text-foreground" },
-  { key: "silver", label: "Silver", discount: 0.10, tone: "text-slate-300" },
-  { key: "gold", label: "Gold", discount: 0.30, tone: "text-yellow-400" },
-  { key: "diamond", label: "Diamond", discount: 0.50, tone: "text-cyan-300" },
+const GROUPS_META: { key: string; label: string; tone: string; note: string }[] = [
+  { key: "standard", label: "Standard (Default)", tone: "text-foreground", note: "Full price" },
+  { key: "silver", label: "Silver", tone: "text-slate-300", note: "Custom price per service" },
+  { key: "gold", label: "Gold", tone: "text-yellow-400", note: "Custom price per service" },
+  { key: "diamond", label: "Diamond", tone: "text-cyan-300", note: "Custom price per service" },
 ];
 
 function AdminGroups() {
