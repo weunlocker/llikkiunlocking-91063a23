@@ -5,24 +5,38 @@ import { supabase } from "@/integrations/supabase/client";
 import { Clock } from "lucide-react";
 import { useCurrency } from "@/hooks/useCurrency";
 
-type Service = { id: string; name: string; description: string | null; price: number; delivery_time: string; category: string | null };
+type Service = {
+  id: string; name: string; description: string | null;
+  price: number; silver_price: number | null; gold_price: number | null; diamond_price: number | null;
+  delivery_time: string; category: string | null;
+};
 
 const GROUPS = [
-  { key: "default", label: "Default", discount: 0, color: "text-primary" },
-  { key: "silver", label: "Silver", discount: 0.10, color: "text-slate-300" },
-  { key: "gold", label: "Gold", discount: 0.30, color: "text-yellow-400" },
-  { key: "diamond", label: "Diamond", discount: 0.50, color: "text-cyan-300" },
-];
-
+  { key: "default", label: "Default", color: "text-primary" },
+  { key: "silver", label: "Silver", color: "text-slate-300" },
+  { key: "gold", label: "Gold", color: "text-yellow-400" },
+  { key: "diamond", label: "Diamond", color: "text-cyan-300" },
+] as const;
 
 export default function Pricing() {
   const [services, setServices] = useState<Service[]>([]);
   const { format } = useCurrency();
-  const priceFor = (base: number, d: number) => format(Number(base) * (1 - d));
-  useEffect(() => {
-    supabase.from("services_public").select("id,name,description,price,delivery_time,category").order("sort_order").order("price").then(({ data }) => setServices(data ?? []));
-  }, []);
 
+  const priceFor = (s: Service, key: (typeof GROUPS)[number]["key"]) => {
+    if (key === "silver" && s.silver_price != null) return format(Number(s.silver_price));
+    if (key === "gold" && s.gold_price != null) return format(Number(s.gold_price));
+    if (key === "diamond" && s.diamond_price != null) return format(Number(s.diamond_price));
+    return format(Number(s.price));
+  };
+
+  useEffect(() => {
+    supabase
+      .from("services_public")
+      .select("id,name,description,price,silver_price,gold_price,diamond_price,delivery_time,category")
+      .order("sort_order")
+      .order("price")
+      .then(({ data }) => setServices((data ?? []) as unknown as Service[]));
+  }, []);
 
   return (
     <Layout>
@@ -50,7 +64,7 @@ export default function Pricing() {
                 {GROUPS.map((g) => (
                   <div key={g.key} className="rounded-md bg-secondary/40 py-1.5">
                     <div className="text-[9px] uppercase text-muted-foreground tracking-wide">{g.label}</div>
-                    <div className={`font-mono font-bold text-xs ${g.color}`}>{priceFor(s.price, g.discount)}</div>
+                    <div className={`font-mono font-bold text-xs ${g.color}`}>{priceFor(s, g.key)}</div>
                   </div>
                 ))}
               </div>
@@ -67,9 +81,7 @@ export default function Pricing() {
                 <th className="px-6 py-4 font-semibold">Service</th>
                 <th className="px-6 py-4 font-semibold"><Clock className="inline w-4 h-4 mr-1" />Delivery</th>
                 {GROUPS.map((g) => (
-                  <th key={g.key} className="px-4 py-4 font-semibold text-right">
-                    {g.label}
-                  </th>
+                  <th key={g.key} className="px-4 py-4 font-semibold text-right">{g.label}</th>
                 ))}
               </tr>
             </thead>
@@ -79,7 +91,7 @@ export default function Pricing() {
                   <td className="px-6 py-4 font-semibold">{s.name}{s.category && <div className="text-xs text-muted-foreground font-mono uppercase">{s.category}</div>}</td>
                   <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{s.delivery_time}</td>
                   {GROUPS.map((g) => (
-                    <td key={g.key} className={`px-4 py-4 text-right font-mono font-bold ${g.color}`}>{priceFor(s.price, g.discount)}</td>
+                    <td key={g.key} className={`px-4 py-4 text-right font-mono font-bold ${g.color}`}>{priceFor(s, g.key)}</td>
                   ))}
                 </tr>
               ))}
