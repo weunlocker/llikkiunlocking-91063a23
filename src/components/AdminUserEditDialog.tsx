@@ -134,7 +134,13 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
   const setField = <K extends keyof EditableUser>(k: K, v: EditableUser[K]) =>
     setForm((f) => f ? { ...f, [k]: v } : f);
 
-  const discount = useMemo(() => GROUP_DISCOUNT[String(form?.user_group ?? "standard").toLowerCase()] ?? 0, [form?.user_group]);
+  const grp = String(form?.user_group ?? "standard").toLowerCase();
+  const groupPriceFor = (s: Service) => {
+    if (grp === "silver" && s.silver_price != null) return Number(s.silver_price);
+    if (grp === "gold" && s.gold_price != null) return Number(s.gold_price);
+    if (grp === "diamond" && s.diamond_price != null) return Number(s.diamond_price);
+    return Number(s.price);
+  };
 
   const setOverride = (serviceId: string, patch: Partial<Override>) => {
     setOverrides((o) => ({ ...o, [serviceId]: { service_id: serviceId, enabled: o[serviceId]?.enabled ?? true, custom_price: o[serviceId]?.custom_price ?? null, ...patch } }));
