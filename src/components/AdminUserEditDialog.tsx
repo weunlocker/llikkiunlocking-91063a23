@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ export type EditableUser = {
   custom_message?: string | null;
 };
 
-type Service = { id: string; service_code: string | null; name: string; price: number; category: string | null; active: boolean };
+type Service = { id: string; service_code: string | null; name: string; price: number; silver_price: number | null; gold_price: number | null; diamond_price: number | null; category: string | null; active: boolean };
 type Override = { service_id: string; enabled: boolean; custom_price: number | null };
 export type UserOrderRow = {
   id: string;
@@ -42,8 +42,6 @@ export type UserOrderRow = {
   error_message: string | null;
   service_name?: string;
 };
-
-const GROUP_DISCOUNT: Record<string, number> = { standard: 0, silver: 0.10, gold: 0.30, diamond: 0.50 };
 
 const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground", in_process: "text-primary" } as Record<string, string>)[s] ?? "";
 
@@ -94,7 +92,7 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
     if (!user) return;
     setLoadingSvc(true);
     Promise.all([
-      supabase.from("services").select("id,service_code,name,price,category,active").order("category").order("sort_order").order("name"),
+      supabase.from("services").select("id,service_code,name,price,silver_price,gold_price,diamond_price,category,active").order("category").order("sort_order").order("name"),
       supabase.from("user_service_overrides").select("service_id,enabled,custom_price").eq("user_id", user.id),
     ]).then(([s, o]) => {
       setServices((s.data ?? []) as Service[]);
@@ -136,7 +134,13 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
   const setField = <K extends keyof EditableUser>(k: K, v: EditableUser[K]) =>
     setForm((f) => f ? { ...f, [k]: v } : f);
 
-  const discount = useMemo(() => GROUP_DISCOUNT[String(form?.user_group ?? "standard").toLowerCase()] ?? 0, [form?.user_group]);
+  const grp = String(form?.user_group ?? "standard").toLowerCase();
+  const groupPriceFor = (s: Service) => {
+    if (grp === "silver" && s.silver_price != null) return Number(s.silver_price);
+    if (grp === "gold" && s.gold_price != null) return Number(s.gold_price);
+    if (grp === "diamond" && s.diamond_price != null) return Number(s.diamond_price);
+    return Number(s.price);
+  };
 
   const setOverride = (serviceId: string, patch: Partial<Override>) => {
     setOverrides((o) => ({ ...o, [serviceId]: { service_id: serviceId, enabled: o[serviceId]?.enabled ?? true, custom_price: o[serviceId]?.custom_price ?? null, ...patch } }));
@@ -255,8 +259,9 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
                   {filteredSvcs.map((s) => {
                     const ov = overrides[s.id];
                     const enabled = ov?.enabled ?? true;
-                    const groupPrice = +(Number(s.price) * (1 - discount)).toFixed(2);
+                    const groupPrice = +groupPriceFor(s).toFixed(2);
                     const effective = ov?.custom_price != null ? Number(ov.custom_price) : groupPrice;
+                    const hasGroupPrice = groupPrice !== Number(s.price);
                     return (
                       <div key={s.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3">
                         <div className="flex-1 min-w-0">
@@ -264,7 +269,7 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
                           <div className="text-xs text-muted-foreground">
                             {s.service_code && <span className="font-mono mr-2">#{s.service_code}</span>}
                             <span>Base ${Number(s.price).toFixed(2)}</span>
-                            {discount > 0 && <span className="ml-2">→ Group ${groupPrice.toFixed(2)}</span>}
+                            {hasGroupPrice && <span className="ml-2">→ {grp} ${groupPrice.toFixed(2)}</span>}
                             <span className="ml-2 text-success">Effective ${effective.toFixed(2)}</span>
                           </div>
                         </div>

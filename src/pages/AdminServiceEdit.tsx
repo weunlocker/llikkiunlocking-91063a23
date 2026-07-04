@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,14 +14,16 @@ import { serviceSchema } from "@/lib/validation";
 import type { CustomField } from "@/pages/Admin";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
-type Service = { id?: string; service_code?: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; stock_group_id: string | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
+type Service = { id?: string; service_code?: string | null; name: string; description: string | null; price: number; silver_price: number | null; gold_price: number | null; diamond_price: number | null; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; stock_group_id: string | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
 type Supplier = { id: string; name: string; type: string };
 type Category = { id: string; slug: string; name: string };
 type StockGroup = { id: string; name: string };
 type SupplierService = { action_code: string; name: string; credit: number | null; delivery_time: string | null; service_type?: "imei" | "server"; fields?: CustomField[] };
 
 const emptyService: Service = {
-  name: "", description: "", price: 0, delivery_time: "Instant",
+  name: "", description: "", price: 0,
+  silver_price: null, gold_price: null, diamond_price: null,
+  delivery_time: "Instant",
   api_url: "", api_method: "GET", api_request_body: "", response_template: "",
   sample_result: "", result_font: "mono", result_color: "#e2e8f0",
   active: true, is_free: false, category: "general",
@@ -106,6 +108,9 @@ export default function AdminServiceEdit() {
     setSaving(true);
     const payload = {
       name: parsed.data.name, description: parsed.data.description ?? null, price: parsed.data.price,
+      silver_price: service.silver_price == null || Number.isNaN(Number(service.silver_price)) ? null : Number(service.silver_price),
+      gold_price: service.gold_price == null || Number.isNaN(Number(service.gold_price)) ? null : Number(service.gold_price),
+      diamond_price: service.diamond_price == null || Number.isNaN(Number(service.diamond_price)) ? null : Number(service.diamond_price),
       delivery_time: parsed.data.delivery_time,
       api_url: usingSupplier ? null : (parsed.data.api_url || null),
       api_method: parsed.data.api_method,
@@ -168,10 +173,7 @@ export default function AdminServiceEdit() {
     const arr = [...(service.success_rules ?? [])]; arr.splice(i, 1); update({ success_rules: arr });
   };
 
-  const groupPrices = useMemo(() => {
-    const p = Number(service.price ?? 0);
-    return { def: p, silver: p * 0.9, gold: p * 0.7, diamond: p * 0.5 };
-  }, [service.price]);
+  const priceNum = (v: number | null | undefined) => (v == null || Number.isNaN(Number(v))) ? "" : String(v);
 
   if (loading) {
     return <AdminLayout title="Service" subtitle="Loading…"><div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div></AdminLayout>;
@@ -299,12 +301,23 @@ export default function AdminServiceEdit() {
               </div>
 
               <div className="rounded-lg border border-border/60 bg-secondary/20 p-3">
-                <div className="text-xs text-muted-foreground mb-2">Auto-calculated client group prices</div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center text-xs">
-                  <div className="rounded bg-background/40 py-2"><div className="text-muted-foreground">Default</div><div className="font-mono font-bold">${groupPrices.def.toFixed(2)}</div></div>
-                  <div className="rounded bg-background/40 py-2"><div className="text-slate-300">Silver −10%</div><div className="font-mono font-bold text-slate-200">${groupPrices.silver.toFixed(2)}</div></div>
-                  <div className="rounded bg-background/40 py-2"><div className="text-yellow-400">Gold −30%</div><div className="font-mono font-bold text-yellow-300">${groupPrices.gold.toFixed(2)}</div></div>
-                  <div className="rounded bg-background/40 py-2"><div className="text-cyan-300">Diamond −50%</div><div className="font-mono font-bold text-cyan-200">${groupPrices.diamond.toFixed(2)}</div></div>
+                <div className="text-xs text-muted-foreground mb-2">Client group prices (USD) — leave empty to charge the default price</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs text-slate-300">Silver price</Label>
+                    <Input type="number" step="0.01" placeholder="Default" value={priceNum(service.silver_price)}
+                      onChange={(e) => update({ silver_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-yellow-400">Gold price</Label>
+                    <Input type="number" step="0.01" placeholder="Default" value={priceNum(service.gold_price)}
+                      onChange={(e) => update({ gold_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-cyan-300">Diamond price</Label>
+                    <Input type="number" step="0.01" placeholder="Default" value={priceNum(service.diamond_price)}
+                      onChange={(e) => update({ diamond_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                  </div>
                 </div>
               </div>
             </div>

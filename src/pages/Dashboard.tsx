@@ -191,22 +191,26 @@ export default function Dashboard() {
     const [{ data: o }, { data: t }, { data: svc }, { data: ovs }, { data: cats }] = await Promise.all([
       supabase.from("orders").select("id,order_number,imei,status,price_charged,result,error_message,created_at,updated_at,services(name,category,delivery_time,result_font,result_color,service_type)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1000),
       supabase.from("transactions").select("id,type,amount,balance_after,description,created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
-      supabase.from("services_public").select("id,name,description,price,delivery_time,category,sample_result,result_font,result_color,is_free,service_type,custom_fields").order("category").order("sort_order").order("price"),
+      supabase.from("services_public").select("id,name,description,price,silver_price,gold_price,diamond_price,delivery_time,category,sample_result,result_font,result_color,is_free,service_type,custom_fields").order("category").order("sort_order").order("price"),
       supabase.from("user_service_overrides").select("service_id,enabled,custom_price").eq("user_id", user.id),
       supabase.from("categories").select("slug,name,sort_order"),
     ]);
     setCategoryNames(Object.fromEntries((cats ?? []).map((c: { slug: string; name: string }) => [c.slug, c.name])));
     setCategoryOrder(Object.fromEntries((cats ?? []).map((c: { slug: string; sort_order: number }) => [c.slug, c.sort_order ?? 0])));
-    const groupDiscount: Record<string, number> = { silver: 0.10, gold: 0.30, diamond: 0.50 };
-    const discount = groupDiscount[String((profile as unknown as { user_group?: string })?.user_group ?? "").toLowerCase()] ?? 0;
+    const grp = String((profile as unknown as { user_group?: string })?.user_group ?? "").toLowerCase();
     const ovMap = new Map((ovs ?? []).map((o: { service_id: string; enabled: boolean; custom_price: number | null }) => [o.service_id, o]));
     const visibleSvcs = (svc ?? []).filter((s: { id: string }) => {
       const ov = ovMap.get(s.id);
       return !(ov && ov.enabled === false);
-    }).map((s: { id: string; price: number } & Record<string, unknown>) => {
+    }).map((s: { id: string; price: number; silver_price: number | null; gold_price: number | null; diamond_price: number | null } & Record<string, unknown>) => {
       const ov = ovMap.get(s.id);
-      const price = ov?.custom_price != null ? Number(ov.custom_price) : +(Number(s.price) * (1 - discount)).toFixed(2);
-      return { ...s, price } as Service;
+      const groupPrice =
+        grp === "silver" && s.silver_price != null ? Number(s.silver_price) :
+        grp === "gold" && s.gold_price != null ? Number(s.gold_price) :
+        grp === "diamond" && s.diamond_price != null ? Number(s.diamond_price) :
+        Number(s.price);
+      const price = ov?.custom_price != null ? Number(ov.custom_price) : +groupPrice.toFixed(2);
+      return { ...s, price } as unknown as Service;
     });
     setOrders((o ?? []) as unknown as Order[]);
     setTxs((t ?? []) as Tx[]);

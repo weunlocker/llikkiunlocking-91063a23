@@ -23,7 +23,7 @@ import { extractResponse } from "@/lib/extractResponse";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
 export type CustomField = { name: string; label: string; type: string; required: boolean; default?: string; options?: string[] };
-type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; sort_order: number | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
+type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; silver_price: number | null; gold_price: number | null; diamond_price: number | null; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; sort_order: number | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
 type Supplier = { id: string; name: string; type: "dhru" | "generic" | "ifree" | "goimeicheck"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
 type ProfileRow = { id: string; email: string | null; display_name: string | null; balance: number; banned: boolean; created_at: string };
 type OrderRow = { id: string; order_number: number; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string; result_font?: string | null; supplier_id?: string | null; supplier_name?: string | null; api_url?: string | null } | null; profiles: { email: string | null; balance?: number | null } | null };
@@ -540,6 +540,9 @@ function AdminServices() {
     if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
     const payload = {
       name: parsed.data.name, description: parsed.data.description ?? null, price: parsed.data.price,
+      silver_price: editing.silver_price == null || Number.isNaN(Number(editing.silver_price)) ? null : Number(editing.silver_price),
+      gold_price: editing.gold_price == null || Number.isNaN(Number(editing.gold_price)) ? null : Number(editing.gold_price),
+      diamond_price: editing.diamond_price == null || Number.isNaN(Number(editing.diamond_price)) ? null : Number(editing.diamond_price),
       delivery_time: parsed.data.delivery_time,
       api_url: usingSupplier ? null : (parsed.data.api_url || null),
       api_method: parsed.data.api_method,
@@ -828,12 +831,26 @@ function AdminServices() {
                 </div>
               </div>
               <div className="rounded-lg border border-border/60 bg-secondary/20 p-3">
-                <div className="text-xs text-muted-foreground mb-2">Auto-calculated client group prices</div>
-                <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                  <div className="rounded bg-background/40 py-2"><div className="text-muted-foreground">Default</div><div className="font-mono font-bold">${Number(editing.price ?? 0).toFixed(2)}</div></div>
-                  <div className="rounded bg-background/40 py-2"><div className="text-slate-300">Silver −10%</div><div className="font-mono font-bold text-slate-200">${(Number(editing.price ?? 0) * 0.90).toFixed(2)}</div></div>
-                  <div className="rounded bg-background/40 py-2"><div className="text-yellow-400">Gold −30%</div><div className="font-mono font-bold text-yellow-300">${(Number(editing.price ?? 0) * 0.70).toFixed(2)}</div></div>
-                  <div className="rounded bg-background/40 py-2"><div className="text-cyan-300">Diamond −50%</div><div className="font-mono font-bold text-cyan-200">${(Number(editing.price ?? 0) * 0.50).toFixed(2)}</div></div>
+                <div className="text-xs text-muted-foreground mb-2">Client group prices (USD) — leave empty to charge the default price</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs text-slate-300">Silver price</Label>
+                    <Input type="number" step="0.01" placeholder="Default"
+                      value={editing.silver_price ?? ""}
+                      onChange={(e) => setEditing({ ...editing, silver_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-yellow-400">Gold price</Label>
+                    <Input type="number" step="0.01" placeholder="Default"
+                      value={editing.gold_price ?? ""}
+                      onChange={(e) => setEditing({ ...editing, gold_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-cyan-300">Diamond price</Label>
+                    <Input type="number" step="0.01" placeholder="Default"
+                      value={editing.diamond_price ?? ""}
+                      onChange={(e) => setEditing({ ...editing, diamond_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                  </div>
                 </div>
               </div>
               {/* Supplier picker */}
@@ -2375,11 +2392,11 @@ function AdminTelegramBot() {
 
 
 /* ---------- Groups ---------- */
-const GROUPS_META: { key: string; label: string; discount: number; tone: string }[] = [
-  { key: "standard", label: "Standard (Default)", discount: 0, tone: "text-foreground" },
-  { key: "silver", label: "Silver", discount: 0.10, tone: "text-slate-300" },
-  { key: "gold", label: "Gold", discount: 0.30, tone: "text-yellow-400" },
-  { key: "diamond", label: "Diamond", discount: 0.50, tone: "text-cyan-300" },
+const GROUPS_META: { key: string; label: string; tone: string; note: string }[] = [
+  { key: "standard", label: "Standard (Default)", tone: "text-foreground", note: "Full price" },
+  { key: "silver", label: "Silver", tone: "text-slate-300", note: "Custom price per service" },
+  { key: "gold", label: "Gold", tone: "text-yellow-400", note: "Custom price per service" },
+  { key: "diamond", label: "Diamond", tone: "text-cyan-300", note: "Custom price per service" },
 ];
 
 function AdminGroups() {
@@ -2409,14 +2426,14 @@ function AdminGroups() {
   const visible = users.filter((u) => filter === "all" || (u.user_group ?? "standard").toLowerCase() === filter);
 
   return (
-    <AdminLayout title="Client Groups" subtitle="Pricing tiers — discounts apply automatically to base service prices">
+    <AdminLayout title="Client Groups" subtitle="Pricing tiers — set each group's price manually per service in Service Edit">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {GROUPS_META.map((g) => (
           <button key={g.key} type="button" onClick={() => setFilter(g.key)}
             className={`glass rounded-xl p-4 text-left transition-all hover:border-primary/40 ${filter === g.key ? "ring-2 ring-primary" : ""}`}>
             <div className={`text-xs font-bold uppercase tracking-wider ${g.tone}`}>{g.label}</div>
             <div className="text-2xl font-bold mt-1">{counts[g.key] ?? 0} <span className="text-xs text-muted-foreground font-normal">users</span></div>
-            <div className="text-xs text-muted-foreground mt-1">{g.discount > 0 ? `−${g.discount * 100}% on every service` : "Full price"}</div>
+            <div className="text-xs text-muted-foreground mt-1">{g.note}</div>
           </button>
         ))}
       </div>

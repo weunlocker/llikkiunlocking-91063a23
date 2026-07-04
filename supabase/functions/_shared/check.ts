@@ -205,12 +205,15 @@ async function placeOrder(opts: {
     return { ok: false, status: 403, body: { error: "Service not available for this account" } };
   }
 
-  const groupDiscount: Record<string, number> = { silver: 0.10, gold: 0.30, diamond: 0.50 };
-  const discount = groupDiscount[String(profile.user_group ?? "").toLowerCase()] ?? 0;
-  const basePrice = Number(service.price);
+  const grp = String(profile.user_group ?? "").toLowerCase();
+  const groupPrice =
+    grp === "silver" && service.silver_price != null ? Number(service.silver_price) :
+    grp === "gold" && service.gold_price != null ? Number(service.gold_price) :
+    grp === "diamond" && service.diamond_price != null ? Number(service.diamond_price) :
+    Number(service.price);
   const price = override?.custom_price != null
     ? Number(override.custom_price)
-    : +(basePrice * (1 - discount)).toFixed(2);
+    : +groupPrice.toFixed(2);
   const balance = Number(profile.balance);
   if (balance < price) return { ok: false, status: 402, body: { error: "Insufficient balance", balance } };
 
