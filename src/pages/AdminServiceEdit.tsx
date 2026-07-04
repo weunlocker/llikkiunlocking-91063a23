@@ -108,6 +108,9 @@ export default function AdminServiceEdit() {
     setSaving(true);
     const payload = {
       name: parsed.data.name, description: parsed.data.description ?? null, price: parsed.data.price,
+      silver_price: service.silver_price == null || Number.isNaN(Number(service.silver_price)) ? null : Number(service.silver_price),
+      gold_price: service.gold_price == null || Number.isNaN(Number(service.gold_price)) ? null : Number(service.gold_price),
+      diamond_price: service.diamond_price == null || Number.isNaN(Number(service.diamond_price)) ? null : Number(service.diamond_price),
       delivery_time: parsed.data.delivery_time,
       api_url: usingSupplier ? null : (parsed.data.api_url || null),
       api_method: parsed.data.api_method,
