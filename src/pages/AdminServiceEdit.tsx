@@ -173,10 +173,7 @@ export default function AdminServiceEdit() {
     const arr = [...(service.success_rules ?? [])]; arr.splice(i, 1); update({ success_rules: arr });
   };
 
-  const groupPrices = useMemo(() => {
-    const p = Number(service.price ?? 0);
-    return { def: p, silver: p * 0.9, gold: p * 0.7, diamond: p * 0.5 };
-  }, [service.price]);
+  const priceNum = (v: number | null | undefined) => (v == null || Number.isNaN(Number(v))) ? "" : String(v);
 
   if (loading) {
     return <AdminLayout title="Service" subtitle="Loading…"><div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div></AdminLayout>;
