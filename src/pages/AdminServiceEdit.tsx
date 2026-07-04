@@ -301,12 +301,23 @@ export default function AdminServiceEdit() {
               </div>
 
               <div className="rounded-lg border border-border/60 bg-secondary/20 p-3">
-                <div className="text-xs text-muted-foreground mb-2">Auto-calculated client group prices</div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-center text-xs">
-                  <div className="rounded bg-background/40 py-2"><div className="text-muted-foreground">Default</div><div className="font-mono font-bold">${groupPrices.def.toFixed(2)}</div></div>
-                  <div className="rounded bg-background/40 py-2"><div className="text-slate-300">Silver −10%</div><div className="font-mono font-bold text-slate-200">${groupPrices.silver.toFixed(2)}</div></div>
-                  <div className="rounded bg-background/40 py-2"><div className="text-yellow-400">Gold −30%</div><div className="font-mono font-bold text-yellow-300">${groupPrices.gold.toFixed(2)}</div></div>
-                  <div className="rounded bg-background/40 py-2"><div className="text-cyan-300">Diamond −50%</div><div className="font-mono font-bold text-cyan-200">${groupPrices.diamond.toFixed(2)}</div></div>
+                <div className="text-xs text-muted-foreground mb-2">Client group prices (USD) — leave empty to charge the default price</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <Label className="text-xs text-slate-300">Silver price</Label>
+                    <Input type="number" step="0.01" placeholder="Default" value={priceNum(service.silver_price)}
+                      onChange={(e) => update({ silver_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-yellow-400">Gold price</Label>
+                    <Input type="number" step="0.01" placeholder="Default" value={priceNum(service.gold_price)}
+                      onChange={(e) => update({ gold_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-cyan-300">Diamond price</Label>
+                    <Input type="number" step="0.01" placeholder="Default" value={priceNum(service.diamond_price)}
+                      onChange={(e) => update({ diamond_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                  </div>
                 </div>
               </div>
             </div>
