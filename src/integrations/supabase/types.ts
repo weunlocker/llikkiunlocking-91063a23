@@ -750,6 +750,8 @@ export type Database = {
           custom_fields: Json
           delivery_time: string
           description: string | null
+          diamond_price: number | null
+          gold_price: number | null
           id: string
           input_allow_alpha: boolean
           input_allow_bulk: boolean
@@ -768,6 +770,7 @@ export type Database = {
           sample_result: string | null
           service_code: string | null
           service_type: string
+          silver_price: number | null
           sort_order: number
           stock_group_id: string | null
           success_rules: Json | null
@@ -786,6 +789,8 @@ export type Database = {
           custom_fields?: Json
           delivery_time?: string
           description?: string | null
+          diamond_price?: number | null
+          gold_price?: number | null
           id?: string
           input_allow_alpha?: boolean
           input_allow_bulk?: boolean
@@ -804,6 +809,7 @@ export type Database = {
           sample_result?: string | null
           service_code?: string | null
           service_type?: string
+          silver_price?: number | null
           sort_order?: number
           stock_group_id?: string | null
           success_rules?: Json | null
@@ -822,6 +828,8 @@ export type Database = {
           custom_fields?: Json
           delivery_time?: string
           description?: string | null
+          diamond_price?: number | null
+          gold_price?: number | null
           id?: string
           input_allow_alpha?: boolean
           input_allow_bulk?: boolean
@@ -840,6 +848,7 @@ export type Database = {
           sample_result?: string | null
           service_code?: string | null
           service_type?: string
+          silver_price?: number | null
           sort_order?: number
           stock_group_id?: string | null
           success_rules?: Json | null
@@ -1414,6 +1423,8 @@ export type Database = {
           custom_fields: Json | null
           delivery_time: string | null
           description: string | null
+          diamond_price: number | null
+          gold_price: number | null
           id: string | null
           input_allow_alpha: boolean | null
           input_allow_bulk: boolean | null
@@ -1432,6 +1443,7 @@ export type Database = {
           sample_result: string | null
           service_code: string | null
           service_type: string | null
+          silver_price: number | null
           sort_order: number | null
           updated_at: string | null
         }
