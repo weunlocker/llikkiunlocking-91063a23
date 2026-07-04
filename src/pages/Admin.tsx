@@ -2433,7 +2433,7 @@ function AdminGroups() {
             className={`glass rounded-xl p-4 text-left transition-all hover:border-primary/40 ${filter === g.key ? "ring-2 ring-primary" : ""}`}>
             <div className={`text-xs font-bold uppercase tracking-wider ${g.tone}`}>{g.label}</div>
             <div className="text-2xl font-bold mt-1">{counts[g.key] ?? 0} <span className="text-xs text-muted-foreground font-normal">users</span></div>
-            <div className="text-xs text-muted-foreground mt-1">{g.discount > 0 ? `−${g.discount * 100}% on every service` : "Full price"}</div>
+            <div className="text-xs text-muted-foreground mt-1">{g.note}</div>
           </button>
         ))}
       </div>
