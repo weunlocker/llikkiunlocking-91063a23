@@ -28,7 +28,7 @@ export type EditableUser = {
   custom_message?: string | null;
 };
 
-type Service = { id: string; service_code: string | null; name: string; price: number; category: string | null; active: boolean };
+type Service = { id: string; service_code: string | null; name: string; price: number; silver_price: number | null; gold_price: number | null; diamond_price: number | null; category: string | null; active: boolean };
 type Override = { service_id: string; enabled: boolean; custom_price: number | null };
 export type UserOrderRow = {
   id: string;
@@ -42,8 +42,6 @@ export type UserOrderRow = {
   error_message: string | null;
   service_name?: string;
 };
-
-const GROUP_DISCOUNT: Record<string, number> = { standard: 0, silver: 0.10, gold: 0.30, diamond: 0.50 };
 
 const statusColor = (s: string) => ({ completed: "text-success", failed: "text-destructive", refunded: "text-warning", pending: "text-muted-foreground", in_process: "text-primary" } as Record<string, string>)[s] ?? "";
 
