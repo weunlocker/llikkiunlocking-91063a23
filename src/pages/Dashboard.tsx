@@ -210,7 +210,7 @@ export default function Dashboard() {
         grp === "diamond" && s.diamond_price != null ? Number(s.diamond_price) :
         Number(s.price);
       const price = ov?.custom_price != null ? Number(ov.custom_price) : +groupPrice.toFixed(2);
-      return { ...s, price } as Service;
+      return { ...s, price } as unknown as Service;
     });
     setOrders((o ?? []) as unknown as Order[]);
     setTxs((t ?? []) as Tx[]);
