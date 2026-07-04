@@ -259,8 +259,9 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
                   {filteredSvcs.map((s) => {
                     const ov = overrides[s.id];
                     const enabled = ov?.enabled ?? true;
-                    const groupPrice = +(Number(s.price) * (1 - discount)).toFixed(2);
+                    const groupPrice = +groupPriceFor(s).toFixed(2);
                     const effective = ov?.custom_price != null ? Number(ov.custom_price) : groupPrice;
+                    const hasGroupPrice = groupPrice !== Number(s.price);
                     return (
                       <div key={s.id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3">
                         <div className="flex-1 min-w-0">
@@ -268,7 +269,7 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
                           <div className="text-xs text-muted-foreground">
                             {s.service_code && <span className="font-mono mr-2">#{s.service_code}</span>}
                             <span>Base ${Number(s.price).toFixed(2)}</span>
-                            {discount > 0 && <span className="ml-2">→ Group ${groupPrice.toFixed(2)}</span>}
+                            {hasGroupPrice && <span className="ml-2">→ {grp} ${groupPrice.toFixed(2)}</span>}
                             <span className="ml-2 text-success">Effective ${effective.toFixed(2)}</span>
                           </div>
                         </div>
