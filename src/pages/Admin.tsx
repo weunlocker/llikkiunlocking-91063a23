@@ -2426,7 +2426,7 @@ function AdminGroups() {
   const visible = users.filter((u) => filter === "all" || (u.user_group ?? "standard").toLowerCase() === filter);
 
   return (
-    <AdminLayout title="Client Groups" subtitle="Pricing tiers — discounts apply automatically to base service prices">
+    <AdminLayout title="Client Groups" subtitle="Pricing tiers — set each group's price manually per service in Service Edit">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {GROUPS_META.map((g) => (
           <button key={g.key} type="button" onClick={() => setFilter(g.key)}
