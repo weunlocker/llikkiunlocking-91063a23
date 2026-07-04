@@ -21,7 +21,9 @@ type StockGroup = { id: string; name: string };
 type SupplierService = { action_code: string; name: string; credit: number | null; delivery_time: string | null; service_type?: "imei" | "server"; fields?: CustomField[] };
 
 const emptyService: Service = {
-  name: "", description: "", price: 0, delivery_time: "Instant",
+  name: "", description: "", price: 0,
+  silver_price: null, gold_price: null, diamond_price: null,
+  delivery_time: "Instant",
   api_url: "", api_method: "GET", api_request_body: "", response_template: "",
   sample_result: "", result_font: "mono", result_color: "#e2e8f0",
   active: true, is_free: false, category: "general",
