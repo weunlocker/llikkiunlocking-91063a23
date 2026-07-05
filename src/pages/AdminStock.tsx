@@ -38,6 +38,7 @@ export default function AdminStock() {
   // Add stock state
   const [addGroup, setAddGroup] = useState<string>("");
   const [addText, setAddText] = useState("");
+  const [allowDupes, setAllowDupes] = useState(false);
   const [adding, setAdding] = useState(false);
 
   // Group dialog
@@ -107,10 +108,25 @@ export default function AdminStock() {
 
   const addStock = async () => {
     if (!addGroup) { toast.error("Pick a group"); return; }
-    const keys = Array.from(new Set(addText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)));
-    if (!keys.length) { toast.error("Paste at least one key (one per line)"); return; }
+    const raw = addText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (!raw.length) { toast.error("Paste at least one key (one per line)"); return; }
+    let keys = raw;
+    let skippedDupes = 0;
+    if (!allowDupes) {
+      // Dedupe within paste
+      const unique = Array.from(new Set(raw));
+      // Skip keys already in this group
+      const { data: existing } = await supabase
+        .from("stock_items")
+        .select("license_key")
+        .eq("group_id", addGroup)
+        .in("license_key", unique);
+      const existSet = new Set((existing ?? []).map((r: { license_key: string }) => r.license_key));
+      keys = unique.filter((k) => !existSet.has(k));
+      skippedDupes = raw.length - keys.length;
+    }
+    if (!keys.length) { toast.error(`All ${raw.length} keys already exist in this group`); return; }
     setAdding(true);
-    // Insert in chunks so any quantity works (avoids payload/timeout limits)
     const CHUNK = 500;
     let inserted = 0;
     for (let i = 0; i < keys.length; i += CHUNK) {
@@ -125,7 +141,7 @@ export default function AdminStock() {
       inserted += rows.length;
     }
     setAdding(false);
-    toast.success(`Added ${inserted} key${inserted === 1 ? "" : "s"}`);
+    toast.success(`Added ${inserted} key${inserted === 1 ? "" : "s"}${skippedDupes ? ` — skipped ${skippedDupes} duplicate${skippedDupes === 1 ? "" : "s"}` : ""}`);
     setAddText("");
     if (addGroup === selectedGroup) loadItems();
   };
@@ -259,6 +275,15 @@ export default function AdminStock() {
               {addText.split("\n").map((l) => l.trim()).filter(Boolean).length} key(s) ready to add
             </p>
           </div>
+          <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allowDupes}
+              onChange={(e) => setAllowDupes(e.target.checked)}
+              className="w-4 h-4 accent-primary"
+            />
+            Allow duplicates (add keys even if they already exist in this group)
+          </label>
           <Button variant="hero" onClick={addStock} disabled={adding}>
             {adding && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
             <Plus className="w-4 h-4 mr-1" /> Add to Stock
