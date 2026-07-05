@@ -38,6 +38,7 @@ export default function AdminStock() {
   // Add stock state
   const [addGroup, setAddGroup] = useState<string>("");
   const [addText, setAddText] = useState("");
+  const [allowDupes, setAllowDupes] = useState(false);
   const [adding, setAdding] = useState(false);
 
   // Group dialog
