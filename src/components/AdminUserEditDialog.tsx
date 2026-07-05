@@ -275,7 +275,7 @@ export default function AdminUserEditDialog({ user, onClose, onSaved, onEditOrde
                         </div>
                         <div className="flex items-center gap-2">
                           <Input
-                            type="number" step="0.01" placeholder="Custom $"
+                            type="number" step="0.001" placeholder="Custom $"
                             className="w-28"
                             value={ov?.custom_price ?? ""}
                             onChange={(e) => {

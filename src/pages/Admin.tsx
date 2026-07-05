@@ -339,7 +339,7 @@ function AdminUsers() {
           <DialogHeader><DialogTitle>Refill Balance — {creditUser?.email}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">Current: <span className="font-mono font-bold">${Number(creditUser?.balance ?? 0).toFixed(2)}</span></p>
-            <div><Label>Amount (USD)</Label><Input type="number" step="0.01" value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)} /></div>
+            <div><Label>Amount (USD)</Label><Input type="number" step="0.001" value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)} /></div>
             <div className="flex gap-2">
               <Button variant="hero" className="flex-1" disabled={!!creditBusy} onClick={() => adjustCredit(Number(creditAmount))}>
                 {creditBusy === "add" ? <><Loader2 className="w-4 h-4 animate-spin" /> Adding…</> : "+ Add Credit"}
@@ -790,7 +790,7 @@ function AdminServices() {
                 <Textarea value={editing.description ?? ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} maxLength={500} />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Price (USD)</Label><Input type="number" step="0.01" value={editing.price ?? 0} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} /></div>
+                <div><Label>Price (USD)</Label><Input type="number" step="0.001" value={editing.price ?? 0} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} /></div>
                 <div>
                   <Label>Delivery Time</Label>
                   {(() => {
@@ -835,19 +835,19 @@ function AdminServices() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <Label className="text-xs text-slate-300">Silver price</Label>
-                    <Input type="number" step="0.01" placeholder="Default"
+                    <Input type="number" step="0.001" placeholder="Default"
                       value={editing.silver_price ?? ""}
                       onChange={(e) => setEditing({ ...editing, silver_price: e.target.value === "" ? null : Number(e.target.value) })} />
                   </div>
                   <div>
                     <Label className="text-xs text-yellow-400">Gold price</Label>
-                    <Input type="number" step="0.01" placeholder="Default"
+                    <Input type="number" step="0.001" placeholder="Default"
                       value={editing.gold_price ?? ""}
                       onChange={(e) => setEditing({ ...editing, gold_price: e.target.value === "" ? null : Number(e.target.value) })} />
                   </div>
                   <div>
                     <Label className="text-xs text-cyan-300">Diamond price</Label>
-                    <Input type="number" step="0.01" placeholder="Default"
+                    <Input type="number" step="0.001" placeholder="Default"
                       value={editing.diamond_price ?? ""}
                       onChange={(e) => setEditing({ ...editing, diamond_price: e.target.value === "" ? null : Number(e.target.value) })} />
                   </div>

@@ -268,7 +268,7 @@ export default function AdminServiceEdit() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label>Price (USD)</Label>
-                  <Input type="number" step="0.01" value={service.price ?? 0} onChange={(e) => update({ price: Number(e.target.value) })} />
+                  <Input type="number" step="0.001" value={service.price ?? 0} onChange={(e) => update({ price: Number(e.target.value) })} />
                   {apiOriginalPrice != null && (
                     <p className="text-xs text-muted-foreground mt-1 font-mono">
                       API original: {Number(apiOriginalPrice).toFixed(3)} credit
@@ -305,17 +305,17 @@ export default function AdminServiceEdit() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <Label className="text-xs text-slate-300">Silver price</Label>
-                    <Input type="number" step="0.01" placeholder="Default" value={priceNum(service.silver_price)}
+                    <Input type="number" step="0.001" placeholder="Default" value={priceNum(service.silver_price)}
                       onChange={(e) => update({ silver_price: e.target.value === "" ? null : Number(e.target.value) })} />
                   </div>
                   <div>
                     <Label className="text-xs text-yellow-400">Gold price</Label>
-                    <Input type="number" step="0.01" placeholder="Default" value={priceNum(service.gold_price)}
+                    <Input type="number" step="0.001" placeholder="Default" value={priceNum(service.gold_price)}
                       onChange={(e) => update({ gold_price: e.target.value === "" ? null : Number(e.target.value) })} />
                   </div>
                   <div>
                     <Label className="text-xs text-cyan-300">Diamond price</Label>
-                    <Input type="number" step="0.01" placeholder="Default" value={priceNum(service.diamond_price)}
+                    <Input type="number" step="0.001" placeholder="Default" value={priceNum(service.diamond_price)}
                       onChange={(e) => update({ diamond_price: e.target.value === "" ? null : Number(e.target.value) })} />
                   </div>
                 </div>
