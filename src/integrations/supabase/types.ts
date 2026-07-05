@@ -1420,48 +1420,90 @@ export type Database = {
           active: boolean | null
           category: string | null
           created_at: string | null
+          custom_fields: Json | null
           delivery_time: string | null
           description: string | null
           diamond_price: number | null
           gold_price: number | null
           id: string | null
+          input_allow_alpha: boolean | null
+          input_allow_bulk: boolean | null
+          input_info: string | null
+          input_label: string | null
+          input_max_length: number | null
+          input_min_length: number | null
+          input_mode: string | null
+          input_regex: string | null
           is_free: boolean | null
           name: string | null
           price: number | null
+          result_color: string | null
+          result_font: string | null
+          sample_result: string | null
           service_code: string | null
+          service_type: string | null
           silver_price: number | null
+          sort_order: number | null
           updated_at: string | null
         }
         Insert: {
           active?: boolean | null
           category?: string | null
           created_at?: string | null
+          custom_fields?: Json | null
           delivery_time?: string | null
           description?: string | null
           diamond_price?: number | null
           gold_price?: number | null
           id?: string | null
+          input_allow_alpha?: boolean | null
+          input_allow_bulk?: boolean | null
+          input_info?: string | null
+          input_label?: string | null
+          input_max_length?: number | null
+          input_min_length?: number | null
+          input_mode?: string | null
+          input_regex?: string | null
           is_free?: boolean | null
           name?: string | null
           price?: number | null
+          result_color?: string | null
+          result_font?: string | null
+          sample_result?: string | null
           service_code?: string | null
+          service_type?: string | null
           silver_price?: number | null
+          sort_order?: number | null
           updated_at?: string | null
         }
         Update: {
           active?: boolean | null
           category?: string | null
           created_at?: string | null
+          custom_fields?: Json | null
           delivery_time?: string | null
           description?: string | null
           diamond_price?: number | null
           gold_price?: number | null
           id?: string | null
+          input_allow_alpha?: boolean | null
+          input_allow_bulk?: boolean | null
+          input_info?: string | null
+          input_label?: string | null
+          input_max_length?: number | null
+          input_min_length?: number | null
+          input_mode?: string | null
+          input_regex?: string | null
           is_free?: boolean | null
           name?: string | null
           price?: number | null
+          result_color?: string | null
+          result_font?: string | null
+          sample_result?: string | null
           service_code?: string | null
+          service_type?: string | null
           silver_price?: number | null
+          sort_order?: number | null
           updated_at?: string | null
         }
         Relationships: []
