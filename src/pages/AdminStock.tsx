@@ -275,6 +275,15 @@ export default function AdminStock() {
               {addText.split("\n").map((l) => l.trim()).filter(Boolean).length} key(s) ready to add
             </p>
           </div>
+          <label className="flex items-center gap-2 text-sm select-none cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allowDupes}
+              onChange={(e) => setAllowDupes(e.target.checked)}
+              className="w-4 h-4 accent-primary"
+            />
+            Allow duplicates (add keys even if they already exist in this group)
+          </label>
           <Button variant="hero" onClick={addStock} disabled={adding}>
             {adding && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
             <Plus className="w-4 h-4 mr-1" /> Add to Stock
