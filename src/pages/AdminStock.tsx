@@ -60,7 +60,7 @@ export default function AdminStock() {
       .select("*")
       .eq("group_id", selectedGroup)
       .order("created_at", { ascending: false })
-      .limit(2000);
+      .limit(10000);
     const rows = (data ?? []) as Item[];
     setItems(rows);
     // Fetch order numbers for sold items
