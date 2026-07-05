@@ -60,7 +60,7 @@ export default function AdminStock() {
       .select("*")
       .eq("group_id", selectedGroup)
       .order("created_at", { ascending: false })
-      .limit(2000);
+      .limit(10000);
     const rows = (data ?? []) as Item[];
     setItems(rows);
     // Fetch order numbers for sold items
@@ -107,14 +107,25 @@ export default function AdminStock() {
 
   const addStock = async () => {
     if (!addGroup) { toast.error("Pick a group"); return; }
-    const keys = addText.split("\n").map((l) => l.trim()).filter(Boolean);
+    const keys = Array.from(new Set(addText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)));
     if (!keys.length) { toast.error("Paste at least one key (one per line)"); return; }
     setAdding(true);
-    const rows = keys.map((k) => ({ group_id: addGroup, license_key: k }));
-    const { error } = await supabase.from("stock_items").insert(rows);
+    // Insert in chunks so any quantity works (avoids payload/timeout limits)
+    const CHUNK = 500;
+    let inserted = 0;
+    for (let i = 0; i < keys.length; i += CHUNK) {
+      const rows = keys.slice(i, i + CHUNK).map((k) => ({ group_id: addGroup, license_key: k }));
+      const { error } = await supabase.from("stock_items").insert(rows);
+      if (error) {
+        setAdding(false);
+        toast.error(`${error.message} (added ${inserted}/${keys.length})`);
+        if (addGroup === selectedGroup) loadItems();
+        return;
+      }
+      inserted += rows.length;
+    }
     setAdding(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success(`Added ${rows.length} key${rows.length === 1 ? "" : "s"}`);
+    toast.success(`Added ${inserted} key${inserted === 1 ? "" : "s"}`);
     setAddText("");
     if (addGroup === selectedGroup) loadItems();
   };
