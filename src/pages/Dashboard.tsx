@@ -522,7 +522,7 @@ export default function Dashboard() {
                                 <h3 className="font-bold mb-1 hover:text-primary transition-colors line-clamp-2" title={s.name}>{s.name}</h3>
                                 <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2" title={s.description ?? undefined}>{s.description}</p>
                                 <div className="flex items-center justify-between gap-2">
-                                  <div className="text-xl font-bold font-mono">${Number(s.price).toFixed(2)}</div>
+                                  <div className="text-xl font-bold font-mono">${(() => { const str = Number(s.price).toFixed(3); return str.endsWith('0') ? str.slice(0,-1) : str; })()}</div>
                                   <Button variant="neon" size="sm" onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
                                 </div>
                               </button>
