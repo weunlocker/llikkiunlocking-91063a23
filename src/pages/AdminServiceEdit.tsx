@@ -98,10 +98,11 @@ export default function AdminServiceEdit() {
 
   const save = async () => {
     const usingSupplier = !!service.supplier_id;
+    const usingStock = !!service.stock_group_id;
     const parsed = serviceSchema.safeParse({
       name: service.name, description: service.description, price: Number(service.price),
       delivery_time: service.delivery_time,
-      api_url: usingSupplier ? (service.api_url || "https://supplier.local") : service.api_url,
+      api_url: (usingSupplier || usingStock) ? (service.api_url || "https://supplier.local") : (service.api_url ?? ""),
       api_method: service.api_method, category: service.category, active: service.active,
     });
     if (!parsed.success) { toast.error(parsed.error.errors[0].message); return; }
