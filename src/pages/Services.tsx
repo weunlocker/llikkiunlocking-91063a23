@@ -70,7 +70,7 @@ export default function Services() {
           provider: { "@type": "Organization", name: "LIKKI UNLOCKING" },
           offers: {
             "@type": "Offer",
-            price: Number(s.price).toFixed(2),
+            price: (() => { const str = Number(s.price).toFixed(3); return str.endsWith('0') ? str.slice(0,-1) : str; })(),
             priceCurrency: "USD",
             availability: "https://schema.org/InStock",
           },

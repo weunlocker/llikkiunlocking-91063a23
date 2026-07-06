@@ -209,7 +209,7 @@ export default function Dashboard() {
         grp === "gold" && s.gold_price != null ? Number(s.gold_price) :
         grp === "diamond" && s.diamond_price != null ? Number(s.diamond_price) :
         Number(s.price);
-      const price = ov?.custom_price != null ? Number(ov.custom_price) : +groupPrice.toFixed(2);
+      const price = ov?.custom_price != null ? Number(ov.custom_price) : groupPrice;
       return { ...s, price } as unknown as Service;
     });
     setOrders((o ?? []) as unknown as Order[]);
@@ -501,7 +501,7 @@ export default function Dashboard() {
                                   {s.description && <div className="text-xs text-muted-foreground truncate" title={s.description}>{s.description}</div>}
                                 </div>
                                 <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground shrink-0"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
-                                <div className="text-base font-bold font-mono shrink-0">${Number(s.price).toFixed(2)}</div>
+                                <div className="text-base font-bold font-mono shrink-0">${(() => { const str = Number(s.price).toFixed(3); return str.endsWith('0') ? str.slice(0,-1) : str; })()}</div>
                                 <Button variant="neon" size="sm" className="shrink-0" onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check</Button>
                               </button>
                             ))}
@@ -522,7 +522,7 @@ export default function Dashboard() {
                                 <h3 className="font-bold mb-1 hover:text-primary transition-colors line-clamp-2" title={s.name}>{s.name}</h3>
                                 <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-2" title={s.description ?? undefined}>{s.description}</p>
                                 <div className="flex items-center justify-between gap-2">
-                                  <div className="text-xl font-bold font-mono">${Number(s.price).toFixed(2)}</div>
+                                  <div className="text-xl font-bold font-mono">${(() => { const str = Number(s.price).toFixed(3); return str.endsWith('0') ? str.slice(0,-1) : str; })()}</div>
                                   <Button variant="neon" size="sm" onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check IMEI</Button>
                                 </div>
                               </button>

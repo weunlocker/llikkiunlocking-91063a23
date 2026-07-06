@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ALTER COLUMN price_charged TYPE numeric(12,4);
