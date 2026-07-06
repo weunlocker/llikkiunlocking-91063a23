@@ -113,7 +113,7 @@ export default function AdminServiceEdit() {
       gold_price: service.gold_price == null || Number.isNaN(Number(service.gold_price)) ? null : Number(service.gold_price),
       diamond_price: service.diamond_price == null || Number.isNaN(Number(service.diamond_price)) ? null : Number(service.diamond_price),
       delivery_time: parsed.data.delivery_time,
-      api_url: usingSupplier ? null : (parsed.data.api_url || null),
+      api_url: (usingSupplier || usingStock) ? null : (parsed.data.api_url || null),
       api_method: parsed.data.api_method,
       api_request_body: service.api_request_body ?? null,
       category: parsed.data.category ?? "general",
