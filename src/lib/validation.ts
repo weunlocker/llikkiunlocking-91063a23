@@ -3,7 +3,7 @@ import { z } from "zod";
 export const emailSchema = z.string().trim().email("Invalid email").max(255);
 export const passwordSchema = z.string().min(8, "At least 8 characters").max(72);
 export const displayNameSchema = z.string().trim().min(2, "At least 2 characters").max(50);
-export const imeiSchema = z.string().trim().regex(/^[A-Za-z0-9]{8,20}$/, "IMEI must be 8-20 alphanumeric characters");
+export const imeiSchema = z.string().trim().regex(/^[A-Za-z0-9-]{2,25}$/, "IMEI/Serial must be 2-25 alphanumeric characters");
 
 export const registerSchema = z.object({
   email: emailSchema,
