@@ -501,7 +501,7 @@ export default function Dashboard() {
                                   {s.description && <div className="text-xs text-muted-foreground truncate" title={s.description}>{s.description}</div>}
                                 </div>
                                 <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground shrink-0"><Clock className="w-3 h-3" /> {s.delivery_time}</div>
-                                <div className="text-base font-bold font-mono shrink-0">${Number(s.price).toFixed(2)}</div>
+                                <div className="text-base font-bold font-mono shrink-0">${(() => { const s = Number(s.price).toFixed(3); return s.endsWith('0') ? s.slice(0,-1) : s; })()}</div>
                                 <Button variant="neon" size="sm" className="shrink-0" onClick={(e) => { e.stopPropagation(); openCheck(s); }}>Check</Button>
                               </button>
                             ))}
