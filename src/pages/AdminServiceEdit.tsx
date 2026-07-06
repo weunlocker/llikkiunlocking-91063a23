@@ -307,18 +307,18 @@ export default function AdminServiceEdit() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <Label className="text-xs text-slate-300">Silver price</Label>
-                    <Input type="number" step="0.001" placeholder="Default" value={priceNum(service.silver_price)}
-                      onChange={(e) => update({ silver_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                    <PriceInput allowEmpty placeholder="Default" value={service.silver_price}
+                      onChange={(v) => update({ silver_price: v })} />
                   </div>
                   <div>
                     <Label className="text-xs text-yellow-400">Gold price</Label>
-                    <Input type="number" step="0.001" placeholder="Default" value={priceNum(service.gold_price)}
-                      onChange={(e) => update({ gold_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                    <PriceInput allowEmpty placeholder="Default" value={service.gold_price}
+                      onChange={(v) => update({ gold_price: v })} />
                   </div>
                   <div>
                     <Label className="text-xs text-cyan-300">Diamond price</Label>
-                    <Input type="number" step="0.001" placeholder="Default" value={priceNum(service.diamond_price)}
-                      onChange={(e) => update({ diamond_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                    <PriceInput allowEmpty placeholder="Default" value={service.diamond_price}
+                      onChange={(v) => update({ diamond_price: v })} />
                   </div>
                 </div>
               </div>
