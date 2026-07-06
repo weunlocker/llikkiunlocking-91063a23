@@ -12,6 +12,7 @@ import { Loader2, Plus, Trash2, ArrowLeft, Save, Sparkles, ChevronDown, ChevronU
 import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 import type { CustomField } from "@/pages/Admin";
+import { PriceInput } from "@/components/PriceInput";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
 type Service = { id?: string; service_code?: string | null; name: string; description: string | null; price: number; silver_price: number | null; gold_price: number | null; diamond_price: number | null; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; stock_group_id: string | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
@@ -269,7 +270,7 @@ export default function AdminServiceEdit() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label>Price (USD)</Label>
-                  <Input type="number" step="0.001" value={service.price ?? 0} onChange={(e) => update({ price: Number(e.target.value) })} />
+                  <PriceInput value={service.price ?? 0} onChange={(v) => update({ price: v ?? 0 })} />
                   {apiOriginalPrice != null && (
                     <p className="text-xs text-muted-foreground mt-1 font-mono">
                       API original: {Number(apiOriginalPrice).toFixed(3)} credit
@@ -306,18 +307,18 @@ export default function AdminServiceEdit() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <Label className="text-xs text-slate-300">Silver price</Label>
-                    <Input type="number" step="0.001" placeholder="Default" value={priceNum(service.silver_price)}
-                      onChange={(e) => update({ silver_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                    <PriceInput allowEmpty placeholder="Default" value={service.silver_price}
+                      onChange={(v) => update({ silver_price: v })} />
                   </div>
                   <div>
                     <Label className="text-xs text-yellow-400">Gold price</Label>
-                    <Input type="number" step="0.001" placeholder="Default" value={priceNum(service.gold_price)}
-                      onChange={(e) => update({ gold_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                    <PriceInput allowEmpty placeholder="Default" value={service.gold_price}
+                      onChange={(v) => update({ gold_price: v })} />
                   </div>
                   <div>
                     <Label className="text-xs text-cyan-300">Diamond price</Label>
-                    <Input type="number" step="0.001" placeholder="Default" value={priceNum(service.diamond_price)}
-                      onChange={(e) => update({ diamond_price: e.target.value === "" ? null : Number(e.target.value) })} />
+                    <PriceInput allowEmpty placeholder="Default" value={service.diamond_price}
+                      onChange={(v) => update({ diamond_price: v })} />
                   </div>
                 </div>
               </div>
