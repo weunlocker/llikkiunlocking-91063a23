@@ -12,6 +12,7 @@ import { Loader2, Plus, Trash2, ArrowLeft, Save, Sparkles, ChevronDown, ChevronU
 import { toast } from "sonner";
 import { serviceSchema } from "@/lib/validation";
 import type { CustomField } from "@/pages/Admin";
+import { PriceInput } from "@/components/PriceInput";
 
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
 type Service = { id?: string; service_code?: string | null; name: string; description: string | null; price: number; silver_price: number | null; gold_price: number | null; diamond_price: number | null; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; stock_group_id: string | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
