@@ -209,7 +209,7 @@ export default function Dashboard() {
         grp === "gold" && s.gold_price != null ? Number(s.gold_price) :
         grp === "diamond" && s.diamond_price != null ? Number(s.diamond_price) :
         Number(s.price);
-      const price = ov?.custom_price != null ? Number(ov.custom_price) : +groupPrice.toFixed(2);
+      const price = ov?.custom_price != null ? Number(ov.custom_price) : groupPrice;
       return { ...s, price } as unknown as Service;
     });
     setOrders((o ?? []) as unknown as Order[]);
