@@ -270,7 +270,7 @@ export default function AdminServiceEdit() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <Label>Price (USD)</Label>
-                  <Input type="number" step="0.001" value={service.price ?? 0} onChange={(e) => update({ price: Number(e.target.value) })} />
+                  <PriceInput value={service.price ?? 0} onChange={(v) => update({ price: v ?? 0 })} />
                   {apiOriginalPrice != null && (
                     <p className="text-xs text-muted-foreground mt-1 font-mono">
                       API original: {Number(apiOriginalPrice).toFixed(3)} credit
