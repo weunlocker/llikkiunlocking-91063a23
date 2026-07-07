@@ -24,7 +24,8 @@ const ServiceUpdateEmail = ({ name, kind, serviceName, oldPrice, newPrice, servi
   return (
     <EmailShell preview={heading}>
       <span style={{ ...styles.badge, background: badgeColor, color: '#0a6b22' }}>{badgeText}</span>
-      <Heading style={{ ...styles.h1, marginTop: 12 }}>Hi{name ? ` ${name}` : ''}, {heading}</Heading>
+      <Text style={{ ...styles.text, marginTop: 12, marginBottom: 4 }}>Hi{name ? ` ${name}` : ''},</Text>
+      <Heading style={{ ...styles.h1, marginTop: 4 }}>{heading}</Heading>
       <Text style={styles.text}>
         {isNew
           ? `We've added a new service on ${BRAND.name}. Check it out below.`
