@@ -347,7 +347,7 @@ async function runUpstream(ctx: PlacementCtx) {
             params.set("imei", imei);
           }
           init.body = params.toString();
-        } else if (supplier.type === "ifree") {
+        } else if (supplier.type === "ifree" || supplier.type === "iunlocking") {
           init.method = "POST";
           headers["Content-Type"] = "application/x-www-form-urlencoded";
           const params = new URLSearchParams();
@@ -355,6 +355,9 @@ async function runUpstream(ctx: PlacementCtx) {
           params.set("imei", imei);
           params.set("key", String(supplier.dhru_api_key ?? ""));
           init.body = params.toString();
+          if (supplier.type === "iunlocking" && !/\/api\//i.test(url)) {
+            url = String(supplier.endpoint_url || "https://shop.iunlockingstore.com").replace(/\/+$/, "") + "/api/service";
+          }
         } else if (supplier.type === "goimeicheck") {
           // GoIMEICheck place-order endpoint (GET)
           // https://api.goimeicheck.com/api/place-order/?api_key=KEY&service=ID&imei=IMEI

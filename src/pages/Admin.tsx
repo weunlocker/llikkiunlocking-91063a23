@@ -24,7 +24,7 @@ import { extractResponse } from "@/lib/extractResponse";
 type SuccessRule = { path: string; op: "eq" | "neq" | "contains" | "not_contains" | "exists" | "truthy"; value?: string | number | boolean };
 export type CustomField = { name: string; label: string; type: string; required: boolean; default?: string; options?: string[] };
 type Service = { id: string; service_code: string | null; name: string; description: string | null; price: number; silver_price: number | null; gold_price: number | null; diamond_price: number | null; delivery_time: string; api_url: string | null; api_method: string; api_request_body: string | null; response_template: string | null; sample_result: string | null; result_font: string | null; result_color: string | null; active: boolean; is_free: boolean; category: string | null; success_rules: SuccessRule[] | null; supplier_id: string | null; supplier_action: string | null; sort_order: number | null; service_type?: "imei" | "server"; custom_fields?: CustomField[] };
-type Supplier = { id: string; name: string; type: "dhru" | "generic" | "ifree" | "goimeicheck"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
+type Supplier = { id: string; name: string; type: "dhru" | "generic" | "ifree" | "goimeicheck" | "iunlocking"; endpoint_url: string; dhru_username: string | null; dhru_api_key: string | null; active: boolean; notes: string | null };
 type ProfileRow = { id: string; email: string | null; display_name: string | null; balance: number; banned: boolean; created_at: string };
 type OrderRow = { id: string; order_number: number; user_id: string; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; services: { name: string; result_font?: string | null; supplier_id?: string | null; supplier_name?: string | null; api_url?: string | null } | null; profiles: { email: string | null; balance?: number | null } | null };
 type TxRow = { id: string; user_id: string; amount: number; type: string; balance_after: number; description: string | null; created_at: string; profiles?: { email: string | null } | null };
@@ -1862,6 +1862,9 @@ function AdminSuppliers() {
     if (editing.type === "goimeicheck" && !editing.dhru_api_key) {
       toast.error("GoIMEICheck suppliers need an API key"); return;
     }
+    if (editing.type === "iunlocking" && !editing.dhru_api_key) {
+      toast.error("iUnlockingStore suppliers need an API key"); return;
+    }
     const payload = {
       name: editing.name.trim(),
       type: editing.type ?? "dhru",
@@ -2005,9 +2008,10 @@ function AdminSuppliers() {
                 <div><Label>Name</Label><Input value={editing.name ?? ""} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="e.g. DHRU Main" maxLength={100} /></div>
                 <div><Label>Type</Label>
                   <Select value={editing.type ?? "dhru"} onValueChange={(v) => {
-                    const next = { ...editing, type: v as "dhru" | "generic" | "ifree" | "goimeicheck" };
+                    const next = { ...editing, type: v as "dhru" | "generic" | "ifree" | "goimeicheck" | "iunlocking" };
                     if (v === "ifree" && !editing.endpoint_url) next.endpoint_url = "https://api.ifreeicloud.co.uk";
                     if (v === "goimeicheck" && !editing.endpoint_url) next.endpoint_url = "https://api.goimeicheck.com";
+                    if (v === "iunlocking" && !editing.endpoint_url) next.endpoint_url = "https://shop.iunlockingstore.com/api/service";
                     setEditing(next);
                   }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -2015,6 +2019,7 @@ function AdminSuppliers() {
                       <SelectItem value="dhru">Dhru Fusion (action API)</SelectItem>
                       <SelectItem value="ifree">iFreeiCloud (instant API)</SelectItem>
                       <SelectItem value="goimeicheck">GoIMEICheck (instant + async)</SelectItem>
+                      <SelectItem value="iunlocking">iUnlockingStore (instant API)</SelectItem>
                       <SelectItem value="generic">Generic HTTP API</SelectItem>
                     </SelectContent>
                   </Select>
@@ -2023,7 +2028,7 @@ function AdminSuppliers() {
               <div>
                 <Label>Endpoint URL</Label>
                 <Input value={editing.endpoint_url ?? ""} onChange={(e) => setEditing({ ...editing, endpoint_url: e.target.value })}
-                  placeholder={editing.type === "dhru" ? "https://yoursupplier.com/api/index.php" : editing.type === "ifree" ? "https://api.ifreeicloud.co.uk" : editing.type === "goimeicheck" ? "https://api.goimeicheck.com" : "https://api.provider.com/check?imei={IMEI}&action={ACTION}"} />
+                  placeholder={editing.type === "dhru" ? "https://yoursupplier.com/api/index.php" : editing.type === "ifree" ? "https://api.ifreeicloud.co.uk" : editing.type === "goimeicheck" ? "https://api.goimeicheck.com" : editing.type === "iunlocking" ? "https://shop.iunlockingstore.com/api/service" : "https://api.provider.com/check?imei={IMEI}&action={ACTION}"} />
                 <p className="text-xs text-muted-foreground mt-1">
                   {editing.type === "dhru"
                     ? "Dhru API base URL (POST endpoint). Service code per service is set in the Service editor."
@@ -2031,7 +2036,9 @@ function AdminSuppliers() {
                       ? "iFreeiCloud endpoint. Per-service Service ID is set in the Service editor (Supplier action = numeric service ID)."
                       : editing.type === "goimeicheck"
                         ? "GoIMEICheck base URL. Per-service Service ID goes in the Service editor (Supplier action = numeric service ID)."
-                        : "Generic URL — supports {IMEI} and {ACTION} placeholders."}
+                        : editing.type === "iunlocking"
+                          ? "iUnlockingStore endpoint (POST). Per-service Service ID is set in the Service editor (Supplier action = numeric service ID, e.g. 400)."
+                          : "Generic URL — supports {IMEI} and {ACTION} placeholders."}
                 </p>
               </div>
               {editing.type === "dhru" && (
@@ -2045,6 +2052,9 @@ function AdminSuppliers() {
               )}
               {editing.type === "goimeicheck" && (
                 <div><Label>API Key</Label><Input type="password" value={editing.dhru_api_key ?? ""} onChange={(e) => setEditing({ ...editing, dhru_api_key: e.target.value })} placeholder="Your GoIMEICheck api_key" /></div>
+              )}
+              {editing.type === "iunlocking" && (
+                <div><Label>API Key</Label><Input type="password" value={editing.dhru_api_key ?? ""} onChange={(e) => setEditing({ ...editing, dhru_api_key: e.target.value })} placeholder="Your iUnlockingStore key (e.g. 7Q3-6TO-8G3-...)" /></div>
               )}
               <div><Label>Notes</Label><Textarea rows={2} value={editing.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} placeholder="Internal notes (rate limits, contact, etc.)" /></div>
               <div className="flex items-center gap-3"><Switch checked={editing.active ?? true} onCheckedChange={(v) => setEditing({ ...editing, active: v })} /><Label>Active</Label></div>
