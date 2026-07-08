@@ -44,12 +44,15 @@ function formatDuration(start: string, end: string, status: string): string {
   const s = new Date(start).getTime();
   const e = (status === "pending" || status === "processing") ? Date.now() : new Date(end).getTime();
   const ms = Math.max(0, e - s);
-  const sec = Math.floor(ms / 1000);
-  if (sec < 60) return `${sec}s`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ${sec % 60}s`;
-  const hr = Math.floor(min / 60);
-  return `${hr}h ${min % 60}m`;
+  const totalSec = Math.round(ms / 1000);
+  const day = Math.floor(totalSec / 86400);
+  const hr = Math.floor((totalSec % 86400) / 3600);
+  const min = Math.floor((totalSec % 3600) / 60);
+  const sec = totalSec % 60;
+  if (day > 0) return `${day} Day ${hr} Hour ${min} Min ${sec} Sec`;
+  if (hr > 0) return `${hr} Hour ${min} Min ${sec} Sec`;
+  if (min > 0) return `${min} Min ${sec} Sec`;
+  return `${sec} Sec`;
 }
 
 type Order = { id: string; order_number: number; imei: string; status: string; price_charged: number; result: string | null; error_message: string | null; created_at: string; updated_at: string; services: { name: string; category: string | null; delivery_time: string | null; result_font: string | null; result_color: string | null; service_type: string | null } | null };
