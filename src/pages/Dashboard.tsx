@@ -931,23 +931,59 @@ export default function Dashboard() {
       </Dialog>
 
       <Dialog open={!!orderDetail} onOpenChange={(o) => !o && setOrderDetail(null)}>
-        <DialogContent className="glass max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{orderDetail?.services?.name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div><span className="text-muted-foreground">Order ID:</span> <span className="font-mono">#{String(orderDetail?.order_number ?? 0).padStart(4, "0")}</span></div>
-              <div><span className="text-muted-foreground">IMEI:</span> <span className="font-mono">{orderDetail?.imei}</span></div>
-              <div><span className="text-muted-foreground">Status:</span> <StatusBadge status={orderDetail?.status ?? ""} errorMessage={sanitizeError(orderDetail?.error_message)} /></div>
-              <div><span className="text-muted-foreground">Charged:</span> <span className="font-mono">${Number(orderDetail?.price_charged ?? 0).toFixed(2)}</span></div>
-              <div><span className="text-muted-foreground">Delivery Time:</span> <span>{orderDetail?.services?.delivery_time ?? "—"}</span></div>
-              <div><span className="text-muted-foreground">Took:</span> <span>{orderDetail ? formatDuration(orderDetail.created_at, orderDetail.updated_at, orderDetail.status) : "—"}</span></div>
-              <div className="col-span-2"><span className="text-muted-foreground">Submitted:</span> <span>{orderDetail ? new Date(orderDetail.created_at).toLocaleString() : ""}</span></div>
+        <DialogContent className="glass max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+          <DialogHeader className="p-0">
+            <DialogTitle className="sr-only">{orderDetail?.services?.name}</DialogTitle>
+            <div className="rounded-t-lg bg-gradient-to-br from-primary/90 to-primary p-5 text-primary-foreground">
+              <div className="inline-flex items-center rounded-full border border-primary-foreground/30 bg-primary-foreground/10 px-3 py-1 text-xs font-semibold tracking-wide">
+                ORDER ID: #{String(orderDetail?.order_number ?? 0).padStart(4, "0")}
+              </div>
+              <div className="mt-3 text-xl font-bold leading-tight">{orderDetail?.services?.name}</div>
             </div>
+          </DialogHeader>
+          <div className="p-4 space-y-3">
+            <div className="rounded-lg border border-border overflow-hidden">
+              <div className="grid grid-cols-2 divide-x divide-border">
+                <div className="p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Amount</div>
+                  <div className="mt-1 text-lg font-bold font-mono">${Number(orderDetail?.price_charged ?? 0).toFixed(3)}</div>
+                </div>
+                <div className="p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Quantity</div>
+                  <div className="mt-1 text-lg font-bold">1</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 border-t border-border">
+                <div className="p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">IMEI</div>
+                  <div className="mt-1 text-base font-mono break-all">{orderDetail?.imei}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 divide-x divide-border border-t border-border">
+                <div className="p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Submitted On</div>
+                  <div className="mt-1 text-sm font-medium">{orderDetail ? new Date(orderDetail.created_at).toLocaleString() : "—"}</div>
+                </div>
+                <div className="p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Replied On</div>
+                  <div className="mt-1 text-sm font-medium">{orderDetail && (orderDetail.status === "completed" || orderDetail.status === "failed" || orderDetail.status === "rejected") ? new Date(orderDetail.updated_at).toLocaleString() : "—"}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 divide-x divide-border border-t border-border">
+                <div className="p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Replied In</div>
+                  <div className="mt-1 text-sm font-medium">{orderDetail ? formatDuration(orderDetail.created_at, orderDetail.updated_at, orderDetail.status) : "—"}</div>
+                </div>
+                <div className="p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Order Status</div>
+                  <div className="mt-1"><StatusBadge status={orderDetail?.status ?? ""} errorMessage={sanitizeError(orderDetail?.error_message)} /></div>
+                </div>
+              </div>
+            </div>
+
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="text-sm text-muted-foreground">Result</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Replied</div>
                 {(orderDetail?.result || orderDetail?.error_message) && (
                   <Button variant="outline" size="sm" onClick={async () => {
                     const txt = orderDetail?.result ? stripColorMarkers(hideSupplierRef(extractResponse(orderDetail.result))) : sanitizeError(orderDetail?.error_message);
@@ -964,7 +1000,7 @@ export default function Dashboard() {
                   }}>Copy</Button>
                 )}
               </div>
-              <div className="glass rounded p-4 text-[15px] leading-relaxed max-h-96 overflow-auto">
+              <div className="rounded-lg border border-border p-4 text-[15px] leading-relaxed max-h-96 overflow-auto">
                 {orderDetail?.result
                   ? <ColoredResult text={hideSupplierRef(extractResponse(orderDetail.result))} font={orderDetail.services?.result_font ?? undefined} />
                   : <pre className="font-mono text-sm whitespace-pre-wrap break-all">{sanitizeError(orderDetail?.error_message) || "No data"}</pre>}
