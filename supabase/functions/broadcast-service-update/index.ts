@@ -50,16 +50,20 @@ Deno.serve(async (req) => {
     const bodyLines: string[] = [];
 
     if (kind === "new") {
-      title = `🆕 New service available: ${svc.name}`;
+      title = `🆕 New service available:`;
+      bodyLines.push(svc.name);
+      bodyLines.push("");
       bodyLines.push(`Price: $${curPrice.toFixed(2)}`);
       text =
         `🆕 <b>New Service Available</b> 🎯\n\n` +
         `🛍️ <b>${escapeHtml(svc.name)}</b>\n` +
         `💰 Price: ${fmt(curPrice)}`;
     } else {
-      title = `💲 Price updated: ${svc.name}`;
+      title = `💲 Price updated:`;
       const decreased = old_price != null && curPrice < old_price;
       const trendLine = decreased ? `📉 Price decreased 🛒` : `📈 Price increased 🛒`;
+      bodyLines.push(svc.name);
+      bodyLines.push("");
       if (old_price != null) bodyLines.push(`Old price: $${old_price.toFixed(2)}`);
       bodyLines.push(`New price: $${curPrice.toFixed(2)}`);
       const oldLine = old_price != null ? `💵 Old Price: ${fmt(old_price)}\n` : "";
