@@ -21,13 +21,9 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: auth } } },
     );
-    let userId: string | undefined;
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-      if (payload?.exp && payload.exp * 1000 > Date.now()) userId = payload.sub;
-    } catch { /* ignore */ }
-    if (!userId) return json(401, { error: "Unauthorized" });
-    const user = { id: userId };
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) return json(401, { error: "Unauthorized" });
+    const user = { id: claimsData.claims.sub as string };
 
     const parsed = Body.safeParse(await req.json());
     if (!parsed.success) return json(400, { error: parsed.error.flatten().fieldErrors });
