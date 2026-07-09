@@ -306,12 +306,14 @@ async function runUpstream(ctx: PlacementCtx) {
     resultText = `Demo mode — no upstream API configured for "${service.name}".\nIMEI: ${imei}\nResult: simulated success.`;
     success = true;
   } else if (supplier && supplier.type === "dhru") {
-    // Dhru: do NOT place order instantly — cron worker will place it and poll.
+    // Dhru: mark queued, then immediately kick the poller so placement happens
+    // within ~1s instead of waiting up to 30s for the next cron tick.
     await supabase.from("orders").update({
-      result: "Queued — order will be placed with supplier shortly.",
+      result: "Queued — placing with supplier…",
     }).eq("id", order.id);
+    detach(supabase.functions.invoke("poll-dhru-orders", { body: {} }).then(() => {}));
     // Intentionally no client Telegram notification here — only success/rejected are sent.
-    return; // remain pending; cron will place + poll
+    return; // remain pending; cron will continue polling for status
 
 
   } else {
