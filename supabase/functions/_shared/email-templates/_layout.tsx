@@ -10,7 +10,7 @@ export const BRAND = {
   url: 'https://likkiunlocking.com',
   loginUrl: 'https://likkiunlocking.com/login',
   supportEmail: 'support@likkiunlocking.com',
-  logo: 'https://jhkumqyugvezfulkoine.supabase.co/storage/v1/object/public/branding/logo-1777796494624.png',
+  logo: 'https://jhkumqyugvezfulkoine.supabase.co/storage/v1/render/image/public/branding/logo-1777796494624.png?width=168&height=168&quality=80&resize=contain',
   primary: '#00B7FF',
   primaryDark: '#0096D6',
   text: '#0B1220',
