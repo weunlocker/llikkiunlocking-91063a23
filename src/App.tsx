@@ -16,6 +16,8 @@ import Home from "./pages/Home";
 
 const Services = lazy(() => import("./pages/Services"));
 const ServiceDetail = lazy(() => import("./pages/ServiceDetail"));
+const MdmBypass = lazy(() => import("./pages/MdmBypass"));
+const ImeiUnlock = lazy(() => import("./pages/ImeiUnlock"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const FreeCheck = lazy(() => import("./pages/FreeCheck"));
 const ApiDocs = lazy(() => import("./pages/ApiDocs"));
@@ -54,6 +56,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/services" element={<Services />} />
+            <Route path="/services/mdm-bypass" element={<MdmBypass />} />
+            <Route path="/services/imei-unlock" element={<ImeiUnlock />} />
             <Route path="/services/:slug" element={<ServiceDetail />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/free-check" element={<FreeCheck />} />
