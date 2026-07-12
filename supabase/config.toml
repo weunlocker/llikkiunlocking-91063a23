@@ -49,3 +49,5 @@ project_id = "jhkumqyugvezfulkoine"
     verify_jwt = false
   [functions.handle-email-suppression]
     verify_jwt = false
+  [functions.cashfree-webhook]
+    verify_jwt = false
