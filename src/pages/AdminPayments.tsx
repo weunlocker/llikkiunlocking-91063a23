@@ -103,6 +103,14 @@ export default function AdminPayments() {
       topup_amounts: s.topup_amounts,
       ask_admin_enabled: s.ask_admin_enabled,
       order_expiry_minutes: s.order_expiry_minutes,
+      cashfree_enabled: s.cashfree_enabled,
+      cashfree_env: s.cashfree_env,
+      cashfree_min_amount: s.cashfree_min_amount,
+      cashfree_usd_to_inr: s.cashfree_usd_to_inr,
+      cashfree_sandbox_app_id: s.cashfree_sandbox_app_id,
+      cashfree_sandbox_secret_key: s.cashfree_sandbox_secret_key,
+      cashfree_prod_app_id: s.cashfree_prod_app_id,
+      cashfree_prod_secret_key: s.cashfree_prod_secret_key,
     } as any);
     setSaving(false);
     if (error) toast.error(error.message); else toast.success("Saved");
