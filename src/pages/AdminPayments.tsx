@@ -21,6 +21,14 @@ type Settings = {
   topup_amounts: number[];
   ask_admin_enabled: boolean;
   order_expiry_minutes: number;
+  cashfree_enabled: boolean;
+  cashfree_env: string;
+  cashfree_min_amount: number;
+  cashfree_usd_to_inr: number;
+  cashfree_sandbox_app_id: string | null;
+  cashfree_sandbox_secret_key: string | null;
+  cashfree_prod_app_id: string | null;
+  cashfree_prod_secret_key: string | null;
 };
 
 const DEFAULT: Settings = {
@@ -28,6 +36,9 @@ const DEFAULT: Settings = {
   binance_pay_id: "", binance_qr_url: "", binance_coins: ["USDT"],
   binance_min_amount: 1, binance_poll_enabled: true, binance_last_polled_at: null,
   topup_amounts: [5, 10, 20, 30], ask_admin_enabled: true, order_expiry_minutes: 30,
+  cashfree_enabled: false, cashfree_env: "sandbox", cashfree_min_amount: 1, cashfree_usd_to_inr: 84,
+  cashfree_sandbox_app_id: "", cashfree_sandbox_secret_key: "",
+  cashfree_prod_app_id: "", cashfree_prod_secret_key: "",
 };
 
 const PLACEHOLDERS = [
@@ -63,6 +74,14 @@ export default function AdminPayments() {
           topup_amounts: Array.isArray(data.topup_amounts) ? (data.topup_amounts as number[]) : [5, 10, 20, 30],
           ask_admin_enabled: !!data.ask_admin_enabled,
           order_expiry_minutes: Number(data.order_expiry_minutes ?? 30),
+          cashfree_enabled: !!(data as any).cashfree_enabled,
+          cashfree_env: (data as any).cashfree_env ?? "sandbox",
+          cashfree_min_amount: Number((data as any).cashfree_min_amount ?? 1),
+          cashfree_usd_to_inr: Number((data as any).cashfree_usd_to_inr ?? 84),
+          cashfree_sandbox_app_id: (data as any).cashfree_sandbox_app_id ?? "",
+          cashfree_sandbox_secret_key: (data as any).cashfree_sandbox_secret_key ?? "",
+          cashfree_prod_app_id: (data as any).cashfree_prod_app_id ?? "",
+          cashfree_prod_secret_key: (data as any).cashfree_prod_secret_key ?? "",
         });
       }
       setLoading(false);
@@ -84,6 +103,14 @@ export default function AdminPayments() {
       topup_amounts: s.topup_amounts,
       ask_admin_enabled: s.ask_admin_enabled,
       order_expiry_minutes: s.order_expiry_minutes,
+      cashfree_enabled: s.cashfree_enabled,
+      cashfree_env: s.cashfree_env,
+      cashfree_min_amount: s.cashfree_min_amount,
+      cashfree_usd_to_inr: s.cashfree_usd_to_inr,
+      cashfree_sandbox_app_id: s.cashfree_sandbox_app_id,
+      cashfree_sandbox_secret_key: s.cashfree_sandbox_secret_key,
+      cashfree_prod_app_id: s.cashfree_prod_app_id,
+      cashfree_prod_secret_key: s.cashfree_prod_secret_key,
     } as any);
     setSaving(false);
     if (error) toast.error(error.message); else toast.success("Saved");
@@ -242,6 +269,87 @@ export default function AdminPayments() {
               <Input type="number" min="5" value={s.order_expiry_minutes}
                 onChange={(e) => setS({ ...s, order_expiry_minutes: Number(e.target.value) || 30 })} />
             </div>
+          </div>
+        </div>
+
+        {/* Cashfree */}
+        <div className="glass rounded-xl p-5 space-y-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-bold">Cashfree — India (UPI, Cards, Netbanking)</h2>
+            </div>
+            <Switch checked={s.cashfree_enabled} onCheckedChange={(v) => setS({ ...s, cashfree_enabled: v })} />
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Environment</Label>
+              <select
+                value={s.cashfree_env}
+                onChange={(e) => setS({ ...s, cashfree_env: e.target.value })}
+                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="sandbox">Sandbox (test)</option>
+                <option value="production">Production (live)</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Min Top-up (USD)</Label>
+              <Input type="number" min="1" step="0.5" value={s.cashfree_min_amount}
+                onChange={(e) => setS({ ...s, cashfree_min_amount: Number(e.target.value) || 1 })} />
+            </div>
+            <div className="space-y-2">
+              <Label>USD → INR Rate</Label>
+              <Input type="number" min="1" step="0.01" value={s.cashfree_usd_to_inr}
+                onChange={(e) => setS({ ...s, cashfree_usd_to_inr: Number(e.target.value) || 84 })} />
+              <p className="text-xs text-muted-foreground">Used to convert wallet USD amount to INR at checkout.</p>
+            </div>
+          </div>
+
+          <div className="border-t border-border/40 pt-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-warning" />
+              <h3 className="font-semibold text-sm">Sandbox Keys</h3>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Sandbox App ID</Label>
+                <Input value={s.cashfree_sandbox_app_id ?? ""}
+                  onChange={(e) => setS({ ...s, cashfree_sandbox_app_id: e.target.value })}
+                  placeholder="TEST..." className="font-mono" />
+              </div>
+              <div className="space-y-2">
+                <Label>Sandbox Secret Key</Label>
+                <Input type="password" value={s.cashfree_sandbox_secret_key ?? ""}
+                  onChange={(e) => setS({ ...s, cashfree_sandbox_secret_key: e.target.value })}
+                  placeholder="cfsk_ma_test_..." className="font-mono" />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-border/40 pt-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-destructive" />
+              <h3 className="font-semibold text-sm">Production Keys</h3>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Production App ID</Label>
+                <Input value={s.cashfree_prod_app_id ?? ""}
+                  onChange={(e) => setS({ ...s, cashfree_prod_app_id: e.target.value })}
+                  placeholder="Your live App ID" className="font-mono" />
+              </div>
+              <div className="space-y-2">
+                <Label>Production Secret Key</Label>
+                <Input type="password" value={s.cashfree_prod_secret_key ?? ""}
+                  onChange={(e) => setS({ ...s, cashfree_prod_secret_key: e.target.value })}
+                  placeholder="cfsk_ma_prod_..." className="font-mono" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Get your keys from <span className="font-mono">Cashfree Dashboard → Developers → API Keys</span>. Keep the environment switch on Sandbox until you've tested a full payment.
+            </p>
           </div>
         </div>
 
