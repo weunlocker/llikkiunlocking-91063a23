@@ -878,10 +878,20 @@ export default function Dashboard() {
                   Pay with Binance (USDT/Crypto)
                 </Button>
               )}
-              {!paySettings?.binance_enabled && (
+              {paySettings?.cashfree_enabled && (
+                <Button variant="outline" className="w-full" onClick={payWithCashfree} disabled={cashfreeLoading}>
+                  {cashfreeLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Pay with Cashfree (UPI / Card / Netbanking)
+                  <span className="ml-2 text-[11px] text-muted-foreground">
+                    ≈ ₹{(Number(topupAmount || 0) * (paySettings.cashfree_usd_to_inr ?? 0)).toFixed(0)}
+                  </span>
+                </Button>
+              )}
+              {!paySettings?.binance_enabled && !paySettings?.cashfree_enabled && (
                 <p className="text-xs text-muted-foreground text-center">No payment methods enabled — please contact admin.</p>
               )}
             </div>
+
 
             {paySettings?.ask_admin_enabled !== false && (
               <Button variant="neon" className="w-full" onClick={askAdmin}>
