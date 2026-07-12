@@ -264,6 +264,25 @@ export default function Dashboard() {
     setTopupOpen(false);
   };
 
+  const payWithCashfree = async () => {
+    const amt = Number(topupAmount);
+    if (!amt || amt < 1 || amt > 10000) { toast.error("Invalid amount"); return; }
+    if (!paySettings?.cashfree_enabled) { toast.error("Cashfree not available"); return; }
+    if (amt < (paySettings.cashfree_min_amount ?? 1)) { toast.error(`Minimum top-up is $${paySettings.cashfree_min_amount}`); return; }
+    setCashfreeLoading(true);
+    const { data, error } = await supabase.functions.invoke("cashfree-create-order", {
+      body: { amount: amt, return_origin: window.location.origin },
+    });
+    setCashfreeLoading(false);
+    if (error || !(data as any)?.ok || !(data as any)?.link_url) {
+      toast.error(error?.message || (data as any)?.error || "Failed to create Cashfree order");
+      return;
+    }
+    window.open((data as any).link_url, "_blank", "noopener,noreferrer");
+    setTopupOpen(false);
+    toast.success("Complete payment in the new tab. Your wallet will credit automatically.");
+  };
+
   // Poll the pending payment_orders row every 5s while the dialog is open
   useEffect(() => {
     if (!pay) return;
