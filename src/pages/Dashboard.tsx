@@ -122,7 +122,8 @@ export default function Dashboard() {
   };
   const [serviceView, setServiceView] = useState<"grid" | "list">(() => (localStorage.getItem("serviceView") as "grid" | "list") || "grid");
   useEffect(() => { localStorage.setItem("serviceView", serviceView); }, [serviceView]);
-  const [paySettings, setPaySettings] = useState<{ binance_enabled: boolean; topup_amounts: number[]; ask_admin_enabled: boolean } | null>(null);
+  const [paySettings, setPaySettings] = useState<{ binance_enabled: boolean; topup_amounts: number[]; ask_admin_enabled: boolean; cashfree_enabled: boolean; cashfree_min_amount: number; cashfree_usd_to_inr: number } | null>(null);
+  const [cashfreeLoading, setCashfreeLoading] = useState(false);
   const [supportUnread, setSupportUnread] = useState(0);
   useEffect(() => {
     if (!user) return;
@@ -148,6 +149,9 @@ export default function Dashboard() {
         binance_enabled: !!row.binance_enabled,
         topup_amounts: (row.topup_amounts as number[]) ?? [5,10,20,30],
         ask_admin_enabled: !!row.ask_admin_enabled,
+        cashfree_enabled: !!(row as any).cashfree_enabled,
+        cashfree_min_amount: Number((row as any).cashfree_min_amount ?? 1),
+        cashfree_usd_to_inr: Number((row as any).cashfree_usd_to_inr ?? 84),
       });
     });
   }, []);
