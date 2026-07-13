@@ -84,32 +84,32 @@ Deno.serve(async (req) => {
     }).select("id").single();
     if (insErr) return json(500, { error: insErr.message });
 
-    // Build Cashfree Payment Link
-    const base = env === "production" ? "https://api.cashfree.com" : "https://sandbox.cashfree.com";
+    // Build Cashfree Order (Orders API — enabled by default)
+    const apiBase = env === "production" ? "https://api.cashfree.com" : "https://sandbox.cashfree.com";
+    const payBase = env === "production" ? "https://payments.cashfree.com" : "https://payments-test.cashfree.com";
     const returnUrl = `${parsed.data.return_origin ?? "https://likkiunlocking.com"}/dashboard?cashfree_order=${created.id}`;
     const notifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/cashfree-webhook`;
 
     const phoneDigits = (profile?.phone ?? "").replace(/\D/g, "").slice(-10) || "9999999999";
     const payload = {
-      link_id: linkId,
-      link_amount: amountInr,
-      link_currency: "INR",
-      link_purpose: `Wallet top-up $${amountUsd}`,
+      order_id: linkId,
+      order_amount: amountInr,
+      order_currency: "INR",
+      order_note: `Wallet top-up $${amountUsd}`,
       customer_details: {
+        customer_id: user.id,
         customer_name: profile?.display_name || (profile?.email ?? "Customer").split("@")[0],
         customer_email: profile?.email || `${user.id}@example.com`,
         customer_phone: phoneDigits,
       },
-      link_notify: { send_sms: false, send_email: false },
-      link_meta: {
-        return_url: returnUrl,
+      order_meta: {
+        return_url: `${returnUrl}&order_id={order_id}`,
         notify_url: notifyUrl,
       },
-      link_expiry_time: expires,
-      link_auto_reminders: false,
+      order_expiry_time: expires,
     };
 
-    const cfRes = await fetch(`${base}/pg/links`, {
+    const cfRes = await fetch(`${apiBase}/pg/orders`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -120,22 +120,24 @@ Deno.serve(async (req) => {
       body: JSON.stringify(payload),
     });
     const cfJson = await cfRes.json().catch(() => ({}));
-    if (!cfRes.ok || !cfJson.link_url) {
-      console.error("Cashfree link creation failed", cfRes.status, cfJson);
+    const sessionId = cfJson?.payment_session_id;
+    if (!cfRes.ok || !sessionId) {
+      console.error("Cashfree order creation failed", cfRes.status, cfJson);
       await admin.from("payment_orders").update({ status: "failed", raw: { ...payload, error: cfJson } }).eq("id", created.id);
       return json(400, { error: cfJson?.message || "Cashfree order failed" });
     }
 
+    const checkoutUrl = `${payBase}/pay/order/${sessionId}`;
     await admin.from("payment_orders").update({
-      checkout_url: cfJson.link_url,
-      prepay_id: cfJson.cf_link_id ? String(cfJson.cf_link_id) : null,
+      checkout_url: checkoutUrl,
+      prepay_id: cfJson.cf_order_id ? String(cfJson.cf_order_id) : null,
       raw: { ...payload, response: cfJson },
     }).eq("id", created.id);
 
     return json(200, {
       ok: true,
       order_id: created.id,
-      link_url: cfJson.link_url,
+      link_url: checkoutUrl,
       amount_usd: amountUsd,
       amount_inr: amountInr,
       rate,
