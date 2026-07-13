@@ -67,7 +67,9 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const linkId = `LK${Date.now()}${Math.floor(Math.random() * 1000)}`.slice(0, 40);
-    const expiryMin = Number(settings.order_expiry_minutes ?? 30);
+    // Cashfree requires expiry between 15 min and 30 days. Clamp to safe range (min 16 min).
+    const requestedMin = Number(settings.order_expiry_minutes ?? 30);
+    const expiryMin = Math.min(Math.max(requestedMin, 16), 60 * 24 * 30 - 1);
     const expires = new Date(Date.now() + expiryMin * 60_000).toISOString();
 
     // Persist a pending payment_orders row. Store the USD amount so credit_balance uses USD.
