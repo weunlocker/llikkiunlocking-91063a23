@@ -90,10 +90,24 @@ Deno.serve(async (req) => {
           p_payment_order_id: order.id,
         });
       } catch (e) { console.warn("referral bonus", e); }
+      // Telegram notifications
+      try {
+        const { data: prof } = await admin.from("profiles").select("email,display_name").eq("id", order.user_id).maybeSingle();
+        const who = prof?.display_name || prof?.email || order.user_id;
+        const inr = (order.raw as any)?.amount_inr;
+        const adminBody = `💰 Payment Success (Cashfree)\nUser: ${who}\nAmount: $${Number(order.amount).toFixed(2)}${inr ? ` (₹${inr})` : ""}\nNew Balance: $${Number(newBal).toFixed(2)}`;
+        await admin.functions.invoke("telegram-notify", { body: { broadcast: "admins", body: adminBody, format: "plain" } });
+        await admin.functions.invoke("telegram-notify", { body: { user_id: order.user_id, subject: "💰 Top-up Successful", body: `Amount: $${Number(order.amount).toFixed(2)}\nNew Balance: $${Number(newBal).toFixed(2)}\nMethod: Cashfree`, format: "plain" } });
+      } catch (e) { console.warn("tg notify", e); }
     } else if (status === "EXPIRED" || status === "CANCELLED" || status === "FAILED") {
       await admin.from("payment_orders").update({
         status: "failed", raw: { ...(order.raw ?? {}), webhook: evt },
       }).eq("id", order.id);
+      try {
+        const { data: prof } = await admin.from("profiles").select("email,display_name").eq("id", order.user_id).maybeSingle();
+        const who = prof?.display_name || prof?.email || order.user_id;
+        await admin.functions.invoke("telegram-notify", { body: { broadcast: "admins", body: `⚠️ Payment ${status} (Cashfree)\nUser: ${who}\nAmount: $${Number(order.amount).toFixed(2)}`, format: "plain" } });
+      } catch (e) { console.warn("tg notify", e); }
     }
 
     return json(200, { ok: true });
