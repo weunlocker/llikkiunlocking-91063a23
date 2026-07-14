@@ -101,6 +101,17 @@ export default function Register() {
         },
       });
     } catch (_) { /* non-blocking */ }
+    // Fire-and-forget Telegram alert to admins about new signup
+    try {
+      await supabase.functions.invoke("telegram-notify", {
+        body: {
+          broadcast: "admins",
+          subject: "🆕 New Account Created",
+          body: `Email: ${parsed.data.email}\nName: ${parsed.data.displayName || "—"}${form.phone ? `\nPhone: ${form.phone}` : ""}${country?.name ? `\nCountry: ${country.name}` : ""}`,
+          format: "plain",
+        },
+      });
+    } catch (_) { /* non-blocking */ }
     setLoading(false);
     toast.success("Account created! You can sign in now.");
     navigate("/login");
