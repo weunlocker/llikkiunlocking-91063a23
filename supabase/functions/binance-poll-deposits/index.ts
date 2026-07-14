@@ -136,6 +136,15 @@ Deno.serve(async (req) => {
         });
       } catch (e) { console.error("topup email", e); }
 
+      // Telegram notifications
+      try {
+        const { data: prof } = await admin.from("profiles").select("email,display_name").eq("id", found.user_id).maybeSingle();
+        const who = prof?.display_name || prof?.email || found.user_id;
+        const adminBody = `💰 Payment Success (Binance ${d.coin ?? "USDT"})\nUser: ${who}\nAmount: $${depAmount.toFixed(2)}\nNew Balance: $${newBal.toFixed(2)}\nTx: ${d.txId ?? "—"}`;
+        await admin.functions.invoke("telegram-notify", { body: { broadcast: "admins", body: adminBody, format: "plain" } });
+        await admin.functions.invoke("telegram-notify", { body: { user_id: found.user_id, subject: "💰 Top-up Successful", body: `Amount: $${depAmount.toFixed(2)}\nNew Balance: $${newBal.toFixed(2)}\nMethod: Binance Pay (${d.coin ?? "USDT"})`, format: "plain" } });
+      } catch (e) { console.warn("tg notify", e); }
+
       // Award referral bonus (if applicable)
       try {
         const { data: ref } = await admin.rpc("award_referral_bonus", {
