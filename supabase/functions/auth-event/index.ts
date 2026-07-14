@@ -78,18 +78,18 @@ Deno.serve(async (req) => {
 
     // Notify admins (debounced — skip if any alert already sent from this IP in the last minute)
     if (recentFromIp === 0) {
-      const subject = verifiedSuccess ? "✅ Login success" : "⚠️ Login FAILED";
-      const body = `Email: ${finalEmail || "—"}\nIP: ${ip || "—"}\nUA: ${userAgent.slice(0, 120)}`;
-      await supabase.functions.invoke("telegram-notify", { body: { broadcast: "admins", subject, body } });
+      const badge = verifiedSuccess ? "✅ Success" : "❌ Failed";
+      const subject = `Login ${badge}`;
+      const body = `Email: ${finalEmail || "—"}\nIP: ${ip || "—"}`;
+      await supabase.functions.invoke("telegram-notify", { body: { broadcast: "admins", subject, body, format: "plain" } });
 
-      // Only notify the account owner on VERIFIED successful logins.
-      // Failed-attempt notifications are admin-only to prevent spoofed security-alert spam.
       if (verifiedSuccess && userId) {
         await supabase.functions.invoke("telegram-notify", {
           body: {
             user_id: userId,
-            subject: "🔐 New login to your account",
-            body: `Email: ${finalEmail || "—"}\nIP: ${ip || "—"}\nUA: ${userAgent.slice(0, 120)}`,
+            subject: "🔐 New login",
+            body: `Email: ${finalEmail || "—"}\nIP: ${ip || "—"}`,
+            format: "plain",
           },
         });
       }
