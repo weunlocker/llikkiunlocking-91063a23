@@ -301,6 +301,19 @@ async function runUpstream(ctx: PlacementCtx) {
         : String(key);
       resultText = normalizeHtml(resultText) || String(key);
       success = true;
+      // Low stock alert (admin)
+      try {
+        const { count } = await supabase.from("stock_items")
+          .select("id", { count: "exact", head: true })
+          .eq("group_id", service.stock_group_id).eq("status", "available");
+        const remaining = count ?? 0;
+        if (remaining <= 5) {
+          const { data: grp } = await supabase.from("stock_groups").select("name").eq("id", service.stock_group_id).maybeSingle();
+          const emoji = remaining === 0 ? "🚨" : "📉";
+          const label = remaining === 0 ? "OUT OF STOCK" : "Low stock";
+          await supabase.functions.invoke("telegram-notify", { body: { broadcast: "admins", body: `${emoji} ${label}\nGroup: ${grp?.name ?? service.stock_group_id}\nService: ${service.name}\nRemaining: ${remaining}`, format: "plain" } });
+        }
+      } catch (e) { console.warn("low stock notify", e); }
     }
   } else if (!hasUpstream) {
     resultText = `Demo mode — no upstream API configured for "${service.name}".\nIMEI: ${imei}\nResult: simulated success.`;
