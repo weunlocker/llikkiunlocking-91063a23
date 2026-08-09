@@ -360,13 +360,12 @@ Deno.serve(async (req) => {
           || "Order rejected";
         const htmlMsg = rawMsg.replace(/\r\n?/g, "\n").replace(/\n/g, "<br />");
         return json(200, {
-          ID: serviceParam,
+          ID: refId || serviceParam,
           IMEI: imei,
           ERROR: [{
             MESSAGE: rawMsg,
             FULL_DESCRIPTION: htmlMsg,
             REFERENCEID: refId,
-            ID: refId,
             STATUS: "3",
             STATUS_TEXT: "Rejected",
             CODE: htmlMsg,
