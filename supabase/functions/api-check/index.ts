@@ -65,11 +65,13 @@ Deno.serve(async (req) => {
       } catch { /* ignore body parse errors */ }
     }
 
-    // Dhru Fusion bulk format: a single form field "data" or "parameters"
+    // Dhru Fusion bulk format: a single form field "data", "parameters", or
+    // "query" containing the actual request. Some Fusion builds POST JSON like
+    // {"query":"username=...&apiaccesskey=...&action=..."}.
     // containing JSON, query-string args, or XML like:
     // <PARAMETERS><ID>123</ID><IMEI>...</IMEI><CUSTOMFIELD>...</CUSTOMFIELD></PARAMETERS>
     // Unwrap any such wrapper fields.
-    for (const wrapper of ["data", "parameters", "PARAMETERS", "Parameters", "params"]) {
+    for (const wrapper of ["data", "parameters", "PARAMETERS", "Parameters", "params", "query", "QUERY"]) {
       const raw = params.get(wrapper);
       if (!raw) continue;
       const variants = payloadVariants(raw);
