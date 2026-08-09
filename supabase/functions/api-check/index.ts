@@ -352,11 +352,25 @@ Deno.serve(async (req) => {
       }
       const refId = orderNumber ?? (orderId ? String(orderId) : "");
       if (body.status === "failed") {
-        const generic = "Order failed. Please try again later or contact support.";
+        // Pass the real supplier/rejection text through, plus the reference id,
+        // so Dhru shows the actual reason instead of a generic failure + ref 0.
+        const rawMsg = String(body.error || body.result || "Order rejected").trim()
+          || "Order rejected";
+        const htmlMsg = rawMsg.replace(/\r\n?/g, "\n").replace(/\n/g, "<br />");
         return json(200, {
           ID: serviceParam,
           IMEI: imei,
-          ERROR: [{ MESSAGE: generic, FULL_DESCRIPTION: generic }],
+          ERROR: [{
+            MESSAGE: rawMsg,
+            FULL_DESCRIPTION: htmlMsg,
+            REFERENCEID: refId,
+            ID: refId,
+            STATUS: "3",
+            STATUS_TEXT: "Rejected",
+            CODE: htmlMsg,
+            REPLY: htmlMsg,
+            RESULT: htmlMsg,
+          }],
           apiversion: "2.0.0",
         });
       }
@@ -376,18 +390,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Plain (non-Dhru) JSON response — also hide upstream failure details.
+    // Plain (non-Dhru) JSON response — pass the real rejection reason through.
     if (result.body && (result.body as any).status === "failed") {
+      const b = result.body as any;
       return json(result.status, {
         status: "failed",
-        imei: (result.body as any).imei,
-        service: (result.body as any).service,
-        error: "Order failed. Please try again later or contact support.",
-        refunded: (result.body as any).refunded,
-        balance_after: (result.body as any).balance_after,
-        order_id: (result.body as any).order_id,
+        imei: b.imei,
+        service: b.service,
+        error: String(b.error || b.result || "Order rejected"),
+        refunded: b.refunded,
+        balance_after: b.balance_after,
+        order_id: b.order_id,
       });
     }
+
     return json(result.status, result.body);
   } catch (e) {
     console.error("api-check error:", e);
