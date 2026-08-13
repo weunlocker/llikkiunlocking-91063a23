@@ -10,6 +10,8 @@ import { SiteSettingsProvider } from "@/hooks/useSiteSettings";
 import AIChatWidget from "@/components/AIChatWidget";
 import FloatingContact from "@/components/FloatingContact";
 import CookieConsent from "@/components/CookieConsent";
+import MaintenanceGate from "@/components/MaintenanceGate";
+
 import { lazy, Suspense } from "react";
 
 import Home from "./pages/Home";
