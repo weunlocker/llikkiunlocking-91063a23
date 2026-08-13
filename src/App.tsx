@@ -51,11 +51,13 @@ const App = () => (
         <AuthProvider>
           <SiteSettingsProvider>
           <ConfirmProvider>
+          <MaintenanceGate>
           <AIChatWidget />
           <FloatingContact />
           <CookieConsent />
           <Suspense fallback={<PageFallback />}>
           <Routes>
+
             <Route path="/" element={<Home />} />
             <Route path="/services" element={<Services />} />
             <Route path="/services/mdm-bypass" element={<MdmBypass />} />
