@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Loader2, Save, Wrench, AlertTriangle } from "lucide-react";
+import { Loader2, Save, Wrench, AlertTriangle, Power } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type Form = {
   maintenance_enabled: boolean;
@@ -71,8 +71,13 @@ export default function AdminMaintenance() {
       <div className="max-w-3xl space-y-4">
         <div className="glass rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-primary" />
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                form.maintenance_enabled ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+              )}>
+                <Power className="w-5 h-5" />
+              </div>
               <div>
                 <h3 className="font-bold">Maintenance mode</h3>
                 <p className="text-sm text-muted-foreground">
@@ -81,10 +86,22 @@ export default function AdminMaintenance() {
                 </p>
               </div>
             </div>
-            <Switch
-              checked={form.maintenance_enabled}
-              onCheckedChange={(v) => set("maintenance_enabled", v)}
-            />
+            <button
+              type="button"
+              onClick={() => set("maintenance_enabled", !form.maintenance_enabled)}
+              className={cn(
+                "relative h-10 w-28 rounded-full border-2 font-bold text-sm uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2",
+                form.maintenance_enabled
+                  ? "border-destructive bg-destructive/10 text-destructive shadow-[0_0_12px_rgba(var(--destructive),0.25)]"
+                  : "border-primary bg-primary/10 text-primary shadow-[0_0_12px_rgba(var(--primary),0.2)]"
+              )}
+            >
+              <span className={cn(
+                "w-2 h-2 rounded-full animate-pulse",
+                form.maintenance_enabled ? "bg-destructive" : "bg-primary"
+              )} />
+              {form.maintenance_enabled ? "ON" : "OFF"}
+            </button>
           </div>
 
           {form.maintenance_enabled && (
