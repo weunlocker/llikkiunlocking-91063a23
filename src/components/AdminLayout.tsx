@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard, Users, Briefcase, ListOrdered, Wallet, Settings,
-  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, X, Send, Network, CreditCard, Shield, Crown, Gift, BarChart3, MessageSquare, Activity, ChevronDown, Smartphone, Server, Package, Menu, Bot, FileText,
+  ShieldCheck, LogOut, ExternalLink, Bell, Plug, Tags, Mail, X, Send, Network, CreditCard, Shield, Crown, Gift, BarChart3, MessageSquare, Activity, ChevronDown, Smartphone, Server, Package, Menu, Bot, FileText, Wrench,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -46,6 +46,7 @@ const baseNavItems: NavItem[] = [
 
   { to: "/admin/turnstile", label: "Turnstile", icon: Shield },
   { to: "/admin/ai-settings", label: "AI / Chatbot", icon: Bot },
+  { to: "/admin/maintenance", label: "Maintenance", icon: Wrench },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 
 ];

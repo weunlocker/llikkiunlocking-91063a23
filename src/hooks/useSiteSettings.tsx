@@ -25,6 +25,9 @@ export type SiteSettings = {
   platform_upgrade_popup_enabled: boolean;
   signup_bonus_enabled: boolean;
   signup_bonus_amount: number;
+  maintenance_enabled: boolean;
+  maintenance_title: string;
+  maintenance_message: string;
 };
 
 const DEFAULTS: SiteSettings = {
@@ -40,7 +43,11 @@ const DEFAULTS: SiteSettings = {
   platform_upgrade_popup_enabled: true,
   signup_bonus_enabled: true,
   signup_bonus_amount: 1,
+  maintenance_enabled: false,
+  maintenance_title: "We'll be back soon",
+  maintenance_message: "Our site is currently undergoing scheduled maintenance. Please check back shortly.",
 };
+
 
 type Ctx = { settings: SiteSettings; loading: boolean; refresh: () => Promise<void> };
 const SiteCtx = createContext<Ctx>({ settings: DEFAULTS, loading: true, refresh: async () => {} });

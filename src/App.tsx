@@ -10,6 +10,8 @@ import { SiteSettingsProvider } from "@/hooks/useSiteSettings";
 import AIChatWidget from "@/components/AIChatWidget";
 import FloatingContact from "@/components/FloatingContact";
 import CookieConsent from "@/components/CookieConsent";
+import MaintenanceGate from "@/components/MaintenanceGate";
+
 import { lazy, Suspense } from "react";
 
 import Home from "./pages/Home";
@@ -49,11 +51,13 @@ const App = () => (
         <AuthProvider>
           <SiteSettingsProvider>
           <ConfirmProvider>
+          <MaintenanceGate>
           <AIChatWidget />
           <FloatingContact />
           <CookieConsent />
           <Suspense fallback={<PageFallback />}>
           <Routes>
+
             <Route path="/" element={<Home />} />
             <Route path="/services" element={<Services />} />
             <Route path="/services/mdm-bypass" element={<MdmBypass />} />
@@ -75,7 +79,9 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
+          </MaintenanceGate>
           </ConfirmProvider>
+
           </SiteSettingsProvider>
         </AuthProvider>
       </BrowserRouter>
