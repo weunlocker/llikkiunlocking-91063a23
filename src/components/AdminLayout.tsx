@@ -46,6 +46,7 @@ const baseNavItems: NavItem[] = [
 
   { to: "/admin/turnstile", label: "Turnstile", icon: Shield },
   { to: "/admin/ai-settings", label: "AI / Chatbot", icon: Bot },
+  { to: "/admin/maintenance", label: "Maintenance", icon: Wrench },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 
 ];
